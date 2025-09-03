@@ -1,0 +1,112 @@
+{
+  "name": "Argus++ Network Monitor",
+  "listen": "localhost:8080",
+  "monitors": [
+    {
+      "sort": 1,
+      "group": "Web Services",
+      "destinations": [
+        {
+          "sort": 1,
+          "name": "Google",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 30,
+          "history": 100,
+          "test": {
+            "method": "URL",
+            "url": "https://www.google.com"
+          }
+        },
+        {
+          "sort": 2,
+          "name": "GitHub",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 30,
+          "history": 100,
+          "test": {
+            "method": "URL",
+            "url": "https://github.com"
+          }
+        }
+      ]
+    },
+    {
+      "sort": 2,
+      "group": "Network Connectivity",
+      "destinations": [
+        {
+          "sort": 1,
+          "name": "DNS Server",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 60,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "8.8.8.8"
+          }
+        },
+        {
+          "sort": 2,
+          "name": "Local Router",
+          "timeout": 1000,
+          "warning": 3,
+          "failure": 5,
+          "reset": 3,
+          "interval": 30,
+          "history": 100,
+          "test": {
+            "method": "Ping",
+            "host": "192.168.1.1"
+          }
+        }
+      ]
+    },
+    {
+      "sort": 3,
+      "group": "Port Connectivity",
+      "destinations": [
+        {
+          "sort": 1,
+          "name": "HTTP Port",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 45,
+          "history": 80,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.google.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 2,
+          "name": "HTTPS Port",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 45,
+          "history": 80,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.google.com",
+            "port": 443
+          }
+        }
+      ]
+    }
+  ]
+}

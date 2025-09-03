@@ -1,0 +1,14 @@
+#pragma once
+
+#include "network_test.h"
+
+class network_test_connect : public network_test {
+public:
+    test_result execute(const test_config& config, int timeout_ms) override;
+    std::string get_description(const test_config& config) override;
+    void validate_config(const test_config& config) override;
+
+private:
+    bool test_tcp_connection(const std::string& host, int port, int timeout_ms);
+    bool test_udp_connection(const std::string& host, int port, int timeout_ms);
+};
