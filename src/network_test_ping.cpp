@@ -23,7 +23,8 @@ test_result network_test_ping::execute(const test_config& config, int timeout_ms
         }
     } catch (const std::exception& e) {
         error = e.what();
-        spdlog::debug("Ping test failed for {}: {}", config.host.value_or("unknown"), error);
+        std::string host_str = config.host.value_or("unknown");
+        spdlog::debug("Ping test failed for {}: {}", host_str, error);
     }
 
     auto end_time = std::chrono::steady_clock::now();
@@ -51,3 +52,4 @@ bool network_test_ping::ping_host(const std::string& host, int timeout_ms) {
     int result = system(command.c_str());
     return result == 0;
 }
+

@@ -24,7 +24,8 @@ public:
         log_memory_usage("Startup");
 
         auto config = monitor_config::load_config(config_path);
-        spdlog::info("Loaded configuration for instance: {}", config.name);
+        std::string config_name = config.name;  // Store in variable to avoid warning
+        spdlog::info("Loaded configuration for instance: {}", config_name);
         log_memory_usage("Config loaded");
 
         monitors_instance = std::make_shared<monitors>(config);
@@ -105,3 +106,4 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
+

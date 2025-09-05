@@ -6,7 +6,8 @@ monitors::monitors(const monitor_config& config) : running_(false) {
     int total_monitors = 0;
     
     for (const auto& group : config.monitors) {
-        spdlog::info("Initializing monitor group: {}", group.group_name);
+        std::string group_name = group.group_name;  // Store to avoid warning
+        spdlog::info("Initializing monitor group: {}", group_name);
         
         for (const auto& dest : group.destinations) {
             try {
@@ -15,7 +16,8 @@ monitors::monitors(const monitor_config& config) : running_(false) {
                 monitors_map_[key] = state;
                 total_monitors++;
                 
-                spdlog::debug("Initialized monitor: {} ({})", dest.name, state->get_test_description());
+                std::string test_desc = state->get_test_description();  // Store to avoid warning
+                spdlog::debug("Initialized monitor: {} ({})", dest.name, test_desc);
             } catch (const std::exception& e) {
                 spdlog::error("Failed to initialize monitor {}: {}", dest.name, e.what());
                 throw std::runtime_error("Invalid test configuration for " + dest.name);
@@ -121,3 +123,4 @@ test_result monitors::execute_test(std::shared_ptr<monitor_state> state) {
 const std::map<std::string, std::shared_ptr<monitor_state>>& monitors::get_monitors_map() const {
     return monitors_map_;
 }
+

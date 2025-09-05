@@ -30,9 +30,10 @@ test_result network_test_connect::execute(const test_config& config, int timeout
         
     } catch (const std::exception& e) {
         error = e.what();
+        std::string host_str = config.host.value_or("unknown");
+        std::string protocol_str = to_string(config.protocol_type.value());
         spdlog::debug("Connection test failed for {}:{} ({}): {}", 
-                     config.host.value_or("unknown"), config.port, 
-                     to_string(config.protocol_type.value()), error);
+                     host_str, config.port, protocol_str, error);
     }
 
     auto end_time = std::chrono::steady_clock::now();
@@ -149,3 +150,4 @@ bool network_test_connect::test_udp_connection(const std::string& host, int port
     // For UDP, we consider it successful if no error occurred during send
     return sent >= 0;
 }
+

@@ -15,7 +15,8 @@ test_result network_test_url::execute(const test_config& config, int timeout_ms)
                                      timeout_ms);
     } catch (const std::exception& e) {
         error = e.what();
-        spdlog::debug("URL test failed for {}: {}", config.url.value_or("unknown"), error);
+        std::string url_str = config.url.value_or("unknown");
+        spdlog::debug("URL test failed for {}: {}", url_str, error);
     }
 
     auto end_time = std::chrono::steady_clock::now();
@@ -123,3 +124,4 @@ bool network_test_url::perform_http_request(const std::string& url, const std::s
         return false;
     }
 }
+

@@ -5,6 +5,23 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Set default build type to Debug if not specified
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
+    message(STATUS "Build type not specified, defaulting to Debug")
+endif()
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+
+# Enable parallel compilation by default
+if(NOT CMAKE_BUILD_PARALLEL_LEVEL)
+    include(ProcessorCount)
+    ProcessorCount(N)
+    if(NOT N EQUAL 0)
+        set(CMAKE_BUILD_PARALLEL_LEVEL ${N} CACHE STRING "Default parallel build level")
+        message(STATUS "Setting parallel build level to ${N} cores")
+    endif()
+endif()
+
 # Find required packages
 find_package(PkgConfig REQUIRED)
 find_package(Threads REQUIRED)
@@ -72,10 +89,15 @@ target_link_libraries(argus_plus
 if(MSVC)
     target_compile_options(argus_plus PRIVATE /W4)
 else()
-    target_compile_options(argus_plus PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(argus_plus PRIVATE 
+        -Wall -Wextra -Wpedantic
+        # Suppress the specific fmt dangling reference warnings that are false positives
+        -Wno-dangling-reference
+    )
 endif()
 
 # Set output directory
 set_target_properties(argus_plus PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
+
