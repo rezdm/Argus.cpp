@@ -8,7 +8,7 @@
 #include <chrono>
 #include <cstring>
 
-test_result network_test_connect::execute(const test_config& config, int timeout_ms) {
+test_result network_test_connect::execute(const test_config& config, const int timeout_ms) {
     const auto start_time = std::chrono::steady_clock::now();
     bool success = false;
     std::string error;
@@ -59,7 +59,7 @@ void network_test_connect::validate_config(const test_config& config) {
     }
 }
 
-bool network_test_connect::test_tcp_connection(const std::string& host, int port, int timeout_ms) {
+bool network_test_connect::test_tcp_connection(const std::string& host, const int port, const int timeout_ms) {
     const int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0) {
         return false;
@@ -118,7 +118,7 @@ bool network_test_connect::test_tcp_connection(const std::string& host, int port
     return false;
 }
 
-bool network_test_connect::test_udp_connection(const std::string& host, int port, int timeout_ms) {
+bool network_test_connect::test_udp_connection(const std::string& host, const int port, const int timeout_ms) {
     // Note: timeout_ms is not easily applicable to UDP since it's connectionless
     (void)timeout_ms; // Suppress warning
 

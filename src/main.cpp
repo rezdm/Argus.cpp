@@ -40,7 +40,7 @@ public:
         instance_ = this;
     }
 
-    void shutdown() {
+    void shutdown() const {
         spdlog::info("Shutting down Argus++ Monitor");
 
         if (server_instance) {
@@ -71,7 +71,7 @@ private:
 
 main_application* main_application::instance_ = nullptr;
 
-int main(int argc, char* argv[]) {
+int main(const int argc, char* argv[]) {
     if (argc != 2) {
         spdlog::error("Usage: {} <config.json>", argv[0]);
         return 1;

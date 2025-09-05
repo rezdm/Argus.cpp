@@ -1,10 +1,11 @@
 #include "monitor_state.h"
 #include "test_factory.h"
 #include <algorithm>
+#include <utility>
 #include <spdlog/spdlog.h>
 
-monitor_state::monitor_state(const destination& dest, const group& grp)
-    : destination_(dest), group_(grp), 
+monitor_state::monitor_state(const destination& dest, group  grp)
+    : destination_(dest), group_(std::move(grp)),
       last_result_(false, 0, std::chrono::system_clock::now()) {
     
     test_implementation_ = test_factory::get_test(dest.test.test_method_type);
@@ -26,7 +27,7 @@ void monitor_state::add_result(const test_result& result) {
     update_status(result.success);
 }
 
-void monitor_state::update_status(bool test_success) {
+void monitor_state::update_status(const bool test_success) {
     if (test_success) {
         consecutive_successes_++;
         consecutive_failures_ = 0;

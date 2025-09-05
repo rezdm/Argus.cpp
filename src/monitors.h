@@ -22,9 +22,9 @@ private:
     std::map<std::string, std::shared_ptr<monitor_state>> monitors_map_;
     std::vector<std::thread> worker_threads_;
     std::atomic<bool> running_;
-    
-    void perform_test(std::shared_ptr<monitor_state> state);
 
-    static test_result execute_test(std::shared_ptr<monitor_state> state);
-    void monitor_worker(std::shared_ptr<monitor_state> state);
+    static void perform_test(const std::shared_ptr<monitor_state> &state);
+
+    static test_result execute_test(const std::shared_ptr<monitor_state> &state);
+    void monitor_worker(const std::shared_ptr<monitor_state> &state) const;
 };

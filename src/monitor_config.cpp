@@ -101,8 +101,7 @@ group monitor_config_loader::parse_group(const json& group_node) {
     grp.sort = group_node["sort"].get<int>();
     grp.group_name = group_node["group"].get<std::string>();
 
-    const auto& destinations_node = group_node["destinations"];
-    for (const auto& dest_node : destinations_node) {
+    for (const auto& destinations_node = group_node["destinations"]; const auto& dest_node : destinations_node) {
         grp.destinations.push_back(parse_destination(dest_node));
     }
 
@@ -113,7 +112,7 @@ group monitor_config_loader::parse_group(const json& group_node) {
     return grp;
 }
 
-std::string to_string(test_method method) {
+std::string to_string(const test_method method) {
     switch (method) {
         case test_method::ping: return "ping";
         case test_method::connect: return "connect";
@@ -122,7 +121,7 @@ std::string to_string(test_method method) {
     }
 }
 
-std::string to_string(protocol proto) {
+std::string to_string(const protocol proto) {
     switch (proto) {
         case protocol::tcp: return "tcp";
         case protocol::udp: return "udp";
@@ -130,7 +129,7 @@ std::string to_string(protocol proto) {
     }
 }
 
-std::string to_string(monitor_status status) {
+std::string to_string(const monitor_status status) {
     switch (status) {
         case monitor_status::ok: return "OK";
         case monitor_status::warning: return "WARNING";
@@ -141,7 +140,7 @@ std::string to_string(monitor_status status) {
 
 test_method parse_test_method(const std::string& str) {
     std::string lower_str = str;
-    std::transform(lower_str.begin(), lower_str.end(), lower_str.begin(), ::tolower);
+    std::ranges::transform(lower_str, lower_str.begin(), ::tolower);
     
     if (lower_str == "ping") return test_method::ping;
     if (lower_str == "connect") return test_method::connect;

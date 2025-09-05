@@ -8,8 +8,8 @@
 
 class monitor_state {
 public:
-    monitor_state(const destination& dest, const group& grp);
-    
+    monitor_state(const destination &dest, group grp);
+
     void add_result(const test_result& result);
     monitor_status get_current_status() const;
     const test_result* get_last_result() const;

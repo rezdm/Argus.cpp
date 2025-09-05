@@ -1,4 +1,7 @@
 #include "test_factory.h"
+
+#include <ranges>
+
 #include "network_test_ping.h"
 #include "network_test_connect.h"
 #include "network_test_url.h"
@@ -17,7 +20,7 @@ void test_factory::initialize_default_tests() {
     initialized_ = true;
 }
 
-std::shared_ptr<network_test> test_factory::get_test(test_method method) {
+std::shared_ptr<network_test> test_factory::get_test(const test_method method) {
     initialize_default_tests();
 
     const auto it = test_implementations_.find(method);
@@ -28,7 +31,7 @@ std::shared_ptr<network_test> test_factory::get_test(test_method method) {
     return it->second;
 }
 
-void test_factory::register_test(test_method method, const std::shared_ptr<network_test> &implementation) {
+void test_factory::register_test(const test_method method, const std::shared_ptr<network_test> &implementation) {
     if (!implementation) {
         throw std::invalid_argument("Implementation cannot be null");
     }
@@ -39,8 +42,8 @@ std::set<test_method> test_factory::get_supported_methods() {
     initialize_default_tests();
     
     std::set<test_method> methods;
-    for (const auto& pair : test_implementations_) {
-        methods.insert(pair.first);
+    for (const auto &key: test_implementations_ | std::views::keys) {
+        methods.insert(key);
     }
     return methods;
 }

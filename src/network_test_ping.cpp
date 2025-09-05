@@ -6,7 +6,7 @@
 #include <cstring>
 #include <chrono>
 
-test_result network_test_ping::execute(const test_config& config, int timeout_ms) {
+test_result network_test_ping::execute(const test_config& config, const int timeout_ms) {
     const auto start_time = std::chrono::steady_clock::now();
     bool success = false;
     std::string error;
@@ -41,7 +41,7 @@ void network_test_ping::validate_config(const test_config& config) {
     }
 }
 
-bool network_test_ping::ping_host(const std::string& host, int timeout_ms) {
+bool network_test_ping::ping_host(const std::string& host, const int timeout_ms) {
     // Simple implementation using system ping command for portability
     // In production, you might want to implement raw ICMP sockets
 

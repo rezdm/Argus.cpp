@@ -2,7 +2,7 @@
 
 #include "network_test.h"
 
-class network_test_ping : public network_test {
+class network_test_ping final : public network_test {
 public:
     test_result execute(const test_config& config, int timeout_ms) override;
     std::string get_description(const test_config& config) override;

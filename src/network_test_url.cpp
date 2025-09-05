@@ -3,7 +3,7 @@
 #include <httplib.h>
 #include <chrono>
 
-test_result network_test_url::execute(const test_config& config, int timeout_ms) {
+test_result network_test_url::execute(const test_config& config, const int timeout_ms) {
     const auto start_time = std::chrono::steady_clock::now();
     bool success = false;
     std::string error;
@@ -46,29 +46,28 @@ void network_test_url::validate_config(const test_config& config) {
     }
 }
 
-bool network_test_url::perform_http_request(const std::string& url, const std::string& proxy, int timeout_ms) {
+bool network_test_url::perform_http_request(const std::string& url, const std::string& proxy, const int timeout_ms) {
     // Note: proxy parameter currently unused - could be implemented later
     (void)proxy; // Suppress warning
     
     try {
         // Parse URL to extract host and path
-        std::string scheme, host, path;
+        std::string host, path;
         int port = 80;
 
         const size_t scheme_end = url.find("://");
         if (scheme_end == std::string::npos) {
             return false;
         }
-        
-        scheme = url.substr(0, scheme_end);
+
+        const std::string scheme = url.substr(0, scheme_end);
         if (scheme == "https") {
             port = 443;
         }
 
         const size_t host_start = scheme_end + 3;
-        const size_t path_start = url.find('/', host_start);
-        
-        if (path_start == std::string::npos) {
+
+        if (const size_t path_start = url.find('/', host_start); path_start == std::string::npos) {
             host = url.substr(host_start);
             path = "/";
         } else {
@@ -77,8 +76,7 @@ bool network_test_url::perform_http_request(const std::string& url, const std::s
         }
         
         // Check for port in host
-        const size_t port_pos = host.find(':');
-        if (port_pos != std::string::npos) {
+        if (const size_t port_pos = host.find(':'); port_pos != std::string::npos) {
             port = std::stoi(host.substr(port_pos + 1));
             host = host.substr(0, port_pos);
         }

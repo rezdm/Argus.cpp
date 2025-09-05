@@ -69,7 +69,7 @@ void monitors::stop_monitoring() {
     spdlog::info("All monitoring tasks stopped");
 }
 
-void monitors::monitor_worker(std::shared_ptr<monitor_state> state) {
+void monitors::monitor_worker(const std::shared_ptr<monitor_state> &state) const {
     while (running_) {
         perform_test(state);
         
@@ -81,7 +81,7 @@ void monitors::monitor_worker(std::shared_ptr<monitor_state> state) {
     }
 }
 
-void monitors::perform_test(std::shared_ptr<monitor_state> state) {
+void monitors::perform_test(const std::shared_ptr<monitor_state> &state) {
     try {
         const auto result = execute_test(state);
         state->add_result(result);
@@ -101,7 +101,7 @@ void monitors::perform_test(std::shared_ptr<monitor_state> state) {
     }
 }
 
-test_result monitors::execute_test(std::shared_ptr<monitor_state> state) {
+test_result monitors::execute_test(const std::shared_ptr<monitor_state> &state) {
     try {
         const auto& dest = state->get_destination();
         spdlog::trace("Executing {} test for {}", 
@@ -116,7 +116,7 @@ test_result monitors::execute_test(std::shared_ptr<monitor_state> state) {
         return result;
     } catch (const std::exception& e) {
         spdlog::debug("Test failed for {}: {}", state->get_destination().name, e.what());
-        return test_result(false, 0, std::chrono::system_clock::now(), e.what());
+        return {false, 0, std::chrono::system_clock::now(), e.what()};
     }
 }
 

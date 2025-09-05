@@ -205,7 +205,7 @@ std::string web_server::generate_status_page() {
     return html.str();
 }
 
-std::string web_server::get_status_class(monitor_status status) {
+std::string web_server::get_status_class(const monitor_status status) {
     switch (status) {
         case monitor_status::ok: return "status-ok";
         case monitor_status::warning: return "status-warning";
