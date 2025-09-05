@@ -78,7 +78,7 @@ int main(int argc, char* argv[]) {
     }
 
     // Set up logging
-    auto logger = spdlog::stdout_color_mt("argus_plus");
+    const auto logger = spdlog::stdout_color_mt("argus_plus");
     spdlog::set_default_logger(logger);
     spdlog::set_level(spdlog::level::info);
 

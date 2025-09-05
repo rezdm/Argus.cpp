@@ -1,6 +1,5 @@
 #pragma once
 
-#include "types.h"
 #include <chrono>
 #include <optional>
 #include <string>
@@ -11,10 +10,10 @@ public:
                     std::chrono::system_clock::time_point timestamp,
                     std::optional<std::string> error = std::nullopt);
     
-    bool get_success() const { return success_; }
-    long get_duration_ms() const { return duration_ms_; }
-    std::chrono::system_clock::time_point get_timestamp() const { return timestamp_; }
-    const std::optional<std::string>& get_error() const { return error_; }
+    [[nodiscard]] bool get_success() const { return success_; }
+    [[nodiscard]] long get_duration_ms() const { return duration_ms_; }
+    [[nodiscard]] std::chrono::system_clock::time_point get_timestamp() const { return timestamp_; }
+    [[nodiscard]] const std::optional<std::string>& get_error() const { return error_; }
 
 private:
     bool success_;

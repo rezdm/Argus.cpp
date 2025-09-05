@@ -9,7 +9,7 @@
 
 class web_server {
 public:
-    web_server(const monitor_config& config, 
+    web_server(monitor_config  config,
                const std::map<std::string, std::shared_ptr<monitor_state>>& monitors);
     ~web_server();
     
@@ -23,6 +23,8 @@ private:
     
     void handle_status_request(const httplib::Request& req, httplib::Response& res);
     std::string generate_status_page();
-    std::string get_status_class(monitor_status status);
-    std::string format_timestamp(const std::chrono::system_clock::time_point& timestamp);
+
+    static std::string get_status_class(monitor_status status);
+
+    static std::string format_timestamp(const std::chrono::system_clock::time_point& timestamp);
 };

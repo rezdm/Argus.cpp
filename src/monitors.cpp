@@ -12,7 +12,7 @@ monitors::monitors(const monitor_config& config) : running_(false) {
         for (const auto& dest : group.destinations) {
             try {
                 const std::string key = group.group_name + ":" + dest.name;
-                auto state = std::make_shared<monitor_state>(dest, group);
+                const auto state = std::make_shared<monitor_state>(dest, group);
                 monitors_map_[key] = state;
                 total_monitors++;
                 
@@ -74,7 +74,7 @@ void monitors::monitor_worker(std::shared_ptr<monitor_state> state) {
         perform_test(state);
         
         // Sleep for the interval, but check running_ periodically
-        int interval_seconds = state->get_destination().interval;
+        const int interval_seconds = state->get_destination().interval;
         for (int i = 0; i < interval_seconds && running_; ++i) {
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
@@ -83,7 +83,7 @@ void monitors::monitor_worker(std::shared_ptr<monitor_state> state) {
 
 void monitors::perform_test(std::shared_ptr<monitor_state> state) {
     try {
-        auto result = execute_test(state);
+        const auto result = execute_test(state);
         state->add_result(result);
         
         // Log significant status changes

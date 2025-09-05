@@ -3,14 +3,11 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/ip_icmp.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <unistd.h>
 #include <cstring>
 #include <chrono>
 
 test_result network_test_ping::execute(const test_config& config, int timeout_ms) {
-    auto start_time = std::chrono::steady_clock::now();
+    const auto start_time = std::chrono::steady_clock::now();
     bool success = false;
     std::string error;
 
@@ -27,11 +24,11 @@ test_result network_test_ping::execute(const test_config& config, int timeout_ms
         spdlog::debug("Ping test failed for {}: {}", host_str, error);
     }
 
-    auto end_time = std::chrono::steady_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+    const auto end_time = std::chrono::steady_clock::now();
+    const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
     
-    return test_result(success, duration, std::chrono::system_clock::now(), 
-                      error.empty() ? std::nullopt : std::optional<std::string>(error));
+    return {success, duration, std::chrono::system_clock::now(),
+                      error.empty() ? std::nullopt : std::optional(error)};
 }
 
 std::string network_test_ping::get_description(const test_config& config) {
@@ -47,9 +44,9 @@ void network_test_ping::validate_config(const test_config& config) {
 bool network_test_ping::ping_host(const std::string& host, int timeout_ms) {
     // Simple implementation using system ping command for portability
     // In production, you might want to implement raw ICMP sockets
-    
-    std::string command = "ping -c 1 -W " + std::to_string(timeout_ms / 1000 + 1) + " " + host + " > /dev/null 2>&1";
-    int result = system(command.c_str());
+
+    const std::string command = "ping -c 1 -W " + std::to_string(timeout_ms / 1000 + 1) + " " + host + " > /dev/null 2>&1";
+    const int result = system(command.c_str());
     return result == 0;
 }
 

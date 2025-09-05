@@ -2,7 +2,6 @@
 
 #include "types.h"
 #include <string>
-#include <vector>
 #include <nlohmann/json.hpp>
 
 class monitor_config_loader {

@@ -2,7 +2,6 @@
 #include <spdlog/spdlog.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 #include <netdb.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -10,7 +9,7 @@
 #include <cstring>
 
 test_result network_test_connect::execute(const test_config& config, int timeout_ms) {
-    auto start_time = std::chrono::steady_clock::now();
+    const auto start_time = std::chrono::steady_clock::now();
     bool success = false;
     std::string error;
 
@@ -36,11 +35,11 @@ test_result network_test_connect::execute(const test_config& config, int timeout
                      host_str, config.port, protocol_str, error);
     }
 
-    auto end_time = std::chrono::steady_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+    const auto end_time = std::chrono::steady_clock::now();
+    const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
     
-    return test_result(success, duration, std::chrono::system_clock::now(), 
-                      error.empty() ? std::nullopt : std::optional<std::string>(error));
+    return {success, duration, std::chrono::system_clock::now(),
+                      error.empty() ? std::nullopt : std::optional(error)};
 }
 
 std::string network_test_connect::get_description(const test_config& config) {
@@ -61,22 +60,22 @@ void network_test_connect::validate_config(const test_config& config) {
 }
 
 bool network_test_connect::test_tcp_connection(const std::string& host, int port, int timeout_ms) {
-    int sock = socket(AF_INET, SOCK_STREAM, 0);
+    const int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0) {
         return false;
     }
 
     // Set socket to non-blocking mode
-    int flags = fcntl(sock, F_GETFL, 0);
+    const int flags = fcntl(sock, F_GETFL, 0);
     fcntl(sock, F_SETFL, flags | O_NONBLOCK);
 
-    struct sockaddr_in addr;
+    sockaddr_in addr{};
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
 
     // Resolve hostname
-    struct hostent* he = gethostbyname(host.c_str());
+    const struct hostent* he = gethostbyname(host.c_str());
     if (!he) {
         close(sock);
         return false;
@@ -98,7 +97,7 @@ bool network_test_connect::test_tcp_connection(const std::string& host, int port
         FD_ZERO(&write_fds);
         FD_SET(sock, &write_fds);
 
-        struct timeval tv;
+        timeval tv{};
         tv.tv_sec = timeout_ms / 1000;
         tv.tv_usec = (timeout_ms % 1000) * 1000;
 
@@ -122,19 +121,19 @@ bool network_test_connect::test_tcp_connection(const std::string& host, int port
 bool network_test_connect::test_udp_connection(const std::string& host, int port, int timeout_ms) {
     // Note: timeout_ms is not easily applicable to UDP since it's connectionless
     (void)timeout_ms; // Suppress warning
-    
-    int sock = socket(AF_INET, SOCK_DGRAM, 0);
+
+    const int sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock < 0) {
         return false;
     }
 
-    struct sockaddr_in addr;
+    sockaddr_in addr{};
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
 
     // Resolve hostname
-    struct hostent* he = gethostbyname(host.c_str());
+    const struct hostent* he = gethostbyname(host.c_str());
     if (!he) {
         close(sock);
         return false;
@@ -142,8 +141,8 @@ bool network_test_connect::test_udp_connection(const std::string& host, int port
     memcpy(&addr.sin_addr, he->h_addr_list[0], he->h_length);
 
     // Send empty UDP packet
-    char buffer[1] = {0};
-    ssize_t sent = sendto(sock, buffer, 0, 0, (struct sockaddr*)&addr, sizeof(addr));
+    const char buffer[1] = {0};
+    const ssize_t sent = sendto(sock, buffer, 0, 0, (struct sockaddr*)&addr, sizeof(addr));
     
     close(sock);
     

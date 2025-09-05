@@ -9,5 +9,5 @@ public:
     void validate_config(const test_config& config) override;
 
 private:
-    bool ping_host(const std::string& host, int timeout_ms);
+    static bool ping_host(const std::string& host, int timeout_ms);
 };

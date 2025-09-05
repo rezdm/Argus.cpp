@@ -9,6 +9,7 @@ public:
     void validate_config(const test_config& config) override;
 
 private:
-    bool test_tcp_connection(const std::string& host, int port, int timeout_ms);
-    bool test_udp_connection(const std::string& host, int port, int timeout_ms);
+    static bool test_tcp_connection(const std::string& host, int port, int timeout_ms);
+
+    static bool test_udp_connection(const std::string& host, int port, int timeout_ms);
 };

@@ -9,7 +9,7 @@
 class test_factory {
 public:
     static std::shared_ptr<network_test> get_test(test_method method);
-    static void register_test(test_method method, std::shared_ptr<network_test> implementation);
+    static void register_test(test_method method, const std::shared_ptr<network_test> &implementation);
     static std::set<test_method> get_supported_methods();
     static std::string validate_and_describe(const test_config& config);
 

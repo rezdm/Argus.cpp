@@ -83,7 +83,7 @@ test_config monitor_config_loader::parse_test_config(const json& test_node) {
 destination monitor_config_loader::parse_destination(const json& dest_node) {
     auto test_config = parse_test_config(dest_node["test"]);
     
-    return destination(
+    return {
         dest_node["sort"].get<int>(),
         dest_node["name"].get<std::string>(),
         dest_node["timeout"].get<int>(),
@@ -93,7 +93,7 @@ destination monitor_config_loader::parse_destination(const json& dest_node) {
         dest_node["interval"].get<int>(),
         dest_node["history"].get<int>(),
         std::move(test_config)
-    );
+    };
 }
 
 group monitor_config_loader::parse_group(const json& group_node) {

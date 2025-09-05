@@ -74,6 +74,9 @@ add_executable(argus_plus
     network_test_ping.cpp
     network_test_connect.cpp
     network_test_url.cpp
+        monitor_state.cpp
+        monitor_state.cpp
+        main.cpp
 )
 
 # Link libraries

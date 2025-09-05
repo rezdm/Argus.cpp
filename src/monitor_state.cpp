@@ -12,13 +12,13 @@ monitor_state::monitor_state(const destination& dest, const group& grp)
 }
 
 void monitor_state::add_result(const test_result& result) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     
     last_result_ = result;
     
     // Add to history and maintain size limit
     history_.push_back(result);
-    int max_history = std::min(destination_.history, 1000); // Cap at 1000 records max
+    const int max_history = std::min(destination_.history, 1000); // Cap at 1000 records max
     while (static_cast<int>(history_.size()) > max_history) {
         history_.pop_front();
     }
@@ -51,40 +51,40 @@ void monitor_state::update_status(bool test_success) {
 }
 
 monitor_status monitor_state::get_current_status() const {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     return current_status_;
 }
 
 const test_result* monitor_state::get_last_result() const {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     return &last_result_;
 }
 
 double monitor_state::get_uptime_percentage() const {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     
     if (history_.empty()) {
         return 0.0;
     }
-    
-    int successful = std::count_if(history_.begin(), history_.end(),
-                                  [](const test_result& r) { return r.success; });
+
+    const int successful = std::ranges::count_if(history_,
+                                                 [](const test_result& r) { return r.success; });
     
     return static_cast<double>(successful) / history_.size() * 100.0;
 }
 
 std::vector<test_result> monitor_state::get_history() const {
-    std::lock_guard<std::mutex> lock(mutex_);
-    return std::vector<test_result>(history_.begin(), history_.end());
+    std::lock_guard lock(mutex_);
+    return std::vector(history_.begin(), history_.end());
 }
 
 int monitor_state::get_consecutive_failures() const {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     return consecutive_failures_;
 }
 
 int monitor_state::get_consecutive_successes() const {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     return consecutive_successes_;
 }
 

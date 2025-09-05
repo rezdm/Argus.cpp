@@ -4,7 +4,7 @@
 #include <chrono>
 
 test_result network_test_url::execute(const test_config& config, int timeout_ms) {
-    auto start_time = std::chrono::steady_clock::now();
+    const auto start_time = std::chrono::steady_clock::now();
     bool success = false;
     std::string error;
 
@@ -19,11 +19,11 @@ test_result network_test_url::execute(const test_config& config, int timeout_ms)
         spdlog::debug("URL test failed for {}: {}", url_str, error);
     }
 
-    auto end_time = std::chrono::steady_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+    const auto end_time = std::chrono::steady_clock::now();
+    const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
     
-    return test_result(success, duration, std::chrono::system_clock::now(), 
-                      error.empty() ? std::nullopt : std::optional<std::string>(error));
+    return {success, duration, std::chrono::system_clock::now(),
+                      error.empty() ? std::nullopt : std::optional(error)};
 }
 
 std::string network_test_url::get_description(const test_config& config) {
@@ -54,8 +54,8 @@ bool network_test_url::perform_http_request(const std::string& url, const std::s
         // Parse URL to extract host and path
         std::string scheme, host, path;
         int port = 80;
-        
-        size_t scheme_end = url.find("://");
+
+        const size_t scheme_end = url.find("://");
         if (scheme_end == std::string::npos) {
             return false;
         }
@@ -64,9 +64,9 @@ bool network_test_url::perform_http_request(const std::string& url, const std::s
         if (scheme == "https") {
             port = 443;
         }
-        
-        size_t host_start = scheme_end + 3;
-        size_t path_start = url.find('/', host_start);
+
+        const size_t host_start = scheme_end + 3;
+        const size_t path_start = url.find('/', host_start);
         
         if (path_start == std::string::npos) {
             host = url.substr(host_start);
@@ -77,14 +77,14 @@ bool network_test_url::perform_http_request(const std::string& url, const std::s
         }
         
         // Check for port in host
-        size_t port_pos = host.find(':');
+        const size_t port_pos = host.find(':');
         if (port_pos != std::string::npos) {
             port = std::stoi(host.substr(port_pos + 1));
             host = host.substr(0, port_pos);
         }
         
         // Set user agent
-        httplib::Headers headers = {
+        const httplib::Headers headers = {
             {"User-Agent", "Argus++/1.0 (Network Monitor)"},
             {"Accept", "*/*"},
             {"Connection", "close"}
@@ -97,12 +97,12 @@ bool network_test_url::perform_http_request(const std::string& url, const std::s
             httplib::SSLClient ssl_client(host, port);
             ssl_client.set_connection_timeout(timeout_ms / 1000, (timeout_ms % 1000) * 1000);
             ssl_client.set_read_timeout(timeout_ms / 1000, (timeout_ms % 1000) * 1000);
-            result = ssl_client.Get(path.c_str(), headers);
+            result = ssl_client.Get(path, headers);
         } else {
             httplib::Client http_client(host, port);
             http_client.set_connection_timeout(timeout_ms / 1000, (timeout_ms % 1000) * 1000);
             http_client.set_read_timeout(timeout_ms / 1000, (timeout_ms % 1000) * 1000);
-            result = http_client.Get(path.c_str(), headers);
+            result = http_client.Get(path, headers);
         }
         
         if (!result) {
@@ -111,7 +111,7 @@ bool network_test_url::perform_http_request(const std::string& url, const std::s
         }
         
         // Consider 2xx status codes as success
-        bool success = result->status >= 200 && result->status < 300;
+        const bool success = result->status >= 200 && result->status < 300;
         
         if (!success) {
             spdlog::debug("URL test failed for {}: HTTP {}", url, result->status);

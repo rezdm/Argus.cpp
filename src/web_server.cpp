@@ -3,10 +3,11 @@
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
+#include <utility>
 
-web_server::web_server(const monitor_config& config, 
+web_server::web_server(monitor_config  config,
                        const std::map<std::string, std::shared_ptr<monitor_state>>& monitors)
-    : config_(config), monitors_(monitors) {
+    : config_(std::move(config)), monitors_(monitors) {
     
     server_ = std::make_unique<httplib::Server>();
     
@@ -18,8 +19,7 @@ web_server::web_server(const monitor_config& config,
     // Parse listen address
     std::string host;
     int port;
-    size_t colon_pos = config_.listen.find(':');
-    if (colon_pos != std::string::npos) {
+    if (const size_t colon_pos = config_.listen.find(':'); colon_pos != std::string::npos) {
         host = config_.listen.substr(0, colon_pos);
         port = std::stoi(config_.listen.substr(colon_pos + 1));
     } else {
@@ -30,7 +30,7 @@ web_server::web_server(const monitor_config& config,
     // Start server in a separate thread
     server_thread_ = std::thread([this, host, port]() {
         spdlog::info("Argus++ web server starting on {}:{}", host.c_str(), port);
-        if (!server_->listen(host.c_str(), port)) {
+        if (!server_->listen(host, port)) {
             spdlog::error("Failed to start web server on {}:{}", host.c_str(), port);
         }
     });
@@ -57,8 +57,8 @@ void web_server::stop() {
 void web_server::handle_status_request(const httplib::Request& req, httplib::Response& res) {
     spdlog::debug("HTTP request from {}: {} {}", 
                  req.remote_addr, req.method, req.path);
-    
-    std::string response = generate_status_page();
+
+    const std::string response = generate_status_page();
     
     res.set_content(response, "text/html; charset=UTF-8");
     
@@ -170,7 +170,7 @@ std::string web_server::generate_status_page() {
                     html << "                    <td>" << response_time << "</td>\n";
                     html << "                    <td>\n";
                     html << "                        <div class=\"uptime-bar\">\n";
-                    html << "                            <div class=\"uptime-fill\" style=\"width: " << std::fixed << std::setprecision(1) << uptime_percent << "%\"></div>\n";
+                    html << R"(                            <div class="uptime-fill" style="width: )" << std::fixed << std::setprecision(1) << uptime_percent << "%\"></div>\n";
                     html << "                        </div>\n";
                     html << "                        " << std::fixed << std::setprecision(1) << uptime_percent << "%\n";
                     html << "                    </td>\n";
@@ -215,7 +215,7 @@ std::string web_server::get_status_class(monitor_status status) {
 }
 
 std::string web_server::format_timestamp(const std::chrono::system_clock::time_point& timestamp) {
-    auto time_t = std::chrono::system_clock::to_time_t(timestamp);
+    const auto time_t = std::chrono::system_clock::to_time_t(timestamp);
     std::ostringstream oss;
     oss << std::put_time(std::localtime(&time_t), "%Y-%m-%d %H:%M:%S");
     return oss.str();

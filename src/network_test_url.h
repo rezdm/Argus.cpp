@@ -9,5 +9,5 @@ public:
     void validate_config(const test_config& config) override;
 
 private:
-    bool perform_http_request(const std::string& url, const std::string& proxy, int timeout_ms);
+    static bool perform_http_request(const std::string& url, const std::string& proxy, int timeout_ms);
 };
