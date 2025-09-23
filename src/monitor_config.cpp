@@ -46,6 +46,13 @@ monitor_config monitor_config_loader::load_config(const std::string& config_path
         config.ping_impl = parse_ping_implementation(root["ping_implementation"].get<std::string>());
     }
 
+    if (root.contains("cache_duration_seconds")) {
+        config.cache_duration_seconds = root["cache_duration_seconds"].get<int>();
+        if (config.cache_duration_seconds < 0) {
+            throw std::invalid_argument("cache_duration_seconds must be non-negative (0 = no caching)");
+        }
+    }
+
     for (const auto& monitors_node = root["monitors"]; const auto& monitor_node : monitors_node) {
         config.monitors.push_back(parse_group(monitor_node));
     }

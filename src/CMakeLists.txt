@@ -30,6 +30,11 @@ find_package(OpenSSL REQUIRED)
 # Find systemd (optional)
 pkg_check_modules(SYSTEMD libsystemd)
 
+# Library version configuration - can be overridden via command line
+set(NLOHMANN_JSON_VERSION "v3.11.3" CACHE STRING "nlohmann/json version")
+set(SPDLOG_VERSION "v1.12.0" CACHE STRING "spdlog version")
+set(HTTPLIB_VERSION "v0.14.3" CACHE STRING "cpp-httplib version")
+
 # Find nlohmann_json
 find_package(nlohmann_json QUIET)
 if(NOT nlohmann_json_FOUND)
@@ -37,9 +42,10 @@ if(NOT nlohmann_json_FOUND)
     FetchContent_Declare(
         nlohmann_json
         GIT_REPOSITORY https://github.com/nlohmann/json.git
-        GIT_TAG v3.11.3
+        GIT_TAG ${NLOHMANN_JSON_VERSION}
     )
     FetchContent_MakeAvailable(nlohmann_json)
+    message(STATUS "Using nlohmann/json version: ${NLOHMANN_JSON_VERSION}")
 endif()
 
 # Find spdlog
@@ -49,9 +55,10 @@ if(NOT spdlog_FOUND)
     FetchContent_Declare(
         spdlog
         GIT_REPOSITORY https://github.com/gabime/spdlog.git
-        GIT_TAG v1.12.0
+        GIT_TAG ${SPDLOG_VERSION}
     )
     FetchContent_MakeAvailable(spdlog)
+    message(STATUS "Using spdlog version: ${SPDLOG_VERSION}")
 endif()
 
 # Find httplib (cpp-httplib) - configure OpenSSL support before fetching
@@ -64,9 +71,10 @@ if(NOT httplib_FOUND)
     FetchContent_Declare(
         httplib
         GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git
-        GIT_TAG v0.14.3
+        GIT_TAG ${HTTPLIB_VERSION}
     )
     FetchContent_MakeAvailable(httplib)
+    message(STATUS "Using cpp-httplib version: ${HTTPLIB_VERSION}")
 endif()
 
 # Add executable
@@ -81,15 +89,6 @@ add_executable(arguspp
     network_test_ping.cpp
     network_test_connect.cpp
     network_test_url.cpp
-        monitor_state.cpp
-        monitor_state.cpp
-        main.cpp
-        test_result.cpp
-        test_result.cpp
-        monitor_config.cpp
-        monitor_config.cpp
-        main.cpp
-        main.cpp
 )
 
 # Link libraries

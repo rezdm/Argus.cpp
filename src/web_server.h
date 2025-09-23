@@ -20,14 +20,25 @@ private:
     const std::map<std::string, std::shared_ptr<monitor_state>>& monitors_;
 
     // Cached values for performance
-    mutable std::string cached_status_page_;
-    mutable bool status_page_cached_;
+    mutable std::string cached_json_status_;
+    mutable bool json_status_cached_;
+    mutable std::chrono::steady_clock::time_point last_cache_time_;
     std::string cached_config_name_;
+
+    // Static HTML content (generated once)
+    std::string static_html_page_;
+
+    // Cache configuration (configurable from config file)
+    std::chrono::seconds cache_duration_;
     
     void handle_status_request(const httplib::Request& req, httplib::Response& res) const;
-    void handle_api_status_request(const httplib::Request& req, httplib::Response& res);
-    std::string generate_status_page() const;
-    std::string generate_json_status();
+    void handle_api_status_request(const httplib::Request& req, httplib::Response& res) const;
+    void generate_static_html_page();
+    std::string generate_json_status() const;
+
+    // Cache management
+    [[nodiscard]] bool is_json_cache_valid() const;
+    void invalidate_json_cache() const;
 
     static std::string get_status_class(monitor_status status);
 

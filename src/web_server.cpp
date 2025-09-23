@@ -4,9 +4,12 @@
 #include <iomanip>
 #include <algorithm>
 #include <utility>
+#include <chrono>
 #include <nlohmann/json.hpp>
 
-web_server::web_server(monitor_config config, const std::map<std::string, std::shared_ptr<monitor_state>>& monitors) : config_(std::move(config)), monitors_(monitors), status_page_cached_(false) {
+web_server::web_server(monitor_config config, const std::map<std::string, std::shared_ptr<monitor_state>>& monitors)
+    : config_(std::move(config)), monitors_(monitors), json_status_cached_(false),
+      cache_duration_(std::chrono::seconds(config_.cache_duration_seconds)) {
 
     // Initialize cached config name with fallback
     try {
@@ -15,7 +18,10 @@ web_server::web_server(monitor_config config, const std::map<std::string, std::s
         cached_config_name_ = "Argus++ Monitor";
         spdlog::warn("Failed to access config name, using default");
     }
-    
+
+    // Generate static HTML page once
+    generate_static_html_page();
+
     server_ = std::make_unique<httplib::Server>();
     
     // Set up route handlers
@@ -27,13 +33,39 @@ web_server::web_server(monitor_config config, const std::map<std::string, std::s
         handle_api_status_request(req, res);
     });
     
-    // Parse listen address
+    // Parse listen address (support IPv4, IPv6, and hostnames)
     std::string host;
     int port;
-    if (const size_t colon_pos = config_.listen.find(':'); colon_pos != std::string::npos) {
-        host = config_.listen.substr(0, colon_pos);
-        port = std::stoi(config_.listen.substr(colon_pos + 1));
+
+    // Handle IPv6 address format [::1]:8080 or plain port number
+    if (config_.listen.front() == '[') {
+        // IPv6 address in brackets format: [::1]:8080
+        const size_t close_bracket = config_.listen.find(']');
+        if (close_bracket != std::string::npos) {
+            host = config_.listen.substr(1, close_bracket - 1); // Extract address without brackets
+            const size_t colon_pos = config_.listen.find(':', close_bracket);
+            if (colon_pos != std::string::npos) {
+                port = std::stoi(config_.listen.substr(colon_pos + 1));
+            } else {
+                throw std::invalid_argument("Invalid IPv6 listen format: " + config_.listen);
+            }
+        } else {
+            throw std::invalid_argument("Invalid IPv6 listen format: " + config_.listen);
+        }
+    } else if (const size_t last_colon = config_.listen.rfind(':'); last_colon != std::string::npos) {
+        // IPv4 address or hostname format: 127.0.0.1:8080 or hostname:8080
+        // Use rfind to get the last colon (for IPv4 or hostname with port)
+        host = config_.listen.substr(0, last_colon);
+        port = std::stoi(config_.listen.substr(last_colon + 1));
+
+        // Check if this might be a bare IPv6 address without brackets and port
+        if (host.find(':') != std::string::npos && config_.listen.find("::") != std::string::npos) {
+            // This looks like a bare IPv6 address, treat the whole string as host
+            host = config_.listen;
+            port = 8080; // Default port for IPv6 without explicit port
+        }
     } else {
+        // Just a port number
         host = "localhost";
         port = std::stoi(config_.listen);
     }
@@ -68,14 +100,12 @@ void web_server::stop() {
 void web_server::handle_status_request(const httplib::Request& req, httplib::Response& res) const {
     spdlog::debug("HTTP request from {}: {} {}", req.remote_addr, req.method, req.path);
 
-    const std::string response = generate_status_page();
+    res.set_content(static_html_page_, "text/html; charset=UTF-8");
 
-    res.set_content(response, "text/html; charset=UTF-8");
-
-    spdlog::trace("Served status page to {} ({} bytes)", req.remote_addr, response.length());
+    spdlog::trace("Served status page to {} ({} bytes)", req.remote_addr, static_html_page_.length());
 }
 
-void web_server::handle_api_status_request(const httplib::Request& req, httplib::Response& res) {
+void web_server::handle_api_status_request(const httplib::Request& req, httplib::Response& res) const {
     spdlog::debug("API request from {}: {} {}", req.remote_addr, req.method, req.path);
 
     const std::string response = generate_json_status();
@@ -86,13 +116,10 @@ void web_server::handle_api_status_request(const httplib::Request& req, httplib:
     spdlog::trace("Served JSON status to {} ({} bytes)", req.remote_addr, response.length());
 }
 
-std::string web_server::generate_status_page() const {
-    // Return cached page if available
-    if (status_page_cached_) {
-        return cached_status_page_;
-    }
-
+void web_server::generate_static_html_page() {
     std::ostringstream html;
+    // Reserve space for efficiency - typical page is around 8KB
+    html.str().reserve(8192);
 
     html << "<!DOCTYPE html>\n";
     html << "<html>\n";
@@ -218,14 +245,17 @@ std::string web_server::generate_status_page() const {
     html << "</body>\n";
     html << "</html>\n";
 
-    // Cache the generated page
-    cached_status_page_ = html.str();
-    status_page_cached_ = true;
-
-    return cached_status_page_;
+    // Store the static HTML page
+    static_html_page_ = html.str();
+    spdlog::debug("Generated static HTML page ({} bytes)", static_html_page_.length());
 }
 
-std::string web_server::generate_json_status() {
+std::string web_server::generate_json_status() const {
+    // Return cached JSON if available and valid
+    if (json_status_cached_ && is_json_cache_valid()) {
+        return cached_json_status_;
+    }
+
     using json = nlohmann::json;
 
     try {
@@ -292,12 +322,16 @@ std::string web_server::generate_json_status() {
             response["groups"].push_back(group_obj);
         }
 
-        return response.dump(2); // Pretty print with 2-space indentation
+        // Cache the generated JSON
+        cached_json_status_ = response.dump(2); // Pretty print with 2-space indentation
+        json_status_cached_ = true;
+        last_cache_time_ = std::chrono::steady_clock::now();
+        return cached_json_status_;
     } catch (const std::exception& e) {
         spdlog::error("Error generating JSON status: {}", e.what());
         json error_response;
         error_response["error"] = "Error generating monitor data";
-        return error_response.dump(2);
+        return error_response.dump(2); // Don't cache error responses
     }
 }
 
@@ -315,5 +349,26 @@ std::string web_server::format_timestamp(const std::chrono::system_clock::time_p
     std::ostringstream oss;
     oss << std::put_time(std::localtime(&time_t), "%Y-%m-%d %H:%M:%S");
     return oss.str();
+}
+
+bool web_server::is_json_cache_valid() const {
+    // If caching is disabled (duration = 0), always return false
+    if (cache_duration_.count() == 0) {
+        return false;
+    }
+
+    if (!json_status_cached_) {
+        return false;
+    }
+
+    const auto now = std::chrono::steady_clock::now();
+    const auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - last_cache_time_);
+
+    return elapsed < cache_duration_;
+}
+
+void web_server::invalidate_json_cache() const {
+    json_status_cached_ = false;
+    cached_json_status_.clear();
 }
 

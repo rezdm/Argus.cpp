@@ -1,0 +1,2841 @@
+{
+  "name": "Argus++ Stress Test Monitor",
+  "listen": "127.0.0.1:8080",
+  "ping_implementation": "system_ping",
+  "monitors": [
+    {
+      "sort": 1,
+      "group": "Ping Tests",
+      "destinations": [
+        {
+          "sort": 1,
+          "name": "Google DNS 1",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "8.8.8.8"
+          }
+        },
+        {
+          "sort": 2,
+          "name": "Google DNS 2",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "8.8.4.4"
+          }
+        },
+        {
+          "sort": 3,
+          "name": "Cloudflare DNS 1",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "1.1.1.1"
+          }
+        },
+        {
+          "sort": 4,
+          "name": "Cloudflare DNS 2",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "1.0.0.1"
+          }
+        },
+        {
+          "sort": 5,
+          "name": "AWS DNS 1",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "205.251.242.103"
+          }
+        },
+        {
+          "sort": 6,
+          "name": "AWS DNS 2",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "205.251.244.110"
+          }
+        },
+        {
+          "sort": 7,
+          "name": "Microsoft DNS 1",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "4.2.2.1"
+          }
+        },
+        {
+          "sort": 8,
+          "name": "Microsoft DNS 2",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "4.2.2.2"
+          }
+        },
+        {
+          "sort": 9,
+          "name": "OpenDNS 1",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "208.67.222.222"
+          }
+        },
+        {
+          "sort": 10,
+          "name": "OpenDNS 2",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "208.67.220.220"
+          }
+        },
+        {
+          "sort": 11,
+          "name": "Quad9 DNS 1",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "9.9.9.9"
+          }
+        },
+        {
+          "sort": 12,
+          "name": "Quad9 DNS 2",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "149.112.112.112"
+          }
+        },
+        {
+          "sort": 13,
+          "name": "Amazon Route53 1",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "205.251.196.169"
+          }
+        },
+        {
+          "sort": 14,
+          "name": "Amazon Route53 2",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "205.251.197.169"
+          }
+        },
+        {
+          "sort": 15,
+          "name": "Google Main",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "142.250.191.14"
+          }
+        },
+        {
+          "sort": 16,
+          "name": "Microsoft Main",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "40.76.4.15"
+          }
+        },
+        {
+          "sort": 17,
+          "name": "Facebook CDN",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "157.240.241.35"
+          }
+        },
+        {
+          "sort": 18,
+          "name": "Twitter CDN",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "104.244.42.1"
+          }
+        },
+        {
+          "sort": 19,
+          "name": "Netflix CDN",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "54.230.135.101"
+          }
+        },
+        {
+          "sort": 20,
+          "name": "Amazon CDN",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "54.239.28.85"
+          }
+        },
+        {
+          "sort": 21,
+          "name": "YouTube CDN",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "172.217.12.142"
+          }
+        },
+        {
+          "sort": 22,
+          "name": "Discord",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "162.159.136.232"
+          }
+        },
+        {
+          "sort": 23,
+          "name": "Steam",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "23.50.44.197"
+          }
+        },
+        {
+          "sort": 24,
+          "name": "Apple CDN",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "17.253.144.10"
+          }
+        },
+        {
+          "sort": 25,
+          "name": "Adobe CDN",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "192.150.16.117"
+          }
+        },
+        {
+          "sort": 26,
+          "name": "Spotify",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "35.186.224.47"
+          }
+        },
+        {
+          "sort": 27,
+          "name": "Reddit",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "151.101.1.140"
+          }
+        },
+        {
+          "sort": 28,
+          "name": "Wikipedia",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "208.80.154.224"
+          }
+        },
+        {
+          "sort": 29,
+          "name": "Dropbox",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "162.125.9.1"
+          }
+        },
+        {
+          "sort": 30,
+          "name": "Slack",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "54.230.173.15"
+          }
+        },
+        {
+          "sort": 31,
+          "name": "Zoom",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "170.114.52.2"
+          }
+        },
+        {
+          "sort": 32,
+          "name": "AWS US-East-1",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "54.239.98.0"
+          }
+        },
+        {
+          "sort": 33,
+          "name": "AWS US-West-2",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "54.240.196.0"
+          }
+        },
+        {
+          "sort": 34,
+          "name": "Azure East US",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "40.121.158.30"
+          }
+        },
+        {
+          "sort": 35,
+          "name": "Azure West US",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "13.91.95.74"
+          }
+        },
+        {
+          "sort": 36,
+          "name": "GCP US-Central1",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "35.202.216.6"
+          }
+        },
+        {
+          "sort": 37,
+          "name": "GCP US-East1",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "35.231.145.151"
+          }
+        },
+        {
+          "sort": 38,
+          "name": "Akamai CDN 1",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "23.205.141.176"
+          }
+        },
+        {
+          "sort": 39,
+          "name": "Akamai CDN 2",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "23.57.121.32"
+          }
+        },
+        {
+          "sort": 40,
+          "name": "Fastly CDN 1",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "151.101.193.140"
+          }
+        },
+        {
+          "sort": 41,
+          "name": "Fastly CDN 2",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "151.101.65.140"
+          }
+        },
+        {
+          "sort": 42,
+          "name": "KeyCDN",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "117.18.232.200"
+          }
+        },
+        {
+          "sort": 43,
+          "name": "MaxCDN",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "185.93.3.123"
+          }
+        },
+        {
+          "sort": 44,
+          "name": "Oracle Cloud 1",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "129.213.56.230"
+          }
+        },
+        {
+          "sort": 45,
+          "name": "Oracle Cloud 2",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "140.238.183.10"
+          }
+        },
+        {
+          "sort": 46,
+          "name": "DigitalOcean NYC1",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "159.89.214.31"
+          }
+        },
+        {
+          "sort": 47,
+          "name": "DigitalOcean SFO1",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "68.183.226.243"
+          }
+        },
+        {
+          "sort": 48,
+          "name": "Linode Atlanta",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "50.116.14.9"
+          }
+        },
+        {
+          "sort": 49,
+          "name": "Linode Dallas",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "173.255.209.25"
+          }
+        },
+        {
+          "sort": 50,
+          "name": "Vultr New Jersey",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "108.61.201.151"
+          }
+        },
+        {
+          "sort": 51,
+          "name": "Vultr Chicago",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "207.246.79.4"
+          }
+        },
+        {
+          "sort": 52,
+          "name": "Hetzner Germany",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "78.46.86.149"
+          }
+        },
+        {
+          "sort": 53,
+          "name": "OVH France",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "213.186.33.5"
+          }
+        },
+        {
+          "sort": 54,
+          "name": "Scaleway Paris",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "163.172.133.125"
+          }
+        },
+        {
+          "sort": 55,
+          "name": "GitHub Pages",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "185.199.108.153"
+          }
+        },
+        {
+          "sort": 56,
+          "name": "GitLab Pages",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "35.185.44.232"
+          }
+        },
+        {
+          "sort": 57,
+          "name": "Heroku",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "54.91.223.186"
+          }
+        },
+        {
+          "sort": 58,
+          "name": "Vercel",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "76.76.19.19"
+          }
+        },
+        {
+          "sort": 59,
+          "name": "Netlify",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "104.198.14.52"
+          }
+        },
+        {
+          "sort": 60,
+          "name": "Firebase",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "151.101.1.195"
+          }
+        },
+        {
+          "sort": 61,
+          "name": "Cloudflare Workers",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "104.16.132.229"
+          }
+        },
+        {
+          "sort": 62,
+          "name": "AWS Lambda Edge",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "13.249.70.48"
+          }
+        },
+        {
+          "sort": 63,
+          "name": "Alibaba Cloud",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "47.246.14.33"
+          }
+        },
+        {
+          "sort": 64,
+          "name": "Tencent Cloud",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "129.28.14.34"
+          }
+        }
+      ]
+    },
+    {
+      "sort": 2,
+      "group": "TCP Port 80 Tests",
+      "destinations": [
+        {
+          "sort": 1,
+          "name": "Google HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.google.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 2,
+          "name": "Microsoft HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.microsoft.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 3,
+          "name": "Amazon HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.amazon.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 4,
+          "name": "Facebook HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.facebook.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 5,
+          "name": "Apple HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.apple.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 6,
+          "name": "Netflix HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.netflix.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 7,
+          "name": "YouTube HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.youtube.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 8,
+          "name": "Twitter HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "twitter.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 9,
+          "name": "LinkedIn HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.linkedin.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 10,
+          "name": "Instagram HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.instagram.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 11,
+          "name": "GitHub HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "github.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 12,
+          "name": "GitLab HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "gitlab.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 13,
+          "name": "Stack Overflow HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "stackoverflow.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 14,
+          "name": "Reddit HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.reddit.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 15,
+          "name": "Wikipedia HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "en.wikipedia.org",
+            "port": 80
+          }
+        },
+        {
+          "sort": 16,
+          "name": "Cloudflare HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.cloudflare.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 17,
+          "name": "Discord HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "discord.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 18,
+          "name": "Slack HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "slack.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 19,
+          "name": "Zoom HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "zoom.us",
+            "port": 80
+          }
+        },
+        {
+          "sort": 20,
+          "name": "Dropbox HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.dropbox.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 21,
+          "name": "Adobe HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.adobe.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 22,
+          "name": "Spotify HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.spotify.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 23,
+          "name": "Twitch HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.twitch.tv",
+            "port": 80
+          }
+        },
+        {
+          "sort": 24,
+          "name": "Steam HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "store.steampowered.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 25,
+          "name": "Epic Games HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.epicgames.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 26,
+          "name": "Unity HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "unity.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 27,
+          "name": "Nvidia HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.nvidia.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 28,
+          "name": "Intel HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.intel.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 29,
+          "name": "AMD HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.amd.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 30,
+          "name": "Oracle HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.oracle.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 31,
+          "name": "IBM HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.ibm.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 32,
+          "name": "Salesforce HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.salesforce.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 33,
+          "name": "VMware HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.vmware.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 34,
+          "name": "Docker HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.docker.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 35,
+          "name": "Kubernetes HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "kubernetes.io",
+            "port": 80
+          }
+        },
+        {
+          "sort": 36,
+          "name": "MongoDB HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.mongodb.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 37,
+          "name": "PostgreSQL HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.postgresql.org",
+            "port": 80
+          }
+        },
+        {
+          "sort": 38,
+          "name": "MySQL HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.mysql.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 39,
+          "name": "Redis HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "redis.io",
+            "port": 80
+          }
+        },
+        {
+          "sort": 40,
+          "name": "Elasticsearch HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.elastic.co",
+            "port": 80
+          }
+        },
+        {
+          "sort": 41,
+          "name": "Apache HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "httpd.apache.org",
+            "port": 80
+          }
+        },
+        {
+          "sort": 42,
+          "name": "Nginx HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "nginx.org",
+            "port": 80
+          }
+        },
+        {
+          "sort": 43,
+          "name": "Jenkins HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.jenkins.io",
+            "port": 80
+          }
+        },
+        {
+          "sort": 44,
+          "name": "Atlassian HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.atlassian.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 45,
+          "name": "JetBrains HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.jetbrains.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 46,
+          "name": "Canonical HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "canonical.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 47,
+          "name": "Red Hat HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.redhat.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 48,
+          "name": "SUSE HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.suse.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 49,
+          "name": "CentOS HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.centos.org",
+            "port": 80
+          }
+        },
+        {
+          "sort": 50,
+          "name": "Debian HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.debian.org",
+            "port": 80
+          }
+        },
+        {
+          "sort": 51,
+          "name": "Ubuntu HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "ubuntu.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 52,
+          "name": "Fedora HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "getfedora.org",
+            "port": 80
+          }
+        },
+        {
+          "sort": 53,
+          "name": "ArchLinux HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "archlinux.org",
+            "port": 80
+          }
+        },
+        {
+          "sort": 54,
+          "name": "FreeBSD HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.freebsd.org",
+            "port": 80
+          }
+        },
+        {
+          "sort": 55,
+          "name": "OpenBSD HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.openbsd.org",
+            "port": 80
+          }
+        },
+        {
+          "sort": 56,
+          "name": "NetBSD HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.netbsd.org",
+            "port": 80
+          }
+        },
+        {
+          "sort": 57,
+          "name": "Mozilla HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.mozilla.org",
+            "port": 80
+          }
+        },
+        {
+          "sort": 58,
+          "name": "Chrome HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.google.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 59,
+          "name": "Opera HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.opera.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 60,
+          "name": "Brave HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "brave.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 61,
+          "name": "Edge HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.microsoft.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 62,
+          "name": "Safari HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.apple.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 63,
+          "name": "Vivaldi HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "vivaldi.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 64,
+          "name": "DuckDuckGo HTTP",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "duckduckgo.com",
+            "port": 80
+          }
+        }
+      ]
+    },
+    {
+      "sort": 3,
+      "group": "HTTPS Tests",
+      "destinations": [
+        {
+          "sort": 1,
+          "name": "Google HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.google.com"
+          }
+        },
+        {
+          "sort": 2,
+          "name": "Microsoft HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.microsoft.com"
+          }
+        },
+        {
+          "sort": 3,
+          "name": "Amazon HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.amazon.com"
+          }
+        },
+        {
+          "sort": 4,
+          "name": "Facebook HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.facebook.com"
+          }
+        },
+        {
+          "sort": 5,
+          "name": "Apple HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.apple.com"
+          }
+        },
+        {
+          "sort": 6,
+          "name": "Netflix HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.netflix.com"
+          }
+        },
+        {
+          "sort": 7,
+          "name": "YouTube HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.youtube.com"
+          }
+        },
+        {
+          "sort": 8,
+          "name": "Twitter HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://twitter.com"
+          }
+        },
+        {
+          "sort": 9,
+          "name": "LinkedIn HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.linkedin.com"
+          }
+        },
+        {
+          "sort": 10,
+          "name": "Instagram HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.instagram.com"
+          }
+        },
+        {
+          "sort": 11,
+          "name": "GitHub HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://github.com"
+          }
+        },
+        {
+          "sort": 12,
+          "name": "GitLab HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://gitlab.com"
+          }
+        },
+        {
+          "sort": 13,
+          "name": "Stack Overflow HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://stackoverflow.com"
+          }
+        },
+        {
+          "sort": 14,
+          "name": "Reddit HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.reddit.com"
+          }
+        },
+        {
+          "sort": 15,
+          "name": "Wikipedia HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://en.wikipedia.org"
+          }
+        },
+        {
+          "sort": 16,
+          "name": "Cloudflare HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.cloudflare.com"
+          }
+        },
+        {
+          "sort": 17,
+          "name": "Discord HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://discord.com"
+          }
+        },
+        {
+          "sort": 18,
+          "name": "Slack HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://slack.com"
+          }
+        },
+        {
+          "sort": 19,
+          "name": "Zoom HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://zoom.us"
+          }
+        },
+        {
+          "sort": 20,
+          "name": "Dropbox HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.dropbox.com"
+          }
+        },
+        {
+          "sort": 21,
+          "name": "Adobe HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.adobe.com"
+          }
+        },
+        {
+          "sort": 22,
+          "name": "Spotify HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.spotify.com"
+          }
+        },
+        {
+          "sort": 23,
+          "name": "Twitch HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.twitch.tv"
+          }
+        },
+        {
+          "sort": 24,
+          "name": "Steam HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://store.steampowered.com"
+          }
+        },
+        {
+          "sort": 25,
+          "name": "Epic Games HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.epicgames.com"
+          }
+        },
+        {
+          "sort": 26,
+          "name": "Unity HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://unity.com"
+          }
+        },
+        {
+          "sort": 27,
+          "name": "Nvidia HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.nvidia.com"
+          }
+        },
+        {
+          "sort": 28,
+          "name": "Intel HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.intel.com"
+          }
+        },
+        {
+          "sort": 29,
+          "name": "AMD HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.amd.com"
+          }
+        },
+        {
+          "sort": 30,
+          "name": "Oracle HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.oracle.com"
+          }
+        },
+        {
+          "sort": 31,
+          "name": "IBM HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.ibm.com"
+          }
+        },
+        {
+          "sort": 32,
+          "name": "Salesforce HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.salesforce.com"
+          }
+        },
+        {
+          "sort": 33,
+          "name": "VMware HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.vmware.com"
+          }
+        },
+        {
+          "sort": 34,
+          "name": "Docker HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.docker.com"
+          }
+        },
+        {
+          "sort": 35,
+          "name": "Kubernetes HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://kubernetes.io"
+          }
+        },
+        {
+          "sort": 36,
+          "name": "MongoDB HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.mongodb.com"
+          }
+        },
+        {
+          "sort": 37,
+          "name": "PostgreSQL HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.postgresql.org"
+          }
+        },
+        {
+          "sort": 38,
+          "name": "MySQL HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.mysql.com"
+          }
+        },
+        {
+          "sort": 39,
+          "name": "Redis HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://redis.io"
+          }
+        },
+        {
+          "sort": 40,
+          "name": "Elasticsearch HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.elastic.co"
+          }
+        },
+        {
+          "sort": 41,
+          "name": "Apache HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://httpd.apache.org"
+          }
+        },
+        {
+          "sort": 42,
+          "name": "Nginx HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://nginx.org"
+          }
+        },
+        {
+          "sort": 43,
+          "name": "Jenkins HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.jenkins.io"
+          }
+        },
+        {
+          "sort": 44,
+          "name": "Atlassian HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.atlassian.com"
+          }
+        },
+        {
+          "sort": 45,
+          "name": "JetBrains HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.jetbrains.com"
+          }
+        },
+        {
+          "sort": 46,
+          "name": "Canonical HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://canonical.com"
+          }
+        },
+        {
+          "sort": 47,
+          "name": "Red Hat HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.redhat.com"
+          }
+        },
+        {
+          "sort": 48,
+          "name": "SUSE HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.suse.com"
+          }
+        },
+        {
+          "sort": 49,
+          "name": "CentOS HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.centos.org"
+          }
+        },
+        {
+          "sort": 50,
+          "name": "Debian HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.debian.org"
+          }
+        },
+        {
+          "sort": 51,
+          "name": "Ubuntu HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://ubuntu.com"
+          }
+        },
+        {
+          "sort": 52,
+          "name": "Fedora HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://getfedora.org"
+          }
+        },
+        {
+          "sort": 53,
+          "name": "ArchLinux HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://archlinux.org"
+          }
+        },
+        {
+          "sort": 54,
+          "name": "FreeBSD HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.freebsd.org"
+          }
+        },
+        {
+          "sort": 55,
+          "name": "OpenBSD HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.openbsd.org"
+          }
+        },
+        {
+          "sort": 56,
+          "name": "NetBSD HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.netbsd.org"
+          }
+        },
+        {
+          "sort": 57,
+          "name": "Mozilla HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.mozilla.org"
+          }
+        },
+        {
+          "sort": 58,
+          "name": "W3C HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.w3.org"
+          }
+        },
+        {
+          "sort": 59,
+          "name": "Opera HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.opera.com"
+          }
+        },
+        {
+          "sort": 60,
+          "name": "Brave HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://brave.com"
+          }
+        },
+        {
+          "sort": 61,
+          "name": "Vivaldi HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://vivaldi.com"
+          }
+        },
+        {
+          "sort": 62,
+          "name": "DuckDuckGo HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://duckduckgo.com"
+          }
+        },
+        {
+          "sort": 63,
+          "name": "Bing HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.bing.com"
+          }
+        },
+        {
+          "sort": 64,
+          "name": "Yahoo HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "URL",
+            "url": "https://www.yahoo.com"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -3,6 +3,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/ip_icmp.h>
+#include <netinet/icmp6.h>
 #include <netdb.h>
 #include <unistd.h>
 #include <cstring>
@@ -73,8 +74,8 @@ bool network_test_ping::is_valid_hostname(const std::string& host) {
     }
 
     // Check for valid hostname/IP format
-    // Allow alphanumeric, dots, hyphens, and underscores
-    const std::regex hostname_regex("^[a-zA-Z0-9._-]+$");
+    // Allow alphanumeric, dots, hyphens, underscores, and colons for IPv6
+    const std::regex hostname_regex("^[a-zA-Z0-9._:-]+$");
     if (!std::regex_match(host, hostname_regex)) {
         return false;
     }
@@ -86,8 +87,8 @@ bool network_test_ping::is_valid_hostname(const std::string& host) {
 std::string network_test_ping::escape_shell_arg(const std::string& arg) {
     std::string escaped;
     for (const char c : arg) {
-        // Only allow safe characters, escape others
-        if (std::isalnum(c) || c == '.' || c == '-' || c == '_') {
+        // Only allow safe characters, escape others (include : for IPv6)
+        if (std::isalnum(c) || c == '.' || c == '-' || c == '_' || c == ':') {
             escaped += c;
         } else {
             // For any unsafe character, we'll reject the input
@@ -120,47 +121,74 @@ bool network_test_ping::ping_unprivileged_icmp(const std::string& host, const in
         return false;
     }
 
-    // Create unprivileged ICMP socket
-    const int sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_ICMP);
-    if (sock < 0) {
-        spdlog::warn("Failed to create unprivileged ICMP socket: {}. Consider enabling with: sysctl -w net.ipv4.ping_group_range='0 65535'", strerror(errno));
+    struct addrinfo hints{}, *result;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;    // Allow IPv4 or IPv6
+    hints.ai_socktype = SOCK_DGRAM; // For unprivileged ICMP
+
+    // Resolve hostname for both IPv4 and IPv6
+    const int status = getaddrinfo(host.c_str(), nullptr, &hints, &result);
+    if (status != 0) {
+        spdlog::warn("Failed to resolve hostname for ICMP ping: {}", host);
         return false;
     }
 
-    // Set socket timeout
-    timeval tv{};
-    tv.tv_sec = timeout_ms / 1000;
-    tv.tv_usec = (timeout_ms % 1000) * 1000;
-    if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
+    bool ping_success = false;
+
+    // Try pinging each address returned by getaddrinfo
+    for (struct addrinfo* rp = result; rp != nullptr && !ping_success; rp = rp->ai_next) {
+        int sock;
+        int protocol;
+
+        // Choose appropriate protocol based on address family
+        if (rp->ai_family == AF_INET) {
+            protocol = IPPROTO_ICMP;
+        } else if (rp->ai_family == AF_INET6) {
+            protocol = IPPROTO_ICMPV6;
+        } else {
+            continue; // Skip unsupported address families
+        }
+
+        // Create unprivileged ICMP socket
+        sock = socket(rp->ai_family, SOCK_DGRAM, protocol);
+        if (sock < 0) {
+            if (rp->ai_family == AF_INET) {
+                spdlog::debug("Failed to create unprivileged ICMPv4 socket: {}. Consider enabling with: sysctl -w net.ipv4.ping_group_range='0 65535'", strerror(errno));
+            } else {
+                spdlog::debug("Failed to create unprivileged ICMPv6 socket: {}. Consider enabling with: sysctl -w net.ipv4.ping_group_range='0 65535'", strerror(errno));
+            }
+            continue;
+        }
+
+        // Set socket timeout
+        timeval tv{};
+        tv.tv_sec = timeout_ms / 1000;
+        tv.tv_usec = (timeout_ms % 1000) * 1000;
+        if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
+            close(sock);
+            continue;
+        }
+
+        // Send ICMP echo request
+        const char ping_data[] = "ping";
+        if (sendto(sock, ping_data, sizeof(ping_data), 0, rp->ai_addr, rp->ai_addrlen) < 0) {
+            close(sock);
+            continue;
+        }
+
+        // Try to receive response
+        char buffer[1024];
+        socklen_t addr_len = rp->ai_addrlen;
+        const ssize_t received = recvfrom(sock, buffer, sizeof(buffer), 0, rp->ai_addr, &addr_len);
+
         close(sock);
-        return false;
+
+        if (received > 0) {
+            ping_success = true;
+        }
     }
 
-    // Resolve hostname
-    const hostent* he = gethostbyname(host.c_str());
-    if (!he) {
-        close(sock);
-        return false;
-    }
-
-    // Set up destination address
-    sockaddr_in addr{};
-    addr.sin_family = AF_INET;
-    memcpy(&addr.sin_addr, he->h_addr_list[0], he->h_length);
-
-    // Send ICMP echo request
-    const char ping_data[] = "ping";
-    if (sendto(sock, ping_data, sizeof(ping_data), 0, (sockaddr*)&addr, sizeof(addr)) < 0) {
-        close(sock);
-        return false;
-    }
-
-    // Try to receive response
-    char buffer[1024];
-    socklen_t addr_len = sizeof(addr);
-    const ssize_t received = recvfrom(sock, buffer, sizeof(buffer), 0, (struct sockaddr*)&addr, &addr_len);
-
-    close(sock);
-    return received > 0;
+    freeaddrinfo(result);
+    return ping_success;
 }
 

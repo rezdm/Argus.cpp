@@ -59,9 +59,10 @@ arguspp -s -l /custom/path.log config.json       # systemd mode + custom log fil
 ```json
 {
   "name": "My Network Monitor",
-  "listen": "127.0.0.1:8080",
+  "listen": "127.0.0.1:8080",  // IPv4: "host:port", IPv6: "[::1]:8080"
   "log_file": "/var/log/arguspp.log",
   "ping_implementation": "system_ping",
+  "cache_duration_seconds": 30,
   "monitors": [
     {
       "sort": 1,
@@ -94,6 +95,7 @@ arguspp -s -l /custom/path.log config.json       # systemd mode + custom log fil
 - `listen`: Web interface bind address (IP:port or just port)
 - `log_file`: Log file path (optional, overrides defaults)
 - `ping_implementation`: Ping method - `"system_ping"` or `"unprivileged_icmp"`
+- `cache_duration_seconds`: Web page cache duration in seconds (default: 30, set to 0 to disable caching)
 
 #### Monitor Groups
 - `sort`: Display order
@@ -200,4 +202,45 @@ sudo systemctl start arguspp
 ```bash
 journalctl -u arguspp -f
 ```
+
+## IPv6 Support
+
+Argus++ fully supports IPv6 addresses alongside IPv4. All network tests (Ping, Connect, URL) automatically work with both IPv4 and IPv6 addresses.
+
+### IPv6 Configuration Examples
+
+**Web Server Listening:**
+```json
+{
+  "listen": "[::1]:8080",           // IPv6 localhost
+  "listen": "[2001:db8::1]:8080",   // Specific IPv6 address
+  "listen": "[::]:8080"             // Listen on all IPv6 interfaces
+}
+```
+
+**Monitor Targets:**
+```json
+{
+  "test": {
+    "method": "Ping",
+    "host": "2606:4700:4700::1111"  // Cloudflare IPv6 DNS
+  }
+},
+{
+  "test": {
+    "method": "Connect",
+    "protocol": "TCP",
+    "host": "2001:db8::1",          // IPv6 address
+    "port": 443
+  }
+}
+```
+
+**Mixed IPv4/IPv6 Environment:**
+- Use hostnames (like `www.google.com`) for automatic dual-stack support
+- The system will try both IPv4 and IPv6 addresses when available
+- Monitoring succeeds if either IPv4 or IPv6 connectivity works
+
+### IPv6 Examples
+See `example_config_ipv6.json` for a complete IPv6 configuration example.
 

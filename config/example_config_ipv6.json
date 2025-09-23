@@ -1,15 +1,16 @@
 {
-  "name": "Argus++ Network Monitor",
-  "listen": "127.0.0.1:8080",
+  "name": "Argus++ Network Monitor (IPv6 Example)",
+  "listen": "[::1]:8080",
   "ping_implementation": "system_ping",
+  "cache_duration_seconds": 30,
   "monitors": [
     {
       "sort": 1,
-      "group": "Web Services",
+      "group": "Web Services (IPv6)",
       "destinations": [
         {
           "sort": 1,
-          "name": "Google",
+          "name": "Google IPv6",
           "timeout": 5000,
           "warning": 2,
           "failure": 3,
@@ -23,7 +24,7 @@
         },
         {
           "sort": 2,
-          "name": "GitHub",
+          "name": "Cloudflare IPv6",
           "timeout": 5000,
           "warning": 2,
           "failure": 3,
@@ -32,18 +33,18 @@
           "history": 100,
           "test": {
             "method": "URL",
-            "url": "https://github.com"
+            "url": "https://cloudflare.com"
           }
         }
       ]
     },
     {
       "sort": 2,
-      "group": "Network Connectivity",
+      "group": "Network Connectivity (IPv6)",
       "destinations": [
         {
           "sort": 1,
-          "name": "DNS Server",
+          "name": "Google DNS IPv6",
           "timeout": 3000,
           "warning": 2,
           "failure": 3,
@@ -52,12 +53,26 @@
           "history": 50,
           "test": {
             "method": "Ping",
-            "host": "8.8.8.8"
+            "host": "2001:4860:4860::8888"
           }
         },
         {
           "sort": 2,
-          "name": "Local Router",
+          "name": "Cloudflare DNS IPv6",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 60,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "2606:4700:4700::1111"
+          }
+        },
+        {
+          "sort": 3,
+          "name": "IPv6 Localhost",
           "timeout": 1000,
           "warning": 3,
           "failure": 5,
@@ -66,18 +81,18 @@
           "history": 100,
           "test": {
             "method": "Ping",
-            "host": "192.168.1.1"
+            "host": "::1"
           }
         }
       ]
     },
     {
       "sort": 3,
-      "group": "Port Connectivity",
+      "group": "Port Connectivity (IPv6)",
       "destinations": [
         {
           "sort": 1,
-          "name": "HTTP Port",
+          "name": "Google HTTP IPv6",
           "timeout": 3000,
           "warning": 2,
           "failure": 3,
@@ -87,13 +102,35 @@
           "test": {
             "method": "Connect",
             "protocol": "TCP",
-            "host": "www.google.com",
+            "host": "2607:f8b0:4004:c1b::65",
             "port": 80
           }
         },
         {
           "sort": 2,
-          "name": "HTTPS Port",
+          "name": "Google HTTPS IPv6",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 45,
+          "history": 80,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "2607:f8b0:4004:c1b::65",
+            "port": 443
+          }
+        }
+      ]
+    },
+    {
+      "sort": 4,
+      "group": "Mixed IPv4/IPv6",
+      "destinations": [
+        {
+          "sort": 1,
+          "name": "Dual Stack Host",
           "timeout": 3000,
           "warning": 2,
           "failure": 3,

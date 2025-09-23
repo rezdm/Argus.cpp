@@ -1,0 +1,42 @@
+{
+  "name": "Argus++ Network Monitor (No Cache Example)",
+  "listen": "127.0.0.1:8080",
+  "ping_implementation": "system_ping",
+  "cache_duration_seconds": 0,
+  "monitors": [
+    {
+      "sort": 1,
+      "group": "Real-time Monitoring",
+      "destinations": [
+        {
+          "sort": 1,
+          "name": "Google DNS",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "8.8.8.8"
+          }
+        },
+        {
+          "sort": 2,
+          "name": "Cloudflare DNS",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "1.1.1.1"
+          }
+        }
+      ]
+    }
+  ]
+}

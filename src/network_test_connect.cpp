@@ -57,93 +57,102 @@ void network_test_connect::validate_config(const test_config& config) const {
 }
 
 bool network_test_connect::test_tcp_connection(const std::string& host, const int port, const int timeout_ms) {
-    const int sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock < 0) {
+    struct addrinfo hints{}, *result;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;    // Allow IPv4 or IPv6
+    hints.ai_socktype = SOCK_STREAM; // TCP socket
+
+    // Resolve hostname for both IPv4 and IPv6
+    const int status = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &result);
+    if (status != 0) {
         return false;
     }
 
-    // Set socket to non-blocking mode
-    const int flags = fcntl(sock, F_GETFL, 0);
-    fcntl(sock, F_SETFL, flags | O_NONBLOCK);
+    bool connection_success = false;
 
-    sockaddr_in addr{};
-    memset(&addr, 0, sizeof(addr));
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(port);
+    // Try connecting to each address returned by getaddrinfo
+    for (struct addrinfo* rp = result; rp != nullptr && !connection_success; rp = rp->ai_next) {
+        const int sock = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+        if (sock < 0) {
+            continue;
+        }
 
-    // Resolve hostname
-    const hostent* he = gethostbyname(host.c_str());
-    if (!he) {
-        close(sock);
-        return false;
-    }
-    memcpy(&addr.sin_addr, he->h_addr_list[0], he->h_length);
+        // Set socket to non-blocking mode
+        const int flags = fcntl(sock, F_GETFL, 0);
+        fcntl(sock, F_SETFL, flags | O_NONBLOCK);
 
-    // Attempt connection
-    int result = connect(sock, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr));
-    
-    if (result == 0) {
-        // Connection succeeded immediately
-        close(sock);
-        return true;
-    }
+        // Attempt connection
+        int connect_result = connect(sock, rp->ai_addr, rp->ai_addrlen);
 
-    if (errno == EINPROGRESS) {
-        // Connection in progress, wait for completion
-        fd_set write_fds;
-        FD_ZERO(&write_fds);
-        FD_SET(sock, &write_fds);
+        if (connect_result == 0) {
+            // Connection succeeded immediately
+            connection_success = true;
+        } else if (errno == EINPROGRESS) {
+            // Connection in progress, wait for completion
+            fd_set write_fds;
+            FD_ZERO(&write_fds);
+            FD_SET(sock, &write_fds);
 
-        timeval tv{};
-        tv.tv_sec = timeout_ms / 1000;
-        tv.tv_usec = (timeout_ms % 1000) * 1000;
+            timeval tv{};
+            tv.tv_sec = timeout_ms / 1000;
+            tv.tv_usec = (timeout_ms % 1000) * 1000;
 
-        result = select(sock + 1, nullptr, &write_fds, nullptr, &tv);
-        
-        if (result > 0) {
-            // Check if connection was successful
-            int error = 0;
-            socklen_t len = sizeof(error);
-            if (getsockopt(sock, SOL_SOCKET, SO_ERROR, &error, &len) == 0 && error == 0) {
-                close(sock);
-                return true;
+            connect_result = select(sock + 1, nullptr, &write_fds, nullptr, &tv);
+
+            if (connect_result > 0) {
+                // Check if connection was successful
+                int error = 0;
+                socklen_t len = sizeof(error);
+                if (getsockopt(sock, SOL_SOCKET, SO_ERROR, &error, &len) == 0 && error == 0) {
+                    connection_success = true;
+                }
             }
         }
+
+        close(sock);
     }
 
-    close(sock);
-    return false;
+    freeaddrinfo(result);
+    return connection_success;
 }
 
 bool network_test_connect::test_udp_connection(const std::string& host, const int port, const int timeout_ms) {
     // Note: timeout_ms is not easily applicable to UDP since it's connectionless
     (void)timeout_ms; // Suppress warning
 
-    const int sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sock < 0) {
+    struct addrinfo hints{}, *result;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;    // Allow IPv4 or IPv6
+    hints.ai_socktype = SOCK_DGRAM; // UDP socket
+
+    // Resolve hostname for both IPv4 and IPv6
+    const int status = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &result);
+    if (status != 0) {
         return false;
     }
 
-    sockaddr_in addr{};
-    memset(&addr, 0, sizeof(addr));
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(port);
+    bool send_success = false;
 
-    // Resolve hostname
-    const hostent* he = gethostbyname(host.c_str());
-    if (!he) {
+    // Try sending to each address returned by getaddrinfo
+    for (struct addrinfo* rp = result; rp != nullptr && !send_success; rp = rp->ai_next) {
+        const int sock = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+        if (sock < 0) {
+            continue;
+        }
+
+        // Send empty UDP packet
+        const char buffer[1] = {0};
+        const ssize_t sent = sendto(sock, buffer, 0, 0, rp->ai_addr, rp->ai_addrlen);
+
         close(sock);
-        return false;
-    }
-    memcpy(&addr.sin_addr, he->h_addr_list[0], he->h_length);
 
-    // Send empty UDP packet
-    const char buffer[1] = {0};
-    const ssize_t sent = sendto(sock, buffer, 0, 0, (struct sockaddr*)&addr, sizeof(addr));
-    
-    close(sock);
-    
-    // For UDP, we consider it successful if no error occurred during send
-    return sent >= 0;
+        // For UDP, we consider it successful if no error occurred during send
+        if (sent >= 0) {
+            send_success = true;
+        }
+    }
+
+    freeaddrinfo(result);
+    return send_success;
 }
 
