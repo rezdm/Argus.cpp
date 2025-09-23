@@ -82,11 +82,18 @@ std::string web_server::generate_status_page() {
     html << "    <meta http-equiv=\"refresh\" content=\"30\">\n";
     html << "    <style>\n";
     html << "        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }\n";
-    html << "        .header { background-color: #2c3e50; color: white; padding: 20px; border-radius: 5px; margin-bottom: 20px; }\n";
+    html << "        .header { background-color: #2c3e50; color: white; padding: 8px 15px; border-radius: 3px; margin-bottom: 15px; }\n";
     html << "        .group { background-color: white; margin-bottom: 20px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }\n";
     html << "        .group-header { background-color: #34495e; color: white; padding: 15px; border-radius: 5px 5px 0 0; font-size: 18px; font-weight: bold; }\n";
-    html << "        .monitor-table { width: 100%; border-collapse: collapse; }\n";
-    html << "        .monitor-table th, .monitor-table td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }\n";
+    html << "        .monitor-table { width: 100%; border-collapse: collapse; table-layout: fixed; }\n";
+    html << "        .monitor-table th, .monitor-table td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }\n";
+    html << "        .monitor-table th:nth-child(1), .monitor-table td:nth-child(1) { width: 20%; }\n";
+    html << "        .monitor-table th:nth-child(2), .monitor-table td:nth-child(2) { width: 15%; }\n";
+    html << "        .monitor-table th:nth-child(3), .monitor-table td:nth-child(3) { width: 10%; }\n";
+    html << "        .monitor-table th:nth-child(4), .monitor-table td:nth-child(4) { width: 12%; }\n";
+    html << "        .monitor-table th:nth-child(5), .monitor-table td:nth-child(5) { width: 12%; }\n";
+    html << "        .monitor-table th:nth-child(6), .monitor-table td:nth-child(6) { width: 15%; }\n";
+    html << "        .monitor-table th:nth-child(7), .monitor-table td:nth-child(7) { width: 16%; }\n";
     html << "        .monitor-table th { background-color: #ecf0f1; font-weight: bold; }\n";
     html << "        .status-ok { color: #27ae60; font-weight: bold; }\n";
     html << "        .status-warning { color: #f39c12; font-weight: bold; }\n";
@@ -98,8 +105,8 @@ std::string web_server::generate_status_page() {
     html << "</head>\n";
     html << "<body>\n";
     html << "    <div class=\"header\">\n";
-    html << "        <h1>" << config_name << "</h1>\n";
-    html << "        <p>Network Monitoring Dashboard</p>\n";
+    html << "        <h3 style=\"margin: 0; font-size: 18px;\">" << config_name << "</h3>\n";
+    //html << "        <small style=\"opacity: 0.8;\">Network Monitoring Dashboard</small>\n";
     html << "    </div>\n";
 
     try {
