@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <cstring>
+#include <fstream>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/basic_file_sink.h>
@@ -121,7 +122,6 @@ bool daemonize() {
     // First fork
     pid_t pid = fork();
     if (pid < 0) {
-        spdlog::error("First fork failed: {}", strerror(errno));
         return false;
     }
     if (pid > 0) {
@@ -131,7 +131,6 @@ bool daemonize() {
 
     // Become session leader
     if (setsid() < 0) {
-        spdlog::error("setsid failed: {}", strerror(errno));
         return false;
     }
 
@@ -141,7 +140,6 @@ bool daemonize() {
     // Second fork
     pid = fork();
     if (pid < 0) {
-        spdlog::error("Second fork failed: {}", strerror(errno));
         return false;
     }
     if (pid > 0) {
@@ -149,33 +147,41 @@ bool daemonize() {
         exit(0);
     }
 
-    // Change working directory to root
+    // Change working directory to root (traditional daemon behavior)
+    // Note: We'll change back to original directory after logging setup
     if (chdir("/") < 0) {
-        spdlog::error("chdir failed: {}", strerror(errno));
         return false;
     }
 
     // Set file creation mask
     umask(0);
 
-    // Close all file descriptors
-    for (int fd = sysconf(_SC_OPEN_MAX); fd >= 0; fd--) {
-        close(fd);
-    }
-
-    // Redirect stdin, stdout, stderr to /dev/null
+    // Redirect stdin and stdout to /dev/null
     const int fd = open("/dev/null", O_RDWR);
     if (fd < 0) {
         return false;
     }
+
     dup2(fd, STDIN_FILENO);
     dup2(fd, STDOUT_FILENO);
-    dup2(fd, STDERR_FILENO);
+    // Keep stderr open initially for error reporting
+
     if (fd > STDERR_FILENO) {
         close(fd);
     }
 
     return true;
+}
+
+// Redirect stderr to /dev/null after successful startup
+void redirect_stderr_to_null() {
+    const int fd = open("/dev/null", O_WRONLY);
+    if (fd >= 0) {
+        dup2(fd, STDERR_FILENO);
+        if (fd > STDERR_FILENO) {
+            close(fd);
+        }
+    }
 }
 
 void setup_logging(bool daemon_mode, bool systemd_mode, const std::string& log_file_path = "") {
@@ -195,6 +201,13 @@ void setup_logging(bool daemon_mode, bool systemd_mode, const std::string& log_f
         // For daemon mode or when log file is specified, log to file
         std::string log_path = log_file_path.empty() ? "/var/log/arguspp.log" : log_file_path;
         const auto file_logger = spdlog::basic_logger_mt("arguspp", log_path);
+
+        // Enable immediate flush for daemon mode to see logs in real-time
+        if (daemon_mode) {
+            file_logger->flush_on(spdlog::level::info);  // Flush on every log message
+            file_logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%l] %v");  // Ensure timestamps
+        }
+
         spdlog::set_default_logger(file_logger);
         if (!daemon_mode) {
             spdlog::info("Logging to file: {}", log_path);
@@ -205,6 +218,11 @@ void setup_logging(bool daemon_mode, bool systemd_mode, const std::string& log_f
         spdlog::set_default_logger(logger);
     }
     spdlog::set_level(spdlog::level::info);
+
+    // For daemon mode, ensure immediate flushing for real-time log viewing
+    if (daemon_mode) {
+        spdlog::flush_every(std::chrono::milliseconds(100));  // Flush every 100ms as backup
+    }
 }
 
 void print_usage(const char* program_name) {
@@ -281,34 +299,64 @@ int main(const int argc, char* argv[]) {
         }
     }
 
-    // Set up logging before daemonizing
-    setup_logging(false, systemd_mode, log_file_path);
-
     // Daemonize if requested (but not in systemd mode)
     if (daemon_mode && !systemd_mode) {
-        spdlog::info("Daemonizing Argus++ Monitor...");
+        // Convert relative paths to absolute paths before daemonizing
+        std::string absolute_log_path = log_file_path;
+        std::string absolute_config_path = config_path;
+
+        char* cwd = getcwd(nullptr, 0);
+        if (cwd) {
+            // Convert log file path if relative
+            if (!log_file_path.empty() && log_file_path[0] != '/') {
+                absolute_log_path = std::string(cwd) + "/" + log_file_path;
+            }
+            // Convert config file path if relative
+            if (config_path[0] != '/') {
+                absolute_config_path = std::string(cwd) + "/" + config_path;
+            }
+            free(cwd);
+        }
+
         if (!daemonize()) {
-            spdlog::error("Failed to daemonize");
+            std::cerr << "Failed to daemonize" << std::endl;
             return 1;
         }
-        // Re-setup logging for daemon mode
-        setup_logging(true, false, log_file_path);
-    } else if (systemd_mode) {
-        spdlog::info("Running in systemd mode");
+
+        // Update config_path for the daemon process
+        config_path = absolute_config_path;
+
+        // Setup logging only in the final daemon process with absolute path
+        setup_logging(true, false, absolute_log_path);
+    } else {
+        // Set up logging normally for non-daemon mode
+        setup_logging(false, systemd_mode, log_file_path);
+        if (systemd_mode) {
+            spdlog::info("Running in systemd mode");
+        }
     }
 
     // Set process ID for logging
     auto pid = getpid();
+
+
     spdlog::info("Starting Argus++ Monitor version 1.0.0 (PID: {})", pid);
 
     try {
+        spdlog::info("Setting up signal handlers...");
         // Set up signal handlers
         std::signal(SIGINT, main_application::signal_handler);
         std::signal(SIGTERM, main_application::signal_handler);
 
+        spdlog::info("Creating main application...");
         auto app = std::make_unique<main_application>(config_path, daemon_mode, systemd_mode);
 
         spdlog::info("Argus++ Monitor started successfully. Press Ctrl+C to stop.");
+
+        // Now that we've successfully started, redirect stderr for daemon mode
+        if (daemon_mode && !systemd_mode) {
+            redirect_stderr_to_null();
+        }
 
         // Keep the main thread alive
         while (true) {
