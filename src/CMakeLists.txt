@@ -25,6 +25,10 @@ endif()
 # Find required packages
 find_package(PkgConfig REQUIRED)
 find_package(Threads REQUIRED)
+find_package(OpenSSL REQUIRED)
+
+# Find systemd (optional)
+pkg_check_modules(SYSTEMD libsystemd)
 
 # Find nlohmann_json
 find_package(nlohmann_json QUIET)
@@ -50,7 +54,10 @@ if(NOT spdlog_FOUND)
     FetchContent_MakeAvailable(spdlog)
 endif()
 
-# Find httplib (cpp-httplib)
+# Find httplib (cpp-httplib) - configure OpenSSL support before fetching
+set(HTTPLIB_REQUIRE_OPENSSL ON CACHE BOOL "Require OpenSSL for httplib")
+set(HTTPLIB_USE_OPENSSL_IF_AVAILABLE ON CACHE BOOL "Use OpenSSL if available for httplib")
+
 find_package(httplib QUIET)
 if(NOT httplib_FOUND)
     include(FetchContent)
@@ -63,7 +70,7 @@ if(NOT httplib_FOUND)
 endif()
 
 # Add executable
-add_executable(argus_plus
+add_executable(arguspp
     main.cpp
     monitor_config.cpp
     monitors.cpp
@@ -80,19 +87,37 @@ add_executable(argus_plus
 )
 
 # Link libraries
-target_link_libraries(argus_plus 
-    PRIVATE 
+target_link_libraries(arguspp
+    PRIVATE
     nlohmann_json::nlohmann_json
     spdlog::spdlog
     httplib::httplib
     Threads::Threads
+    OpenSSL::SSL
+    OpenSSL::Crypto
+)
+
+# Link systemd if available
+if(SYSTEMD_FOUND)
+    target_link_libraries(arguspp PRIVATE ${SYSTEMD_LIBRARIES})
+    target_include_directories(arguspp PRIVATE ${SYSTEMD_INCLUDE_DIRS})
+    target_compile_definitions(arguspp PRIVATE HAVE_SYSTEMD)
+    message(STATUS "Found systemd: ${SYSTEMD_VERSION}")
+else()
+    message(STATUS "systemd not found - systemd journal logging will be disabled")
+endif()
+
+# Configure httplib with OpenSSL
+target_compile_definitions(arguspp PRIVATE
+    HTTPLIB_REQUIRE_OPENSSL=ON
+    HTTPLIB_USE_OPENSSL_IF_AVAILABLE=ON
 )
 
 # Compiler-specific options
 if(MSVC)
-    target_compile_options(argus_plus PRIVATE /W4)
+    target_compile_options(arguspp PRIVATE /W4)
 else()
-    target_compile_options(argus_plus PRIVATE 
+    target_compile_options(arguspp PRIVATE 
         -Wall -Wextra -Wpedantic
         # Suppress the specific fmt dangling reference warnings that are false positives
         -Wno-dangling-reference
@@ -100,7 +125,7 @@ else()
 endif()
 
 # Set output directory
-set_target_properties(argus_plus PROPERTIES
+set_target_properties(arguspp PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
 

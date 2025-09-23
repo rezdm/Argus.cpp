@@ -40,6 +40,10 @@ monitor_config monitor_config_loader::load_config(const std::string& config_path
     config.name = root["name"].get<std::string>();
     config.listen = root["listen"].get<std::string>();
 
+    if (root.contains("log_file")) {
+        config.log_file = root["log_file"].get<std::string>();
+    }
+
     const auto& monitors_node = root["monitors"];
     for (const auto& monitor_node : monitors_node) {
         config.monitors.push_back(parse_group(monitor_node));

@@ -1,0 +1,41 @@
+[Unit]
+Description=Argus++ Network Monitor (arguspp)
+Documentation=https://github.com/rezdm/Argus.cpp
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+User=argus
+Group=argus
+ExecStart=/usr/local/bin/arguspp --systemd /etc/arguspp/config.json
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=10
+TimeoutStartSec=60
+TimeoutStopSec=30
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log /var/lib/arguspp
+CapabilityBoundingSet=CAP_NET_RAW CAP_NET_ADMIN
+AmbientCapabilities=CAP_NET_RAW CAP_NET_ADMIN
+
+# Resource limits
+LimitNOFILE=65536
+MemoryHigh=512M
+MemoryMax=1G
+
+# Watchdog (optional)
+WatchdogSec=30
+NotifyAccess=main
+
+# Environment
+Environment=ARGUS_CONFIG_DIR=/etc/arguspp
+Environment=ARGUS_DATA_DIR=/var/lib/arguspp
+
+[Install]
+WantedBy=multi-user.target

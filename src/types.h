@@ -55,8 +55,9 @@ struct group {
 struct monitor_config {
     std::string name;
     std::string listen;
+    std::optional<std::string> log_file;
     std::vector<group> monitors;
-    
+
     static monitor_config load_config(const std::string& config_path);
 };
 
