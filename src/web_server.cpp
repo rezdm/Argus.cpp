@@ -29,15 +29,15 @@ web_server::web_server(monitor_config  config,
     
     // Start server in a separate thread
     server_thread_ = std::thread([this, host, port]() {
-        spdlog::info("Argus++ web server starting on {}:{}", host.c_str(), port);
+        spdlog::info("Argus++ web server starting on {}:{}", host, port);
         if (!server_->listen(host, port)) {
-            spdlog::error("Failed to start web server on {}:{}", host.c_str(), port);
+            spdlog::error("Failed to start web server on {}:{}", host, port);
         }
     });
     
     // Give the server a moment to start
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    spdlog::info("Argus++ web server started on {}", config_.listen.c_str());
+    spdlog::info("Argus++ web server started on {}", config_.listen);
 }
 
 web_server::~web_server() {
