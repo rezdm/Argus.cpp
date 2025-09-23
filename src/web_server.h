@@ -9,10 +9,8 @@
 
 class web_server {
 public:
-    web_server(monitor_config  config,
-               const std::map<std::string, std::shared_ptr<monitor_state>>& monitors);
+    web_server(monitor_config  config, const std::map<std::string, std::shared_ptr<monitor_state>>& monitors);
     ~web_server();
-    
     void stop();
 
 private:

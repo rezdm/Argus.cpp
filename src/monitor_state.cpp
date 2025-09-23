@@ -4,10 +4,7 @@
 #include <utility>
 #include <spdlog/spdlog.h>
 
-monitor_state::monitor_state(const destination& dest, group  grp)
-    : destination_(dest), group_(std::move(grp)),
-      last_result_(false, 0, std::chrono::system_clock::now()) {
-    
+monitor_state::monitor_state(const destination& dest, group  grp) : destination_(dest), group_(std::move(grp)), last_result_(false, 0, std::chrono::system_clock::now()) {
     test_implementation_ = test_factory::get_test(dest.test.test_method_type);
     test_description_ = test_factory::validate_and_describe(dest.test);
 }
@@ -68,9 +65,7 @@ double monitor_state::get_uptime_percentage() const {
         return 0.0;
     }
 
-    const int successful = std::ranges::count_if(history_,
-                                                 [](const test_result& r) { return r.success; });
-    
+    const int successful = std::ranges::count_if(history_, [](const test_result& r) { return r.success; });
     return static_cast<double>(successful) / history_.size() * 100.0;
 }
 

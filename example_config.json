@@ -1,6 +1,7 @@
 {
   "name": "Argus++ Network Monitor",
   "listen": "127.0.0.1:8080",
+  "ping_implementation": "system_ping",
   "monitors": [
     {
       "sort": 1,

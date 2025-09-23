@@ -7,10 +7,8 @@
 
 using json = nlohmann::json;
 
-destination::destination(int sort, std::string name, int timeout, int warning, 
-                        int failure, int reset, int interval, int history, test_config test)
-    : sort(sort), name(std::move(name)), timeout(timeout), warning(warning),
-      failure(failure), reset(reset), interval(interval), history(history), test(std::move(test)) {
+destination::destination(int sort, const std::string& name, int timeout, int warning, int failure, int reset, int interval, int history, test_config test)
+    : sort(sort), name(name), timeout(timeout), warning(warning), failure(failure), reset(reset), interval(interval), history(history), test(std::move(test)) {
     
     if (this->name.empty()) {
         throw std::invalid_argument("Destination name cannot be empty");
@@ -44,14 +42,16 @@ monitor_config monitor_config_loader::load_config(const std::string& config_path
         config.log_file = root["log_file"].get<std::string>();
     }
 
-    const auto& monitors_node = root["monitors"];
-    for (const auto& monitor_node : monitors_node) {
+    if (root.contains("ping_implementation")) {
+        config.ping_impl = parse_ping_implementation(root["ping_implementation"].get<std::string>());
+    }
+
+    for (const auto& monitors_node = root["monitors"]; const auto& monitor_node : monitors_node) {
         config.monitors.push_back(parse_group(monitor_node));
     }
 
     // Sort groups by sort order
-    std::sort(config.monitors.begin(), config.monitors.end(),
-              [](const group& a, const group& b) { return a.sort < b.sort; });
+    std::ranges::sort(config.monitors, [](const group& a, const group& b) { return a.sort < b.sort; });
 
     return config;
 }
@@ -110,8 +110,7 @@ group monitor_config_loader::parse_group(const json& group_node) {
     }
 
     // Sort destinations by sort order
-    std::sort(grp.destinations.begin(), grp.destinations.end(),
-              [](const destination& a, const destination& b) { return a.sort < b.sort; });
+    std::ranges::sort(grp.destinations, [](const destination& a, const destination& b) { return a.sort < b.sort; });
 
     return grp;
 }
@@ -142,6 +141,14 @@ std::string to_string(const monitor_status status) {
     }
 }
 
+std::string to_string(const ping_implementation impl) {
+    switch (impl) {
+        case ping_implementation::system_ping: return "system_ping";
+        case ping_implementation::unprivileged_icmp: return "unprivileged_icmp";
+        default: throw std::invalid_argument("Unknown ping implementation");
+    }
+}
+
 test_method parse_test_method(const std::string& str) {
     std::string lower_str = str;
     std::ranges::transform(lower_str, lower_str.begin(), ::tolower);
@@ -155,10 +162,20 @@ test_method parse_test_method(const std::string& str) {
 
 protocol parse_protocol(const std::string& str) {
     std::string lower_str = str;
-    std::transform(lower_str.begin(), lower_str.end(), lower_str.begin(), ::tolower);
-    
+    std::ranges::transform(lower_str, lower_str.begin(), ::tolower);
+
     if (lower_str == "tcp") return protocol::tcp;
     if (lower_str == "udp") return protocol::udp;
-    
+
     throw std::invalid_argument("Unknown protocol: " + str);
+}
+
+ping_implementation parse_ping_implementation(const std::string& str) {
+    std::string lower_str = str;
+    std::ranges::transform(lower_str, lower_str.begin(), ::tolower);
+
+    if (lower_str == "system_ping") return ping_implementation::system_ping;
+    if (lower_str == "unprivileged_icmp") return ping_implementation::unprivileged_icmp;
+
+    throw std::invalid_argument("Unknown ping implementation: " + str);
 }

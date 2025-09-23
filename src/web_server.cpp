@@ -5,9 +5,7 @@
 #include <algorithm>
 #include <utility>
 
-web_server::web_server(monitor_config  config,
-                       const std::map<std::string, std::shared_ptr<monitor_state>>& monitors)
-    : config_(std::move(config)), monitors_(monitors) {
+web_server::web_server(monitor_config config, const std::map<std::string, std::shared_ptr<monitor_state>>& monitors) : config_(std::move(config)), monitors_(monitors) {
     
     server_ = std::make_unique<httplib::Server>();
     
@@ -55,15 +53,13 @@ void web_server::stop() {
 }
 
 void web_server::handle_status_request(const httplib::Request& req, httplib::Response& res) {
-    spdlog::debug("HTTP request from {}: {} {}", 
-                 req.remote_addr, req.method, req.path);
+    spdlog::debug("HTTP request from {}: {} {}", req.remote_addr, req.method, req.path);
 
     const std::string response = generate_status_page();
     
     res.set_content(response, "text/html; charset=UTF-8");
     
-    spdlog::trace("Served status page to {} ({} bytes)", 
-                 req.remote_addr, response.length());
+    spdlog::trace("Served status page to {} ({} bytes)", req.remote_addr, response.length());
 }
 
 std::string web_server::generate_status_page() {
@@ -121,11 +117,10 @@ std::string web_server::generate_status_page() {
         
         for (auto& [group_name, states] : sorted_groups) {
             // Sort monitors within group by destination sort order
-            std::sort(states.begin(), states.end(),
-                     [](const auto& a, const auto& b) {
-                         if (!a || !b) return false;
-                         return a->get_destination().sort < b->get_destination().sort;
-                     });
+            std::ranges::sort(states,[](const auto& a, const auto& b) {
+                if (!a || !b) return false;
+                return a->get_destination().sort < b->get_destination().sort;
+            });
             
             html << "    <div class=\"group\">\n";
             html << "        <div class=\"group-header\">" << (group_name.empty() ? "Unknown Group" : group_name) << "</div>\n";
@@ -160,8 +155,7 @@ std::string web_server::generate_status_page() {
                     const std::string test_details = state->get_test_description();
                     
                     const std::string host = state->get_destination().test.host.value_or("N/A");
-                    const std::string service_name = state->get_destination().name.empty() ? 
-                        "Unknown Service" : state->get_destination().name;
+                    const std::string service_name = state->get_destination().name.empty() ? "Unknown Service" : state->get_destination().name;
                     
                     html << "                <tr>\n";
                     html << "                    <td>" << service_name << "</td>\n";

@@ -1,0 +1,41 @@
+{
+  "name": "Argus++ Network Monitor (Unprivileged ICMP)",
+  "listen": "127.0.0.1:8080",
+  "ping_implementation": "unprivileged_icmp",
+  "monitors": [
+    {
+      "sort": 1,
+      "group": "Network Connectivity",
+      "destinations": [
+        {
+          "sort": 1,
+          "name": "DNS Server",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 60,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "8.8.8.8"
+          }
+        },
+        {
+          "sort": 2,
+          "name": "Local Router",
+          "timeout": 1000,
+          "warning": 3,
+          "failure": 5,
+          "reset": 3,
+          "interval": 30,
+          "history": 100,
+          "test": {
+            "method": "Ping",
+            "host": "192.168.1.1"
+          }
+        }
+      ]
+    }
+  ]
+}

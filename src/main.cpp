@@ -7,7 +7,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <cstring>
-#include <cstdlib>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/basic_file_sink.h>
@@ -34,8 +33,7 @@ private:
     bool systemd_mode_;
 
 public:
-    explicit main_application(const std::string& config_path, bool daemon_mode = false, bool systemd_mode = false)
-        : daemon_mode_(daemon_mode), systemd_mode_(systemd_mode) {
+    explicit main_application(const std::string& config_path, bool daemon_mode = false, bool systemd_mode = false) : daemon_mode_(daemon_mode), systemd_mode_(systemd_mode) {
         spdlog::info("Starting Argus++ Monitor with config: {}", config_path);
         log_memory_usage("Startup");
 
@@ -101,7 +99,7 @@ bool is_systemd_service() {
 void notify_systemd_ready() {
     if (std::getenv("NOTIFY_SOCKET")) {
         // Simple implementation - in production you might want libsystemd
-        std::string cmd = "systemd-notify --ready";
+        const std::string cmd = "systemd-notify --ready";
         if (system(cmd.c_str()) != 0) {
             spdlog::warn("Failed to notify systemd of readiness");
         } else {
@@ -113,7 +111,7 @@ void notify_systemd_ready() {
 // Systemd watchdog ping
 void notify_systemd_watchdog() {
     if (std::getenv("WATCHDOG_USEC")) {
-        std::string cmd = "systemd-notify WATCHDOG=1";
+        const std::string cmd = "systemd-notify WATCHDOG=1";
         system(cmd.c_str());
     }
 }
@@ -166,7 +164,7 @@ bool daemonize() {
     }
 
     // Redirect stdin, stdout, stderr to /dev/null
-    int fd = open("/dev/null", O_RDWR);
+    const int fd = open("/dev/null", O_RDWR);
     if (fd < 0) {
         return false;
     }
@@ -184,7 +182,7 @@ void setup_logging(bool daemon_mode, bool systemd_mode, const std::string& log_f
     if (systemd_mode && log_file_path.empty()) {
         // For systemd mode without explicit log file, use systemd journal if available
 #ifdef HAVE_SYSTEMD
-        auto systemd_logger = spdlog::systemd_logger_mt("arguspp");
+        const auto systemd_logger = spdlog::systemd_logger_mt("arguspp");
         spdlog::set_default_logger(systemd_logger);
         spdlog::info("Logging to systemd journal");
 #else
@@ -196,14 +194,14 @@ void setup_logging(bool daemon_mode, bool systemd_mode, const std::string& log_f
     } else if (daemon_mode || !log_file_path.empty()) {
         // For daemon mode or when log file is specified, log to file
         std::string log_path = log_file_path.empty() ? "/var/log/arguspp.log" : log_file_path;
-        auto file_logger = spdlog::basic_logger_mt("arguspp", log_path);
+        const auto file_logger = spdlog::basic_logger_mt("arguspp", log_path);
         spdlog::set_default_logger(file_logger);
         if (!daemon_mode) {
             spdlog::info("Logging to file: {}", log_path);
         }
     } else {
         // For normal mode, log to stdout
-        auto logger = spdlog::stdout_color_mt("arguspp");
+        const auto logger = spdlog::stdout_color_mt("arguspp");
         spdlog::set_default_logger(logger);
     }
     spdlog::set_level(spdlog::level::info);
@@ -222,7 +220,6 @@ void print_usage(const char* program_name) {
 int main(const int argc, char* argv[]) {
     bool daemon_mode = false;
     bool systemd_mode = false;
-    std::string config_path;
     std::string cmdline_log_file;
 
     // Auto-detect systemd environment
@@ -266,7 +263,7 @@ int main(const int argc, char* argv[]) {
         print_usage(argv[0]);
         return 1;
     }
-    config_path = argv[arg_idx];
+    std::string config_path = argv[arg_idx];
 
     // Load config to get log file setting
     std::string log_file_path;
@@ -274,7 +271,7 @@ int main(const int argc, char* argv[]) {
         log_file_path = cmdline_log_file;
     } else {
         try {
-            auto config = monitor_config::load_config(config_path);
+            const auto config = monitor_config::load_config(config_path);
             if (config.log_file.has_value()) {
                 log_file_path = config.log_file.value();
             }

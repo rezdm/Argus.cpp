@@ -1,8 +1,13 @@
 #include "monitors.h"
+#include "network_test_ping.h"
 #include <spdlog/spdlog.h>
 #include <chrono>
 
 monitors::monitors(const monitor_config& config) : running_(false) {
+    // Set global ping implementation from config
+    network_test_ping::set_ping_implementation(config.ping_impl);
+    spdlog::info("Using ping implementation: {}", to_string(config.ping_impl));
+
     int total_monitors = 0;
     
     for (const auto& group : config.monitors) {
@@ -14,7 +19,7 @@ monitors::monitors(const monitor_config& config) : running_(false) {
                 const std::string key = group.group_name + ":" + dest.name;
                 const auto state = std::make_shared<monitor_state>(dest, group);
                 monitors_map_[key] = state;
-                total_monitors++;
+                ++total_monitors;
                 
                 std::string test_desc = state->get_test_description();  // Store to avoid warning
                 spdlog::debug("Initialized monitor: {} ({})", dest.name, test_desc);
@@ -88,12 +93,12 @@ void monitors::perform_test(const std::shared_ptr<monitor_state> &state) {
         
         // Log significant status changes
         if (!result.success && state->get_current_status() != monitor_status::ok) {
-            spdlog::warn("Monitor {} status: {} (consecutive failures: {})", 
-                        state->get_destination().name, 
-                        to_string(state->get_current_status()), 
-                        state->get_consecutive_failures());
-        } else if (result.success && state->get_current_status() == monitor_status::ok && 
-                  state->get_consecutive_successes() == state->get_destination().reset) {
+            spdlog::warn("Monitor {} status: {} (consecutive failures: {})"
+                , state->get_destination().name
+                , to_string(state->get_current_status())
+                , state->get_consecutive_failures()
+            );
+        } else if (result.success && state->get_current_status() == monitor_status::ok && state->get_consecutive_successes() == state->get_destination().reset) {
             spdlog::info("Monitor {} recovered to OK status", state->get_destination().name);
         }
     } catch (const std::exception& e) {
@@ -104,15 +109,13 @@ void monitors::perform_test(const std::shared_ptr<monitor_state> &state) {
 test_result monitors::execute_test(const std::shared_ptr<monitor_state> &state) {
     try {
         const auto& dest = state->get_destination();
-        spdlog::trace("Executing {} test for {}", 
-                     to_string(dest.test.test_method_type), dest.name);
-        
+        spdlog::trace("Executing {} test for {}", to_string(dest.test.test_method_type), dest.name);
         auto result = state->get_test_implementation()->execute(dest.test, dest.timeout);
-        
-        spdlog::trace("Test {} for {} completed in {}ms: {}", 
-                     to_string(dest.test.test_method_type), dest.name, 
-                     result.duration_ms, result.success ? "SUCCESS" : "FAILURE");
-        
+        spdlog::trace("Test {} for {} completed in {}ms: {}"
+            , to_string(dest.test.test_method_type)
+            , dest.name
+            , result.duration_ms, result.success ? "SUCCESS" : "FAILURE"
+        );
         return result;
     } catch (const std::exception& e) {
         spdlog::debug("Test failed for {}: {}", state->get_destination().name, e.what());

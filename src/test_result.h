@@ -6,9 +6,7 @@
 
 class test_result_impl {
 public:
-    test_result_impl(bool success, long duration_ms, 
-                    std::chrono::system_clock::time_point timestamp,
-                    std::optional<std::string> error = std::nullopt);
+    test_result_impl(bool success, long duration_ms, std::chrono::system_clock::time_point timestamp, const std::optional<std::string>& error = std::nullopt);
     
     [[nodiscard]] bool get_success() const { return success_; }
     [[nodiscard]] long get_duration_ms() const { return duration_ms_; }

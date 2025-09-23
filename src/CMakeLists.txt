@@ -84,6 +84,11 @@ add_executable(arguspp
         monitor_state.cpp
         monitor_state.cpp
         main.cpp
+        test_result.cpp
+        test_result.cpp
+        monitor_config.cpp
+        monitor_config.cpp
+        main.cpp
 )
 
 # Link libraries

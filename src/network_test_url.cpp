@@ -3,16 +3,14 @@
 #include <httplib.h>
 #include <chrono>
 
-test_result network_test_url::execute(const test_config& config, const int timeout_ms) {
+test_result network_test_url::execute(const test_config& config, const int timeout_ms) const {
     const auto start_time = std::chrono::steady_clock::now();
     bool success = false;
     std::string error;
 
     try {
         validate_config(config);
-        success = perform_http_request(config.url.value(), 
-                                     config.proxy.value_or(""), 
-                                     timeout_ms);
+        success = perform_http_request(config.url.value(), config.proxy.value_or(""), timeout_ms);
     } catch (const std::exception& e) {
         error = e.what();
         std::string url_str = config.url.value_or("unknown");
@@ -22,11 +20,10 @@ test_result network_test_url::execute(const test_config& config, const int timeo
     const auto end_time = std::chrono::steady_clock::now();
     const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
     
-    return {success, duration, std::chrono::system_clock::now(),
-                      error.empty() ? std::nullopt : std::optional(error)};
+    return {success, duration, std::chrono::system_clock::now(), error.empty() ? std::nullopt : std::optional(error)};
 }
 
-std::string network_test_url::get_description(const test_config& config) {
+std::string network_test_url::get_description(const test_config& config) const {
     std::string desc = "URL: " + config.url.value_or("unknown");
     if (config.proxy && !config.proxy->empty()) {
         desc += " (via proxy)";
@@ -34,7 +31,7 @@ std::string network_test_url::get_description(const test_config& config) {
     return desc;
 }
 
-void network_test_url::validate_config(const test_config& config) {
+void network_test_url::validate_config(const test_config& config) const {
     if (!config.url || config.url->empty()) {
         throw std::invalid_argument("URL is required for URL test");
     }
