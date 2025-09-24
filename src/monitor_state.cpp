@@ -95,3 +95,11 @@ std::string monitor_state::get_test_description() const {
 std::shared_ptr<network_test> monitor_state::get_test_implementation() const {
     return test_implementation_;
 }
+
+void monitor_state::reset_consecutive_counts() {
+    std::lock_guard lock(mutex_);
+    consecutive_failures_ = 0;
+    consecutive_successes_ = 0;
+    current_status_ = monitor_status::ok;
+    spdlog::debug("Reset consecutive counts for monitor: {}", destination_.name);
+}

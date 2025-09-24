@@ -15,7 +15,12 @@ test_result network_test_connect::execute(const test_config& config, const int t
 
     try {
         validate_config(config);
-        
+
+        // Validate timeout
+        if (timeout_ms <= 0 || timeout_ms > 300000) { // Max 5 minutes
+            throw std::invalid_argument("Invalid timeout: must be between 1ms and 300000ms");
+        }
+
         switch (config.protocol_type.value()) {
             case protocol::tcp:
                 success = test_tcp_connection(config.host.value(), config.port, timeout_ms);
@@ -26,7 +31,7 @@ test_result network_test_connect::execute(const test_config& config, const int t
             default:
                 throw std::invalid_argument("Unknown protocol");
         }
-        
+
     } catch (const std::exception& e) {
         error = e.what();
         std::string host_str = config.host.value_or("unknown");
@@ -77,36 +82,58 @@ bool network_test_connect::test_tcp_connection(const std::string& host, const in
             continue;
         }
 
-        // Set socket to non-blocking mode
-        const int flags = fcntl(sock, F_GETFL, 0);
-        fcntl(sock, F_SETFL, flags | O_NONBLOCK);
-
-        // Attempt connection
-        int connect_result = connect(sock, rp->ai_addr, rp->ai_addrlen);
-
-        if (connect_result == 0) {
-            // Connection succeeded immediately
-            connection_success = true;
-        } else if (errno == EINPROGRESS) {
-            // Connection in progress, wait for completion
-            fd_set write_fds;
-            FD_ZERO(&write_fds);
-            FD_SET(sock, &write_fds);
-
-            timeval tv{};
-            tv.tv_sec = timeout_ms / 1000;
-            tv.tv_usec = (timeout_ms % 1000) * 1000;
-
-            connect_result = select(sock + 1, nullptr, &write_fds, nullptr, &tv);
-
-            if (connect_result > 0) {
-                // Check if connection was successful
-                int error = 0;
-                socklen_t len = sizeof(error);
-                if (getsockopt(sock, SOL_SOCKET, SO_ERROR, &error, &len) == 0 && error == 0) {
-                    connection_success = true;
-                }
+        try {
+            // Set socket to non-blocking mode
+            const int flags = fcntl(sock, F_GETFL, 0);
+            if (flags < 0 || fcntl(sock, F_SETFL, flags | O_NONBLOCK) < 0) {
+                close(sock);
+                continue;
             }
+
+            // Attempt connection
+            int connect_result = connect(sock, rp->ai_addr, rp->ai_addrlen);
+
+            if (connect_result == 0) {
+                // Connection succeeded immediately
+                connection_success = true;
+            } else if (errno == EINPROGRESS) {
+                // Connection in progress, wait for completion
+                fd_set write_fds, error_fds;
+                FD_ZERO(&write_fds);
+                FD_ZERO(&error_fds);
+                FD_SET(sock, &write_fds);
+                FD_SET(sock, &error_fds);
+
+                timeval tv{};
+                tv.tv_sec = timeout_ms / 1000;
+                tv.tv_usec = (timeout_ms % 1000) * 1000;
+
+                connect_result = select(sock + 1, nullptr, &write_fds, &error_fds, &tv);
+
+                if (connect_result > 0) {
+                    if (FD_ISSET(sock, &error_fds)) {
+                        // Connection failed
+                        connection_success = false;
+                    } else if (FD_ISSET(sock, &write_fds)) {
+                        // Check if connection was successful
+                        int error = 0;
+                        socklen_t len = sizeof(error);
+                        if (getsockopt(sock, SOL_SOCKET, SO_ERROR, &error, &len) == 0 && error == 0) {
+                            connection_success = true;
+                        }
+                    }
+                } else if (connect_result == 0) {
+                    // Timeout occurred
+                    spdlog::debug("Connection timeout to address");
+                }
+            } else {
+                // Connection failed immediately
+                spdlog::debug("Immediate connection failure: {}", strerror(errno));
+            }
+        } catch (...) {
+            // Ensure socket is closed on exception
+            close(sock);
+            throw;
         }
 
         close(sock);
@@ -117,9 +144,6 @@ bool network_test_connect::test_tcp_connection(const std::string& host, const in
 }
 
 bool network_test_connect::test_udp_connection(const std::string& host, const int port, const int timeout_ms) {
-    // Note: timeout_ms is not easily applicable to UDP since it's connectionless
-    (void)timeout_ms; // Suppress warning
-
     struct addrinfo hints{}, *result;
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;    // Allow IPv4 or IPv6
@@ -140,16 +164,32 @@ bool network_test_connect::test_udp_connection(const std::string& host, const in
             continue;
         }
 
-        // Send empty UDP packet
-        constexpr char buffer[1] = {0};
-        const ssize_t sent = sendto(sock, buffer, 0, 0, rp->ai_addr, rp->ai_addrlen);
+        try {
+            // Set socket timeout for send operation
+            timeval tv{};
+            tv.tv_sec = timeout_ms / 1000;
+            tv.tv_usec = (timeout_ms % 1000) * 1000;
+
+            if (setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)) < 0) {
+                close(sock);
+                continue;
+            }
+
+            // Send empty UDP packet
+            constexpr char buffer[1] = {0};
+            const ssize_t sent = sendto(sock, buffer, 0, 0, rp->ai_addr, rp->ai_addrlen);
+
+            // For UDP, we consider it successful if no error occurred during send
+            if (sent >= 0) {
+                send_success = true;
+            }
+        } catch (...) {
+            // Ensure socket is closed on exception
+            close(sock);
+            throw;
+        }
 
         close(sock);
-
-        // For UDP, we consider it successful if no error occurred during send
-        if (sent >= 0) {
-            send_success = true;
-        }
     }
 
     freeaddrinfo(result);

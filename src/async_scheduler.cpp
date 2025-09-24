@@ -121,12 +121,26 @@ void async_scheduler::scheduler_loop() {
             task_queue_.pop();
             lock.unlock();
 
-            // Submit task to thread pool
+            // Submit task to thread pool with error recovery
             try {
+                if (thread_pool_->is_stopping()) {
+                    spdlog::warn("Thread pool is stopping, skipping task {}", next_task.id);
+                    break; // Exit scheduler loop if thread pool is stopping
+                }
+
                 thread_pool_->enqueue(next_task.task);
                 spdlog::trace("Executed scheduled task {}", next_task.id);
             } catch (const std::exception& e) {
-                spdlog::error("Failed to execute scheduled task {}: {}", next_task.id, e.what());
+                spdlog::error("Failed to execute scheduled task {}: {}. Task will be retried on next cycle.", next_task.id, e.what());
+
+                // For repeating tasks, attempt recovery by rescheduling
+                if (next_task.repeating && running_) {
+                    next_task.next_run = now + std::chrono::seconds(10); // Retry in 10 seconds
+                    lock.lock();
+                    task_queue_.push(std::move(next_task));
+                    lock.unlock();
+                    spdlog::info("Rescheduled failed task {} for retry in 10 seconds", next_task.id);
+                }
             }
 
             // Re-schedule if it's a repeating task

@@ -24,6 +24,10 @@ public:
     [[nodiscard]] size_t active_tasks() const;
     [[nodiscard]] size_t scheduled_tasks() const;
 
+    // Error recovery
+    void restart_failed_monitors();
+    [[nodiscard]] bool is_healthy() const;
+
     // Get the shared thread pool for other components
     [[nodiscard]] std::shared_ptr<thread_pool> get_thread_pool() const { return thread_pool_; }
 

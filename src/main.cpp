@@ -37,25 +37,58 @@ public:
         spdlog::info("Starting Argus++ Monitor with config: {}", config_path);
         log_memory_usage("Startup");
 
-        auto config = monitor_config::load_config(config_path);
-        std::string config_name = config.name;  // Store in variable to avoid warning
-        spdlog::info("Loaded configuration for instance: {}", config_name);
-        log_memory_usage("Config loaded");
+        try {
+            auto config = monitor_config::load_config(config_path);
+            std::string config_name = config.name;  // Store in variable to avoid warning
+            spdlog::info("Loaded configuration for instance: {}", config_name);
+            log_memory_usage("Config loaded");
 
-        monitors_instance = std::make_shared<monitors>(config);
-        log_memory_usage("Monitors initialized");
+            // Initialize monitors with graceful degradation
+            try {
+                monitors_instance = std::make_shared<monitors>(config);
+                log_memory_usage("Monitors initialized");
+            } catch (const std::exception& e) {
+                spdlog::error("Failed to initialize monitors: {}. Continuing with reduced functionality.", e.what());
+                // Create empty monitors instance for web server compatibility
+                monitors_instance = nullptr;
+            }
 
-        // Share the thread pool between monitors and web server
-        server_instance = std::make_shared<web_server>(config, monitors_instance->get_monitors_map(),
-                                                      monitors_instance->get_thread_pool());
-        monitors_instance->start_monitoring();
-        
-        spdlog::info("Argus++ Monitor initialization complete");
-        log_memory_usage("Fully started");
+            // Initialize web server with graceful degradation
+            try {
+                if (monitors_instance) {
+                    server_instance = std::make_shared<web_server>(config, monitors_instance->get_monitors_map(),
+                                                                  monitors_instance->get_thread_pool());
+                } else {
+                    // Create web server with empty monitor map and null thread pool
+                    std::map<std::string, std::shared_ptr<monitor_state>> empty_map;
+                    server_instance = std::make_shared<web_server>(config, empty_map, nullptr);
+                }
+            } catch (const std::exception& e) {
+                spdlog::error("Failed to initialize web server: {}. Web interface will be unavailable.", e.what());
+                server_instance = nullptr;
+            }
 
-        // Notify systemd that we're ready
-        if (systemd_mode_) {
-            notify_systemd_ready();
+            // Start monitoring if available
+            if (monitors_instance) {
+                try {
+                    monitors_instance->start_monitoring();
+                    spdlog::info("Monitoring services started successfully");
+                } catch (const std::exception& e) {
+                    spdlog::error("Failed to start monitoring: {}. Monitors created but not active.", e.what());
+                }
+            }
+
+            spdlog::info("Argus++ Monitor initialization complete (graceful degradation applied where needed)");
+            log_memory_usage("Fully started");
+
+            // Notify systemd that we're ready
+            if (systemd_mode_) {
+                notify_systemd_ready();
+            }
+
+        } catch (const std::exception& e) {
+            spdlog::critical("Critical failure during initialization: {}", e.what());
+            throw; // Re-throw critical errors
         }
 
         instance_ = this;

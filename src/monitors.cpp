@@ -117,6 +117,11 @@ void monitors::schedule_monitor_test(const std::shared_ptr<monitor_state>& state
 }
 
 void monitors::perform_test_async(const std::shared_ptr<monitor_state>& state) {
+    if (!running_) {
+        spdlog::debug("Monitoring stopped, skipping test for {}", state->get_destination().name);
+        return;
+    }
+
     try {
         // Execute test asynchronously
         auto future = execute_test_async(state);
@@ -124,7 +129,30 @@ void monitors::perform_test_async(const std::shared_ptr<monitor_state>& state) {
         // Handle result asynchronously to avoid blocking the scheduler
         thread_pool_->enqueue([this, state, future = std::move(future)]() mutable {
             try {
-                const auto result = future.get();
+                // Add timeout protection for future.get()
+                const auto timeout = std::chrono::milliseconds(state->get_destination().timeout + 5000); // 5s buffer
+                const auto status = future.wait_for(timeout);
+
+                test_result result{false, 0, std::chrono::system_clock::now(), "Unknown error"};
+
+                if (status == std::future_status::ready) {
+                    try {
+                        result = future.get();
+                    } catch (const std::exception& e) {
+                        spdlog::debug("Test execution failed for {}: {}", state->get_destination().name, e.what());
+                        result = test_result{false, static_cast<long>(timeout.count()),
+                                           std::chrono::system_clock::now(), e.what()};
+                    }
+                } else if (status == std::future_status::timeout) {
+                    spdlog::warn("Test timeout exceeded for {} ({}ms + 5s buffer)",
+                                state->get_destination().name, state->get_destination().timeout);
+                    result = test_result{false, static_cast<long>(timeout.count()),
+                                       std::chrono::system_clock::now(), "Test timeout exceeded"};
+                } else {
+                    spdlog::error("Test deferred/cancelled for {}", state->get_destination().name);
+                    result = test_result{false, 0, std::chrono::system_clock::now(), "Test deferred or cancelled"};
+                }
+
                 state->add_result(result);
 
                 // Log significant status changes
@@ -138,10 +166,14 @@ void monitors::perform_test_async(const std::shared_ptr<monitor_state>& state) {
                     spdlog::info("Monitor {} recovered to OK status", state->get_destination().name);
                 }
             } catch (const std::exception& e) {
-                spdlog::error("Error processing test result for {}: {}", state->get_destination().name, e.what());
-                // Create failure result
-                const test_result failure_result{false, 0, std::chrono::system_clock::now(), e.what()};
-                state->add_result(failure_result);
+                spdlog::error("Critical error processing test result for {}: {}", state->get_destination().name, e.what());
+                // Create failure result for critical errors
+                const test_result failure_result{false, 0, std::chrono::system_clock::now(), std::string("Critical error: ") + e.what()};
+                try {
+                    state->add_result(failure_result);
+                } catch (...) {
+                    spdlog::critical("Failed to record critical error result for {}", state->get_destination().name);
+                }
             }
         });
     } catch (const std::exception& e) {
@@ -189,5 +221,61 @@ size_t monitors::active_tasks() const {
 
 size_t monitors::scheduled_tasks() const {
     return scheduler_ ? scheduler_->scheduled_count() : 0;
+}
+
+void monitors::restart_failed_monitors() {
+    if (!running_) {
+        return;
+    }
+
+    spdlog::info("Performing health check and restarting failed monitors");
+
+    size_t restart_count = 0;
+    for (const auto& [key, state] : monitors_map_) {
+        try {
+            // Check if monitor has been failing for extended period
+            const auto& dest = state->get_destination();
+            if (state->get_current_status() == monitor_status::failure &&
+                state->get_consecutive_failures() > dest.failure * 3) {
+
+                spdlog::warn("Restarting severely failed monitor: {}", dest.name);
+
+                // Reset the monitor state
+                state->reset_consecutive_counts();
+
+                // Reschedule the monitor test
+                schedule_monitor_test(state);
+                restart_count++;
+            }
+        } catch (const std::exception& e) {
+            spdlog::error("Error during restart check for {}: {}", key, e.what());
+        }
+    }
+
+    if (restart_count > 0) {
+        spdlog::info("Restarted {} failed monitors", restart_count);
+    }
+}
+
+bool monitors::is_healthy() const {
+    if (!running_ || !thread_pool_ || !scheduler_) {
+        return false;
+    }
+
+    // Check if thread pool is stopping
+    if (thread_pool_->is_stopping()) {
+        return false;
+    }
+
+    // Check if we have a reasonable number of active tasks
+    const size_t pending = thread_pool_->pending_tasks();
+    const size_t max_reasonable_pending = monitors_map_.size() * 2;
+
+    if (pending > max_reasonable_pending) {
+        spdlog::warn("High number of pending tasks: {} (monitors: {})", pending, monitors_map_.size());
+        return false;
+    }
+
+    return true;
 }
 

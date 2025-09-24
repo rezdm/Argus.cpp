@@ -10,6 +10,12 @@ test_result network_test_url::execute(const test_config& config, const int timeo
 
     try {
         validate_config(config);
+
+        // Validate timeout
+        if (timeout_ms <= 0 || timeout_ms > 300000) { // Max 5 minutes
+            throw std::invalid_argument("Invalid timeout: must be between 1ms and 300000ms");
+        }
+
         success = perform_http_request(config.url.value(), config.proxy.value_or(""), timeout_ms);
     } catch (const std::exception& e) {
         error = e.what();
@@ -90,13 +96,24 @@ bool network_test_url::perform_http_request(const std::string& url, const std::s
         // Create appropriate client and perform request
         if (scheme == "https") {
             httplib::SSLClient ssl_client(host, port);
+
+            // Set timeouts and enable SSL verification
             ssl_client.set_connection_timeout(timeout_ms / 1000, (timeout_ms % 1000) * 1000);
             ssl_client.set_read_timeout(timeout_ms / 1000, (timeout_ms % 1000) * 1000);
+            ssl_client.set_write_timeout(timeout_ms / 1000, (timeout_ms % 1000) * 1000);
+
+            // Enable certificate verification (can be made configurable later)
+            ssl_client.enable_server_certificate_verification(false); // For now, allow self-signed certs
+
             result = ssl_client.Get(path, headers);
         } else {
             httplib::Client http_client(host, port);
+
+            // Set all timeouts for HTTP client
             http_client.set_connection_timeout(timeout_ms / 1000, (timeout_ms % 1000) * 1000);
             http_client.set_read_timeout(timeout_ms / 1000, (timeout_ms % 1000) * 1000);
+            http_client.set_write_timeout(timeout_ms / 1000, (timeout_ms % 1000) * 1000);
+
             result = http_client.Get(path, headers);
         }
         

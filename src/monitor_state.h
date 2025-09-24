@@ -24,6 +24,9 @@ public:
     const destination& get_destination() const { return destination_; }
     const group& get_group() const { return group_; }
 
+    // Error recovery
+    void reset_consecutive_counts();
+
 private:
     const destination destination_;
     const group group_;
