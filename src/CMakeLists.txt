@@ -95,6 +95,7 @@ add_executable(arguspp
     http_client.cpp
     connection_tester.cpp
     ping_tester.cpp
+    address_family_handler.cpp
 )
 
 # Link libraries

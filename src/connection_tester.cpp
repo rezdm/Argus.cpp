@@ -1,12 +1,11 @@
 #include "connection_tester.h"
+#include "address_family_handler.h"
 #include <spdlog/spdlog.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <netdb.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <chrono>
-#include <cstring>
 
 
 test_result connection_tester_base::create_error_result(const std::string& error_msg, const long duration) {
@@ -17,44 +16,38 @@ test_result connection_tester_base::create_success_result(const long duration) {
     return test_result{true, duration, std::chrono::system_clock::now(), std::nullopt};
 }
 
-bool connection_tester_base::resolve_address(const std::string& host, const int port, const int socket_type, addrinfo** result) {
-    addrinfo hints{};
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;    // Allow IPv4 or IPv6
-    hints.ai_socktype = socket_type;
-
-    const int status = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, result);
-    return status == 0;
-}
 
 // TCP Connection Tester Implementation
 test_result tcp_connection_tester::test_connection(const std::string& host, const int port, const int timeout_ms) {
     const auto start_time = std::chrono::steady_clock::now();
 
     try {
-        addrinfo* result;
-        if (!resolve_address(host, port, SOCK_STREAM, &result)) {
-            return create_error_result("DNS resolution failed");
+        // Use address family resolver with IPv6 preferred strategy
+        const auto resolver = address_family_factory::create_resolver(address_family_preference::ipv6_preferred);
+        const auto addresses = resolver->resolve_with_preference(host, port, SOCK_STREAM);
+
+        if (addresses.empty()) {
+            return create_error_result("DNS resolution failed for all address families");
         }
 
-        bool connection_success = false;
+        spdlog::debug("Resolved {} addresses for {}:{}", addresses.size(), host, port);
 
-        // Try connecting to each address returned by getaddrinfo
-        for (const addrinfo* rp = result; rp != nullptr && !connection_success; rp = rp->ai_next) {
-            connection_success = test_single_address(rp, timeout_ms);
+        // Try each address with its appropriate handler
+        for (const auto& addr : addresses) {
+            if (test_single_address(addr, timeout_ms)) {
+                const auto end_time = std::chrono::steady_clock::now();
+                const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+
+                spdlog::debug("TCP connection succeeded to {} ({})", addr.display_name, addr.family == AF_INET ? "IPv4" : "IPv6");
+                return create_success_result(duration);
+            }
         }
 
-        freeaddrinfo(result);
-
+        // All connections failed
         const auto end_time = std::chrono::steady_clock::now();
-        const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-            end_time - start_time).count();
+        const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
 
-        if (connection_success) {
-            return create_success_result(duration);
-        } else {
-            return create_error_result("Connection failed", duration);
-        }
+        return create_error_result("Connection failed to all resolved addresses", duration);
 
     } catch (const std::exception& e) {
         const auto end_time = std::chrono::steady_clock::now();
@@ -64,71 +57,97 @@ test_result tcp_connection_tester::test_connection(const std::string& host, cons
     }
 }
 
-bool tcp_connection_tester::test_single_address(const addrinfo* addr_info, const int timeout_ms) {
-    int sock = socket(addr_info->ai_family, addr_info->ai_socktype, addr_info->ai_protocol);
-    if (sock < 0) {
-        return false;
-    }
 
+bool tcp_connection_tester::test_single_address(const resolved_address& addr, int timeout_ms) {
     try {
-        // Set socket to non-blocking mode
-        const int flags = fcntl(sock, F_GETFL, 0);
-        if (flags < 0 || fcntl(sock, F_SETFL, flags | O_NONBLOCK) < 0) {
-            close(sock);
+        // Get the appropriate address family handler
+        std::unique_ptr<address_family_handler_base> handler;
+        if (addr.family == AF_INET) {
+            handler = address_family_factory::create_ipv4_handler();
+        } else if (addr.family == AF_INET6) {
+            handler = address_family_factory::create_ipv6_handler();
+        } else {
+            spdlog::debug("Unsupported address family: {}", addr.family);
             return false;
         }
 
-        // Attempt connection
-        int connect_result = connect(sock, addr_info->ai_addr, addr_info->ai_addrlen);
-
-        if (connect_result == 0) {
-            // Connection succeeded immediately
-            close(sock);
-            return true;
-        } else if (errno == EINPROGRESS) {
-            // Connection in progress, wait for completion
-            fd_set write_fds, error_fds;
-            FD_ZERO(&write_fds);
-            FD_ZERO(&error_fds);
-            FD_SET(sock, &write_fds);
-            FD_SET(sock, &error_fds);
-
-            timeval tv{};
-            tv.tv_sec = timeout_ms / 1000;
-            tv.tv_usec = (timeout_ms % 1000) * 1000;
-
-            connect_result = select(sock + 1, nullptr, &write_fds, &error_fds, &tv);
-
-            if (connect_result > 0) {
-                if (FD_ISSET(sock, &error_fds)) {
-                    // Connection failed
-                    close(sock);
-                    return false;
-                } else if (FD_ISSET(sock, &write_fds)) {
-                    // Check if connection was successful
-                    int error = 0;
-                    socklen_t len = sizeof(error);
-                    if (getsockopt(sock, SOL_SOCKET, SO_ERROR, &error, &len) == 0 && error == 0) {
-                        close(sock);
-                        return true;
-                    }
-                }
-            } else if (connect_result == 0) {
-                // Timeout occurred
-                spdlog::debug("TCP connection timeout");
-            }
-        } else {
-            // Connection failed immediately
-            spdlog::debug("TCP connection failed immediately: {}", strerror(errno));
+        // Create socket using the handler
+        const int sock = handler->create_socket(addr);
+        if (sock < 0) {
+            return false;
         }
-    } catch (...) {
-        // Ensure socket is closed on exception
-        close(sock);
-        throw;
-    }
 
-    close(sock);
-    return false;
+        try {
+            // Configure socket using handler
+            if (!handler->configure_socket(sock, timeout_ms)) {
+                close(sock);
+                return false;
+            }
+
+            // Set socket to non-blocking mode for connect timeout
+            if (const int flags = fcntl(sock, F_GETFL, 0); flags < 0 || fcntl(sock, F_SETFL, flags | O_NONBLOCK) < 0) {
+                close(sock);
+                return false;
+            }
+
+            // Attempt connection
+            const auto* sock_addr = reinterpret_cast<const sockaddr*>(&addr.addr);
+
+            if (int connect_result = connect(sock, sock_addr, addr.addr_len); connect_result == 0) {
+                // Connection succeeded immediately
+                spdlog::trace("Immediate {} TCP connection to {}", handler->get_family_name(), addr.display_name);
+                close(sock);
+                return true;
+            } else if (errno == EINPROGRESS) {
+                // Connection in progress, wait for completion
+                fd_set write_fds, error_fds;
+                FD_ZERO(&write_fds);
+                FD_ZERO(&error_fds);
+                FD_SET(sock, &write_fds);
+                FD_SET(sock, &error_fds);
+
+                timeval tv{};
+                tv.tv_sec = timeout_ms / 1000;
+                tv.tv_usec = (timeout_ms % 1000) * 1000;
+
+                connect_result = select(sock + 1, nullptr, &write_fds, &error_fds, &tv);
+
+                if (connect_result > 0) {
+                    if (FD_ISSET(sock, &error_fds)) {
+                        spdlog::trace("{} TCP connection failed to {}: Socket error", handler->get_family_name(), addr.display_name);
+                        close(sock);
+                        return false;
+                    } else if (FD_ISSET(sock, &write_fds)) {
+                        // Check if connection was successful
+                        int error = 0;
+                        socklen_t len = sizeof(error);
+                        if (getsockopt(sock, SOL_SOCKET, SO_ERROR, &error, &len) == 0 && error == 0) {
+                            spdlog::trace("{} TCP connection succeeded to {}", handler->get_family_name(), addr.display_name);
+                            close(sock);
+                            return true;
+                        }
+                    }
+                } else if (connect_result == 0) {
+                    spdlog::trace("{} TCP connection timeout to {}", handler->get_family_name(), addr.display_name);
+                } else {
+                    spdlog::trace("{} TCP connection select error to {}: {}", handler->get_family_name(), addr.display_name, strerror(errno));
+                }
+            } else {
+                spdlog::trace("{} TCP connection failed immediately to {}: {}", handler->get_family_name(), addr.display_name, strerror(errno));
+            }
+
+            close(sock);
+            return false;
+
+        } catch (...) {
+            close(sock);
+            throw;
+        }
+
+    } catch (const std::exception& e) {
+        spdlog::debug("Exception in TCP connection test to {}: {}", addr.display_name, e.what());
+        return false;
+    }
 }
 
 // UDP Connection Tester Implementation
@@ -136,69 +155,92 @@ test_result udp_connection_tester::test_connection(const std::string& host, cons
     const auto start_time = std::chrono::steady_clock::now();
 
     try {
-        addrinfo* result;
-        if (!resolve_address(host, port, SOCK_DGRAM, &result)) {
-            return create_error_result("DNS resolution failed");
+        // Use address family resolver with IPv6 preferred strategy
+        const auto resolver = address_family_factory::create_resolver(address_family_preference::ipv6_preferred);
+        const auto addresses = resolver->resolve_with_preference(host, port, SOCK_DGRAM);
+
+        if (addresses.empty()) {
+            return create_error_result("DNS resolution failed for all address families");
         }
 
-        bool send_success = false;
+        spdlog::debug("Resolved {} addresses for {}:{}", addresses.size(), host, port);
 
-        // Try sending to each address returned by getaddrinfo
-        for (const addrinfo* rp = result; rp != nullptr && !send_success; rp = rp->ai_next) {
-            send_success = test_single_address(rp, timeout_ms);
+        // Try each address with its appropriate handler
+        for (const auto& addr : addresses) {
+            if (test_single_address(addr, timeout_ms)) {
+                const auto end_time = std::chrono::steady_clock::now();
+                const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+
+                spdlog::debug("UDP send succeeded to {} ({})", addr.display_name, addr.family == AF_INET ? "IPv4" : "IPv6");
+                return create_success_result(duration);
+            }
         }
 
-        freeaddrinfo(result);
-
+        // All UDP sends failed
         const auto end_time = std::chrono::steady_clock::now();
-        const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-            end_time - start_time).count();
+        const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
 
-        if (send_success) {
-            return create_success_result(duration);
-        } else {
-            return create_error_result("UDP send failed", duration);
-        }
+        return create_error_result("UDP send failed to all resolved addresses", duration);
 
     } catch (const std::exception& e) {
         const auto end_time = std::chrono::steady_clock::now();
-        const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-            end_time - start_time).count();
+        const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
         return create_error_result(e.what(), duration);
     }
 }
 
-bool udp_connection_tester::test_single_address(const addrinfo* addr_info, const int timeout_ms) {
-    int sock = socket(addr_info->ai_family, addr_info->ai_socktype, addr_info->ai_protocol);
-    if (sock < 0) {
-        return false;
-    }
 
+bool udp_connection_tester::test_single_address(const resolved_address& addr, int timeout_ms) {
     try {
-        // Set socket timeout for send operation
-        timeval tv{};
-        tv.tv_sec = timeout_ms / 1000;
-        tv.tv_usec = (timeout_ms % 1000) * 1000;
-
-        if (setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)) < 0) {
-            close(sock);
+        // Get the appropriate address family handler
+        std::unique_ptr<address_family_handler_base> handler;
+        if (addr.family == AF_INET) {
+            handler = address_family_factory::create_ipv4_handler();
+        } else if (addr.family == AF_INET6) {
+            handler = address_family_factory::create_ipv6_handler();
+        } else {
+            spdlog::debug("Unsupported address family for UDP: {}", addr.family);
             return false;
         }
 
-        // Send empty UDP packet
-        constexpr char buffer[1] = {0};
-        const ssize_t sent = sendto(sock, buffer, 0, 0, addr_info->ai_addr, addr_info->ai_addrlen);
+        // Create socket using the handler
+        const int sock = handler->create_socket(addr);
+        if (sock < 0) {
+            return false;
+        }
 
-        // For UDP, we consider it successful if no error occurred during send
-        const bool success = sent >= 0;
+        try {
+            // Configure socket using handler
+            if (!handler->configure_socket(sock, timeout_ms)) {
+                close(sock);
+                return false;
+            }
 
-        close(sock);
-        return success;
+            // Send empty UDP packet
+            constexpr char buffer[1] = {0};
+            const auto* sock_addr = reinterpret_cast<const sockaddr*>(&addr.addr);
+            const ssize_t sent = sendto(sock, buffer, 0, 0, sock_addr, addr.addr_len);
 
-    } catch (...) {
-        // Ensure socket is closed on exception
-        close(sock);
-        throw;
+            // For UDP, we consider it successful if no error occurred during send
+            const bool success = sent >= 0;
+
+            if (success) {
+                spdlog::trace("{} UDP send succeeded to {}", handler->get_family_name(), addr.display_name);
+            } else {
+                spdlog::trace("{} UDP send failed to {}: {}", handler->get_family_name(), addr.display_name, strerror(errno));
+            }
+
+            close(sock);
+            return success;
+
+        } catch (...) {
+            close(sock);
+            throw;
+        }
+
+    } catch (const std::exception& e) {
+        spdlog::debug("Exception in UDP send test to {}: {}", addr.display_name, e.what());
+        return false;
     }
 }
 

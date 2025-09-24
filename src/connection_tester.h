@@ -4,6 +4,9 @@
 #include <string>
 #include <memory>
 
+// Forward declaration
+struct resolved_address;
+
 class connection_tester_base {
 public:
     virtual ~connection_tester_base() = default;
@@ -13,7 +16,6 @@ public:
 protected:
     static test_result create_error_result(const std::string& error_msg, long duration = 0);
     static test_result create_success_result(long duration);
-    static bool resolve_address(const std::string& host, int port, int socket_type, struct addrinfo** result);
 };
 
 class tcp_connection_tester final : public connection_tester_base {
@@ -22,7 +24,7 @@ public:
     [[nodiscard]] protocol get_protocol_type() const override { return protocol::tcp; }
 
 private:
-    bool test_single_address(const addrinfo* addr_info, int timeout_ms);
+    static bool test_single_address(const resolved_address& addr, int timeout_ms);
 };
 
 class udp_connection_tester final : public connection_tester_base {
@@ -31,7 +33,7 @@ public:
     [[nodiscard]] protocol get_protocol_type() const override { return protocol::udp; }
 
 private:
-    bool test_single_address(const addrinfo* addr_info, int timeout_ms);
+    static bool test_single_address(const resolved_address& addr, int timeout_ms);
 };
 
 class connection_tester_factory {
