@@ -1,7 +1,6 @@
 {
   "name": "Argus++ Network Monitor (No Cache Example)",
   "listen": "127.0.0.1:8080",
-  "ping_implementation": "system_ping",
   "cache_duration_seconds": 0,
   "monitors": [
     {

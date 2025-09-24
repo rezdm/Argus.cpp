@@ -16,8 +16,8 @@ test_result network_test_ping::execute(const test_config& config, const int time
             throw std::invalid_argument("Invalid timeout: must be between 1ms and 300000ms");
         }
 
-        // Use factory pattern to create appropriate ping tester
-        auto tester = ping_tester_factory::create(ping_impl_);
+        // Use auto-fallback ping tester
+        auto tester = ping_tester_factory::create_auto_fallback();
         auto result = tester->ping_host(config.host.value(), timeout_ms);
         success = result.success;
 
@@ -49,16 +49,6 @@ void network_test_ping::validate_config(const test_config& config) const {
     }
 }
 
-// Static member definition
-ping_implementation network_test_ping::ping_impl_ = ping_implementation::system_ping;
-
-void network_test_ping::set_ping_implementation(const ping_implementation impl) {
-    ping_impl_ = impl;
-}
-
-ping_implementation network_test_ping::get_ping_implementation() {
-    return ping_impl_;
-}
 
 
 

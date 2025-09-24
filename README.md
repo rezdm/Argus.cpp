@@ -61,7 +61,6 @@ arguspp -s -l /custom/path.log config.json       # systemd mode + custom log fil
   "name": "My Network Monitor",
   "listen": "127.0.0.1:8080",  // IPv4: "host:port", IPv6: "[::1]:8080"
   "log_file": "/var/log/arguspp.log",
-  "ping_implementation": "system_ping",
   "cache_duration_seconds": 30,
   "thread_pool_size": 8,
   "monitors": [
@@ -141,24 +140,6 @@ arguspp -s -l /custom/path.log config.json       # systemd mode + custom log fil
 }
 ```
 
-## Ping Implementation Options
-
-### System Ping (Default - Recommended)
-```json
-{
-  "ping_implementation": "system_ping"
-}
-```
-
-**Requirements:** None (uses system `ping` command)
-
-### Unprivileged ICMP Sockets
-```json
-{
-  "ping_implementation": "unprivileged_icmp"
-}
-```
-
 **Requirements:** System configuration needed
 ```bash
 # Enable unprivileged ICMP sockets (requires root)
@@ -166,6 +147,9 @@ sudo sysctl -w net.ipv4.ping_group_range="0 65535"
 
 # Make persistent across reboots
 echo 'net.ipv4.ping_group_range = 0 65535' | sudo tee -a /etc/sysctl.conf
+
+# Allow raw sockets for arguspp
+sudo setcap cap_net_raw+ep arguspp
 ```
 
 **Note:** If unprivileged ICMP fails to initialize, arguspp will log a warning and the ping tests will fail. Consider using `system_ping` for production deployments.

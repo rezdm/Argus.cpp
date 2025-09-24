@@ -42,9 +42,6 @@ monitor_config monitor_config_loader::load_config(const std::string& config_path
         config.log_file = root["log_file"].get<std::string>();
     }
 
-    if (root.contains("ping_implementation")) {
-        config.ping_impl = parse_ping_implementation(root["ping_implementation"].get<std::string>());
-    }
 
     if (root.contains("cache_duration_seconds")) {
         config.cache_duration_seconds = root["cache_duration_seconds"].get<int>();
@@ -159,13 +156,6 @@ std::string to_string(const monitor_status status) {
     }
 }
 
-std::string to_string(const ping_implementation impl) {
-    switch (impl) {
-        case ping_implementation::system_ping: return "system_ping";
-        case ping_implementation::unprivileged_icmp: return "unprivileged_icmp";
-        default: throw std::invalid_argument("Unknown ping implementation");
-    }
-}
 
 test_method parse_test_method(const std::string& str) {
     std::string lower_str = str;
@@ -188,12 +178,3 @@ protocol parse_protocol(const std::string& str) {
     throw std::invalid_argument("Unknown protocol: " + str);
 }
 
-ping_implementation parse_ping_implementation(const std::string& str) {
-    std::string lower_str = str;
-    std::ranges::transform(lower_str, lower_str.begin(), ::tolower);
-
-    if (lower_str == "system_ping") return ping_implementation::system_ping;
-    if (lower_str == "unprivileged_icmp") return ping_implementation::unprivileged_icmp;
-
-    throw std::invalid_argument("Unknown ping implementation: " + str);
-}

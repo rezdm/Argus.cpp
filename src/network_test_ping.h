@@ -8,10 +8,4 @@ public:
     [[nodiscard]] std::string get_description(const test_config& config) const override;
     void validate_config(const test_config& config) const override;
 
-    // Static configuration for ping implementation
-    static void set_ping_implementation(ping_implementation impl);
-    static ping_implementation get_ping_implementation();
-
-private:
-    static ping_implementation ping_impl_;
 };

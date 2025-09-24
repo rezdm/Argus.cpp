@@ -6,9 +6,8 @@
 #include <algorithm>
 
 monitors::monitors(const monitor_config& config) : running_(false) {
-    // Set global ping implementation from config
-    network_test_ping::set_ping_implementation(config.ping_impl);
-    spdlog::info("Using ping implementation: {}", to_string(config.ping_impl));
+    // Using auto-fallback ping implementation
+    spdlog::info("Using auto-fallback ping implementation");
 
     // Create thread pool with configurable size
     const size_t num_monitors = std::accumulate(config.monitors.begin(), config.monitors.end(), 0UL,
@@ -27,8 +26,7 @@ monitors::monitors(const monitor_config& config) : running_(false) {
             num_monitors / 4 + 1,             // 1 thread per 4 monitors
             24UL                              // Cap at 24 threads
         });
-        spdlog::info("Using auto-calculated thread pool size: {} (hardware: {}, monitors: {})",
-                    pool_size, hardware_threads, num_monitors);
+        spdlog::info("Using auto-calculated thread pool size: {} (hardware: {}, monitors: {})", pool_size, hardware_threads, num_monitors);
     }
 
     thread_pool_ = std::make_shared<thread_pool>(pool_size);
@@ -144,10 +142,8 @@ void monitors::perform_test_async(const std::shared_ptr<monitor_state>& state) {
                                            std::chrono::system_clock::now(), e.what()};
                     }
                 } else if (status == std::future_status::timeout) {
-                    spdlog::warn("Test timeout exceeded for {} ({}ms + 5s buffer)",
-                                state->get_destination().name, state->get_destination().timeout);
-                    result = test_result{false, static_cast<long>(timeout.count()),
-                                       std::chrono::system_clock::now(), "Test timeout exceeded"};
+                    spdlog::warn("Test timeout exceeded for {} ({}ms + 5s buffer)", state->get_destination().name, state->get_destination().timeout);
+                    result = test_result{false, static_cast<long>(timeout.count()), std::chrono::system_clock::now(), "Test timeout exceeded"};
                 } else {
                     spdlog::error("Test deferred/cancelled for {}", state->get_destination().name);
                     result = test_result{false, 0, std::chrono::system_clock::now(), "Test deferred or cancelled"};
