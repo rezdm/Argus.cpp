@@ -57,6 +57,13 @@ monitor_config monitor_config_loader::load_config(const std::string& config_path
         config.html_template = root["html_template"].get<std::string>();
     }
 
+    if (root.contains("thread_pool_size")) {
+        config.thread_pool_size = root["thread_pool_size"].get<size_t>();
+        if (config.thread_pool_size > 1000) {
+            spdlog::warn("Large thread pool size specified: {}. Consider using a smaller value for better resource management.", config.thread_pool_size);
+        }
+    }
+
     for (const auto& monitors_node = root["monitors"]; const auto& monitor_node : monitors_node) {
         config.monitors.push_back(parse_group(monitor_node));
     }

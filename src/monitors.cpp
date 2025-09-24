@@ -10,17 +10,26 @@ monitors::monitors(const monitor_config& config) : running_(false) {
     network_test_ping::set_ping_implementation(config.ping_impl);
     spdlog::info("Using ping implementation: {}", to_string(config.ping_impl));
 
-    // Create thread pool - use reasonable size based on monitor count and hardware
+    // Create thread pool with configurable size
     const size_t num_monitors = std::accumulate(config.monitors.begin(), config.monitors.end(), 0UL,
         [](size_t sum, const group& g) { return sum + g.destinations.size(); });
 
-    // Calculate optimal thread pool size: balance between concurrency and resource usage
-    const size_t hardware_threads = std::thread::hardware_concurrency();
-    const size_t pool_size = std::min({
-        std::max(4UL, hardware_threads),  // At least 4 threads
-        num_monitors / 4 + 1,             // 1 thread per 4 monitors
-        24UL                              // Cap at 24 threads
-    });
+    size_t pool_size;
+    if (config.thread_pool_size > 0) {
+        // Use configured thread pool size
+        pool_size = config.thread_pool_size;
+        spdlog::info("Using configured thread pool size: {}", pool_size);
+    } else {
+        // Calculate optimal thread pool size: balance between concurrency and resource usage
+        const size_t hardware_threads = std::thread::hardware_concurrency();
+        pool_size = std::min({
+            std::max(4UL, hardware_threads),  // At least 4 threads
+            num_monitors / 4 + 1,             // 1 thread per 4 monitors
+            24UL                              // Cap at 24 threads
+        });
+        spdlog::info("Using auto-calculated thread pool size: {} (hardware: {}, monitors: {})",
+                    pool_size, hardware_threads, num_monitors);
+    }
 
     thread_pool_ = std::make_shared<thread_pool>(pool_size);
     scheduler_ = std::make_unique<async_scheduler>(thread_pool_);

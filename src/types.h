@@ -63,6 +63,7 @@ struct monitor_config {
     ping_implementation ping_impl = ping_implementation::system_ping;
     int cache_duration_seconds = 30; // Default 30 seconds, 0 = no caching
     std::optional<std::string> html_template; // Path to custom HTML template file
+    size_t thread_pool_size = 0; // Default 0 = use hardware concurrency
     std::vector<group> monitors;
 
     static monitor_config load_config(const std::string& config_path);

@@ -63,6 +63,7 @@ arguspp -s -l /custom/path.log config.json       # systemd mode + custom log fil
   "log_file": "/var/log/arguspp.log",
   "ping_implementation": "system_ping",
   "cache_duration_seconds": 30,
+  "thread_pool_size": 8,
   "monitors": [
     {
       "sort": 1,
@@ -96,6 +97,7 @@ arguspp -s -l /custom/path.log config.json       # systemd mode + custom log fil
 - `log_file`: Log file path (optional, overrides defaults)
 - `ping_implementation`: Ping method - `"system_ping"` or `"unprivileged_icmp"`
 - `cache_duration_seconds`: Web page cache duration in seconds (default: 30, set to 0 to disable caching)
+- `thread_pool_size`: Number of worker threads for monitoring (default: 0 = auto-calculate based on hardware and monitor count)
 
 #### Monitor Groups
 - `sort`: Display order
