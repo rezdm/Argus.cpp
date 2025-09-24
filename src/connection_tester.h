@@ -8,7 +8,7 @@ class connection_tester_base {
 public:
     virtual ~connection_tester_base() = default;
     virtual test_result test_connection(const std::string& host, int port, int timeout_ms) = 0;
-    [[nodiscard]] virtual protocol get_protocol_type() const;
+    [[nodiscard]] virtual protocol get_protocol_type() const = 0;
 
 protected:
     static test_result create_error_result(const std::string& error_msg, long duration = 0);

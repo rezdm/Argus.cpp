@@ -8,8 +8,6 @@
 #include <chrono>
 #include <cstring>
 
-protocol connection_tester_base::get_protocol_type() const {
-}
 
 test_result connection_tester_base::create_error_result(const std::string& error_msg, const long duration) {
     return test_result{false, duration, std::chrono::system_clock::now(), error_msg};

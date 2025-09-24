@@ -1,0 +1,89 @@
+{
+  "name": "Test Polymorphic Implementation",
+  "listen": "127.0.0.1:8080",
+  "thread_pool_size": 4,
+  "ping_implementation": "system_ping",
+  "cache_duration_seconds": 5,
+  "monitors": [
+    {
+      "sort": 1,
+      "group": "Network Tests",
+      "destinations": [
+        {
+          "sort": 1,
+          "name": "Google DNS Ping",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 10,
+          "history": 10,
+          "test": {
+            "method": "Ping",
+            "host": "8.8.8.8"
+          }
+        },
+        {
+          "sort": 2,
+          "name": "Google HTTP",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 15,
+          "history": 10,
+          "test": {
+            "method": "URL",
+            "url": "http://www.google.com"
+          }
+        },
+        {
+          "sort": 3,
+          "name": "Google HTTPS",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 15,
+          "history": 10,
+          "test": {
+            "method": "URL",
+            "url": "https://www.google.com"
+          }
+        },
+        {
+          "sort": 4,
+          "name": "Google TCP 80",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 12,
+          "history": 10,
+          "test": {
+            "method": "Connect",
+            "protocol": "TCP",
+            "host": "www.google.com",
+            "port": 80
+          }
+        },
+        {
+          "sort": 5,
+          "name": "Google UDP 53",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 12,
+          "history": 10,
+          "test": {
+            "method": "Connect",
+            "protocol": "UDP",
+            "host": "8.8.8.8",
+            "port": 53
+          }
+        }
+      ]
+    }
+  ]
+}
