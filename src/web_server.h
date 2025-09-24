@@ -2,6 +2,7 @@
 
 #include "types.h"
 #include "monitor_state.h"
+#include "thread_pool.h"
 #include <httplib.h>
 #include <map>
 #include <memory>
@@ -9,7 +10,8 @@
 
 class web_server {
 public:
-    web_server(monitor_config  config, const std::map<std::string, std::shared_ptr<monitor_state>>& monitors);
+    web_server(monitor_config  config, const std::map<std::string, std::shared_ptr<monitor_state>>& monitors,
+               std::shared_ptr<thread_pool> pool = nullptr);
     ~web_server();
     void stop();
 
@@ -18,6 +20,7 @@ private:
     std::thread server_thread_;
     monitor_config config_; // Store by value instead of reference
     const std::map<std::string, std::shared_ptr<monitor_state>>& monitors_;
+    std::shared_ptr<thread_pool> thread_pool_;
 
     // Cached values for performance
     mutable std::string cached_json_status_;

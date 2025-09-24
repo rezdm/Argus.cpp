@@ -89,6 +89,9 @@ add_executable(arguspp
     network_test_ping.cpp
     network_test_connect.cpp
     network_test_url.cpp
+    thread_pool.cpp
+    async_scheduler.cpp
+    network_test_async.cpp
 )
 
 # Link libraries

@@ -6,7 +6,6 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <cstring>
 #include <fstream>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -46,7 +45,9 @@ public:
         monitors_instance = std::make_shared<monitors>(config);
         log_memory_usage("Monitors initialized");
 
-        server_instance = std::make_shared<web_server>(config, monitors_instance->get_monitors_map());
+        // Share the thread pool between monitors and web server
+        server_instance = std::make_shared<web_server>(config, monitors_instance->get_monitors_map(),
+                                                      monitors_instance->get_thread_pool());
         monitors_instance->start_monitoring();
         
         spdlog::info("Argus++ Monitor initialization complete");

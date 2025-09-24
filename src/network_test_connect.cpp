@@ -71,7 +71,7 @@ bool network_test_connect::test_tcp_connection(const std::string& host, const in
     bool connection_success = false;
 
     // Try connecting to each address returned by getaddrinfo
-    for (struct addrinfo* rp = result; rp != nullptr && !connection_success; rp = rp->ai_next) {
+    for (const struct addrinfo* rp = result; rp != nullptr && !connection_success; rp = rp->ai_next) {
         const int sock = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
         if (sock < 0) {
             continue;
@@ -134,14 +134,14 @@ bool network_test_connect::test_udp_connection(const std::string& host, const in
     bool send_success = false;
 
     // Try sending to each address returned by getaddrinfo
-    for (struct addrinfo* rp = result; rp != nullptr && !send_success; rp = rp->ai_next) {
+    for (const struct addrinfo* rp = result; rp != nullptr && !send_success; rp = rp->ai_next) {
         const int sock = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
         if (sock < 0) {
             continue;
         }
 
         // Send empty UDP packet
-        const char buffer[1] = {0};
+        constexpr char buffer[1] = {0};
         const ssize_t sent = sendto(sock, buffer, 0, 0, rp->ai_addr, rp->ai_addrlen);
 
         close(sock);

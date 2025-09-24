@@ -136,7 +136,7 @@ bool network_test_ping::ping_unprivileged_icmp(const std::string& host, const in
     bool ping_success = false;
 
     // Try pinging each address returned by getaddrinfo
-    for (struct addrinfo* rp = result; rp != nullptr && !ping_success; rp = rp->ai_next) {
+    for (const struct addrinfo* rp = result; rp != nullptr && !ping_success; rp = rp->ai_next) {
         int sock;
         int protocol;
 
@@ -170,7 +170,7 @@ bool network_test_ping::ping_unprivileged_icmp(const std::string& host, const in
         }
 
         // Send ICMP echo request
-        const char ping_data[] = "ping";
+        constexpr char ping_data[] = "ping";
         if (sendto(sock, ping_data, sizeof(ping_data), 0, rp->ai_addr, rp->ai_addrlen) < 0) {
             close(sock);
             continue;

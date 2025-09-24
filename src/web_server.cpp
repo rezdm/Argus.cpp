@@ -8,8 +8,10 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 
-web_server::web_server(monitor_config config, const std::map<std::string, std::shared_ptr<monitor_state>>& monitors)
-    : config_(std::move(config)), monitors_(monitors), json_status_cached_(false), cache_duration_(std::chrono::seconds(config_.cache_duration_seconds)) {
+web_server::web_server(monitor_config config, const std::map<std::string, std::shared_ptr<monitor_state>>& monitors,
+                       std::shared_ptr<thread_pool> pool)
+    : config_(std::move(config)), monitors_(monitors), thread_pool_(std::move(pool)),
+      json_status_cached_(false), cache_duration_(std::chrono::seconds(config_.cache_duration_seconds)) {
 
     // Initialize cached config name with fallback
     try {
@@ -24,6 +26,14 @@ web_server::web_server(monitor_config config, const std::map<std::string, std::s
 
     server_ = std::make_unique<httplib::Server>();
     
+    // Configure server for better concurrency
+    if (thread_pool_) {
+        // httplib uses its own thread pool, we can set the read and write timeouts
+        server_->set_read_timeout(30, 0);  // 30 seconds
+        server_->set_write_timeout(30, 0); // 30 seconds
+        spdlog::debug("Web server configured with shared thread pool support ({} threads)", thread_pool_->thread_count());
+    }
+
     // Set up route handlers
     server_->Get("/", [this](const httplib::Request& req, httplib::Response& res) {
         handle_status_request(req, res);
