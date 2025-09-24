@@ -12,7 +12,7 @@ monitors::monitors(const monitor_config& config) : running_(false) {
 
     // Create thread pool with configurable size
     const size_t num_monitors = std::accumulate(config.monitors.begin(), config.monitors.end(), 0UL,
-        [](size_t sum, const group& g) { return sum + g.destinations.size(); });
+        [](const size_t sum, const group& g) { return sum + g.destinations.size(); });
 
     size_t pool_size;
     if (config.thread_pool_size > 0) {

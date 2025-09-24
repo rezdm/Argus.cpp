@@ -1,12 +1,7 @@
 #include "network_test_connect.h"
+#include "connection_tester.h"
 #include <spdlog/spdlog.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <unistd.h>
-#include <fcntl.h>
 #include <chrono>
-#include <cstring>
 
 test_result network_test_connect::execute(const test_config& config, const int timeout_ms) const {
     const auto start_time = std::chrono::steady_clock::now();
@@ -21,16 +16,10 @@ test_result network_test_connect::execute(const test_config& config, const int t
             throw std::invalid_argument("Invalid timeout: must be between 1ms and 300000ms");
         }
 
-        switch (config.protocol_type.value()) {
-            case protocol::tcp:
-                success = test_tcp_connection(config.host.value(), config.port, timeout_ms);
-                break;
-            case protocol::udp:
-                success = test_udp_connection(config.host.value(), config.port, timeout_ms);
-                break;
-            default:
-                throw std::invalid_argument("Unknown protocol");
-        }
+        // Use factory pattern to create appropriate connection tester
+        auto tester = connection_tester_factory::create(config.protocol_type.value());
+        auto result = tester->test_connection(config.host.value(), config.port, timeout_ms);
+        success = result.success;
 
     } catch (const std::exception& e) {
         error = e.what();
@@ -61,138 +50,4 @@ void network_test_connect::validate_config(const test_config& config) const {
     }
 }
 
-bool network_test_connect::test_tcp_connection(const std::string& host, const int port, const int timeout_ms) {
-    struct addrinfo hints{}, *result;
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;    // Allow IPv4 or IPv6
-    hints.ai_socktype = SOCK_STREAM; // TCP socket
-
-    // Resolve hostname for both IPv4 and IPv6
-    const int status = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &result);
-    if (status != 0) {
-        return false;
-    }
-
-    bool connection_success = false;
-
-    // Try connecting to each address returned by getaddrinfo
-    for (const struct addrinfo* rp = result; rp != nullptr && !connection_success; rp = rp->ai_next) {
-        const int sock = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-        if (sock < 0) {
-            continue;
-        }
-
-        try {
-            // Set socket to non-blocking mode
-            const int flags = fcntl(sock, F_GETFL, 0);
-            if (flags < 0 || fcntl(sock, F_SETFL, flags | O_NONBLOCK) < 0) {
-                close(sock);
-                continue;
-            }
-
-            // Attempt connection
-            int connect_result = connect(sock, rp->ai_addr, rp->ai_addrlen);
-
-            if (connect_result == 0) {
-                // Connection succeeded immediately
-                connection_success = true;
-            } else if (errno == EINPROGRESS) {
-                // Connection in progress, wait for completion
-                fd_set write_fds, error_fds;
-                FD_ZERO(&write_fds);
-                FD_ZERO(&error_fds);
-                FD_SET(sock, &write_fds);
-                FD_SET(sock, &error_fds);
-
-                timeval tv{};
-                tv.tv_sec = timeout_ms / 1000;
-                tv.tv_usec = (timeout_ms % 1000) * 1000;
-
-                connect_result = select(sock + 1, nullptr, &write_fds, &error_fds, &tv);
-
-                if (connect_result > 0) {
-                    if (FD_ISSET(sock, &error_fds)) {
-                        // Connection failed
-                        connection_success = false;
-                    } else if (FD_ISSET(sock, &write_fds)) {
-                        // Check if connection was successful
-                        int error = 0;
-                        socklen_t len = sizeof(error);
-                        if (getsockopt(sock, SOL_SOCKET, SO_ERROR, &error, &len) == 0 && error == 0) {
-                            connection_success = true;
-                        }
-                    }
-                } else if (connect_result == 0) {
-                    // Timeout occurred
-                    spdlog::debug("Connection timeout to address");
-                }
-            } else {
-                // Connection failed immediately
-                spdlog::debug("Immediate connection failure: {}", strerror(errno));
-            }
-        } catch (...) {
-            // Ensure socket is closed on exception
-            close(sock);
-            throw;
-        }
-
-        close(sock);
-    }
-
-    freeaddrinfo(result);
-    return connection_success;
-}
-
-bool network_test_connect::test_udp_connection(const std::string& host, const int port, const int timeout_ms) {
-    struct addrinfo hints{}, *result;
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;    // Allow IPv4 or IPv6
-    hints.ai_socktype = SOCK_DGRAM; // UDP socket
-
-    // Resolve hostname for both IPv4 and IPv6
-    const int status = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &result);
-    if (status != 0) {
-        return false;
-    }
-
-    bool send_success = false;
-
-    // Try sending to each address returned by getaddrinfo
-    for (const struct addrinfo* rp = result; rp != nullptr && !send_success; rp = rp->ai_next) {
-        const int sock = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
-        if (sock < 0) {
-            continue;
-        }
-
-        try {
-            // Set socket timeout for send operation
-            timeval tv{};
-            tv.tv_sec = timeout_ms / 1000;
-            tv.tv_usec = (timeout_ms % 1000) * 1000;
-
-            if (setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)) < 0) {
-                close(sock);
-                continue;
-            }
-
-            // Send empty UDP packet
-            constexpr char buffer[1] = {0};
-            const ssize_t sent = sendto(sock, buffer, 0, 0, rp->ai_addr, rp->ai_addrlen);
-
-            // For UDP, we consider it successful if no error occurred during send
-            if (sent >= 0) {
-                send_success = true;
-            }
-        } catch (...) {
-            // Ensure socket is closed on exception
-            close(sock);
-            throw;
-        }
-
-        close(sock);
-    }
-
-    freeaddrinfo(result);
-    return send_success;
-}
 

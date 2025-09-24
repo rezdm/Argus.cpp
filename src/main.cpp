@@ -33,7 +33,7 @@ private:
     bool systemd_mode_;
 
 public:
-    explicit main_application(const std::string& config_path, bool daemon_mode = false, bool systemd_mode = false) : daemon_mode_(daemon_mode), systemd_mode_(systemd_mode) {
+    explicit main_application(const std::string& config_path, const bool daemon_mode = false, const bool systemd_mode = false) : daemon_mode_(daemon_mode), systemd_mode_(systemd_mode) {
         spdlog::info("Starting Argus++ Monitor with config: {}", config_path);
         log_memory_usage("Startup");
 
@@ -218,7 +218,7 @@ void redirect_stderr_to_null() {
     }
 }
 
-void setup_logging(bool daemon_mode, bool systemd_mode, const std::string& log_file_path = "") {
+void setup_logging(const bool daemon_mode, const bool systemd_mode, const std::string& log_file_path = "") {
     if (systemd_mode && log_file_path.empty()) {
         // For systemd mode without explicit log file, use systemd journal if available
 #ifdef HAVE_SYSTEMD

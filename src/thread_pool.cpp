@@ -1,7 +1,7 @@
 #include "thread_pool.h"
 #include <spdlog/spdlog.h>
 
-thread_pool::thread_pool(size_t num_threads) : stop_(false) {
+thread_pool::thread_pool(const size_t num_threads) : stop_(false) {
     // Use at least 2 threads, but cap at 32 for reasonable resource usage
     size_t actual_threads = std::max(2UL, std::min(num_threads, 32UL));
 

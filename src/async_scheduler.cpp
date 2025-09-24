@@ -35,7 +35,7 @@ void async_scheduler::stop() {
     spdlog::debug("Async scheduler stopped");
 }
 
-size_t async_scheduler::schedule_once(std::chrono::seconds delay, std::function<void()> task) {
+size_t async_scheduler::schedule_once(const std::chrono::seconds delay, std::function<void()> task) {
     const auto task_id = next_task_id_++;
     const auto next_run = std::chrono::steady_clock::now() + delay;
 
@@ -55,7 +55,7 @@ size_t async_scheduler::schedule_once(std::chrono::seconds delay, std::function<
     return task_id;
 }
 
-size_t async_scheduler::schedule_repeating(std::chrono::seconds interval, std::function<void()> task) {
+size_t async_scheduler::schedule_repeating(const std::chrono::seconds interval, std::function<void()> task) {
     const auto task_id = next_task_id_++; {
         const auto next_run = std::chrono::steady_clock::now() + interval;
         std::unique_lock<std::mutex> lock(queue_mutex_);

@@ -13,11 +13,5 @@ public:
     static ping_implementation get_ping_implementation();
 
 private:
-    static bool ping_host(const std::string& host, int timeout_ms);
-    static bool is_valid_hostname(const std::string& host);
-    static std::string escape_shell_arg(const std::string& arg);
-    static bool ping_system_command(const std::string& host, int timeout_ms);
-    static bool ping_unprivileged_icmp(const std::string& host, int timeout_ms);
-
     static ping_implementation ping_impl_;
 };
