@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <fstream>
+#include <mutex>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/basic_file_sink.h>
@@ -31,21 +32,24 @@ private:
     static main_application* instance_;
     bool daemon_mode_;
     bool systemd_mode_;
+    std::string config_path_;
+    monitor_config current_config_;
+    mutable std::mutex reload_mutex_;
 
 public:
-    explicit main_application(const std::string& config_path, const bool daemon_mode = false, const bool systemd_mode = false) : daemon_mode_(daemon_mode), systemd_mode_(systemd_mode) {
+    explicit main_application(const std::string& config_path, const bool daemon_mode = false, const bool systemd_mode = false) : daemon_mode_(daemon_mode), systemd_mode_(systemd_mode), config_path_(config_path) {
         spdlog::info("Starting Argus++ Monitor with config: {}", config_path);
         log_memory_usage("Startup");
 
         try {
-            auto config = monitor_config::load_config(config_path);
-            std::string config_name = config.name;  // Store in variable to avoid warning
+            current_config_ = monitor_config::load_config(config_path);
+            std::string config_name = current_config_.name;  // Store in variable to avoid warning
             spdlog::info("Loaded configuration for instance: {}", config_name);
             log_memory_usage("Config loaded");
 
             // Initialize monitors with graceful degradation
             try {
-                monitors_instance = std::make_shared<monitors>(config);
+                monitors_instance = std::make_shared<monitors>(current_config_);
                 log_memory_usage("Monitors initialized");
             } catch (const std::exception& e) {
                 spdlog::error("Failed to initialize monitors: {}. Continuing with reduced functionality.", e.what());
@@ -56,12 +60,11 @@ public:
             // Initialize web server with graceful degradation
             try {
                 if (monitors_instance) {
-                    server_instance = std::make_shared<web_server>(config, monitors_instance->get_monitors_map(),
-                                                                  monitors_instance->get_thread_pool());
+                    server_instance = std::make_shared<web_server>(current_config_, monitors_instance->get_monitors_map(), monitors_instance->get_thread_pool());
                 } else {
                     // Create web server with empty monitor map and null thread pool
                     std::map<std::string, std::shared_ptr<monitor_state>> empty_map;
-                    server_instance = std::make_shared<web_server>(config, empty_map, nullptr);
+                    server_instance = std::make_shared<web_server>(current_config_, empty_map, nullptr);
                 }
             } catch (const std::exception& e) {
                 spdlog::error("Failed to initialize web server: {}. Web interface will be unavailable.", e.what());
@@ -109,11 +112,114 @@ public:
     }
 
     static void signal_handler(int signal) {
-        spdlog::info("Received shutdown signal: {}", signal);
-        if (instance_) {
-            instance_->shutdown();
+        if (signal == SIGHUP) {
+            spdlog::info("Received SIGHUP signal: reloading configuration");
+            if (instance_) {
+                instance_->reload_config();
+            }
+        } else {
+            spdlog::info("Received shutdown signal: {}", signal);
+            if (instance_) {
+                instance_->shutdown();
+            }
+            std::exit(0);
         }
-        std::exit(0);
+    }
+
+    void reload_config() {
+        std::lock_guard<std::mutex> lock(reload_mutex_);
+
+        spdlog::info("Starting configuration reload from: {}", config_path_);
+
+        try {
+            // Load new configuration and validate it
+            monitor_config new_config = monitor_config::load_config(config_path_);
+            spdlog::info("Successfully loaded new configuration for instance: {}", new_config.name);
+
+            // Backup current instances before stopping (for rollback on failure)
+            auto backup_monitors = monitors_instance;
+            auto backup_server = server_instance;
+
+            // Stop current monitoring gracefully
+            if (monitors_instance) {
+                spdlog::info("Stopping current monitors for reload");
+                monitors_instance->stop_monitoring();
+            }
+
+            if (server_instance) {
+                spdlog::info("Stopping web server for reload");
+                server_instance->stop();
+            }
+
+            bool reload_successful = true;
+
+            // Recreate monitors with new configuration
+            std::shared_ptr<monitors> new_monitors_instance = nullptr;
+            try {
+                new_monitors_instance = std::make_shared<monitors>(new_config);
+                spdlog::info("Recreated monitors with new configuration");
+            } catch (const std::exception& e) {
+                spdlog::error("Failed to recreate monitors with new config: {}.", e.what());
+                reload_successful = false;
+            }
+
+            // Recreate web server with new configuration
+            std::shared_ptr<web_server> new_server_instance = nullptr;
+            if (reload_successful) {
+                try {
+                    if (new_monitors_instance) {
+                        new_server_instance = std::make_shared<web_server>(new_config, new_monitors_instance->get_monitors_map(), new_monitors_instance->get_thread_pool());
+                    } else {
+                        std::map<std::string, std::shared_ptr<monitor_state>> empty_map;
+                        new_server_instance = std::make_shared<web_server>(new_config, empty_map, nullptr);
+                    }
+                    spdlog::info("Recreated web server with new configuration");
+                } catch (const std::exception& e) {
+                    spdlog::error("Failed to recreate web server with new config: {}.", e.what());
+                    reload_successful = false;
+                }
+            }
+
+            if (reload_successful) {
+                // Update stored configuration and instances
+                current_config_ = std::move(new_config);
+                monitors_instance = new_monitors_instance;
+                server_instance = new_server_instance;
+
+                // Start monitoring with new configuration
+                if (monitors_instance) {
+                    try {
+                        monitors_instance->start_monitoring();
+                        spdlog::info("Restarted monitoring with new configuration");
+                    } catch (const std::exception& e) {
+                        spdlog::error("Failed to start monitoring with new config: {}", e.what());
+                    }
+                }
+
+                spdlog::info("Configuration reload completed successfully");
+            } else {
+                // Rollback to previous configuration
+                spdlog::warn("Configuration reload failed, rolling back to previous configuration");
+
+                monitors_instance = backup_monitors;
+                server_instance = backup_server;
+
+                // Restart previous instances
+                if (monitors_instance) {
+                    try {
+                        monitors_instance->start_monitoring();
+                        spdlog::info("Rolled back to previous monitoring configuration");
+                    } catch (const std::exception& e) {
+                        spdlog::error("Failed to restart previous monitoring config: {}", e.what());
+                    }
+                }
+
+                spdlog::error("Configuration reload failed, continuing with previous configuration");
+            }
+
+        } catch (const std::exception& e) {
+            spdlog::error("Configuration reload failed: {}. Continuing with current configuration.", e.what());
+        }
     }
 
 private:
@@ -209,8 +315,7 @@ bool daemonize() {
 
 // Redirect stderr to /dev/null after successful startup
 void redirect_stderr_to_null() {
-    const int fd = open("/dev/null", O_WRONLY);
-    if (fd >= 0) {
+    if (const int fd = open("/dev/null", O_WRONLY); fd >= 0) {
         dup2(fd, STDERR_FILENO);
         if (fd > STDERR_FILENO) {
             close(fd);
@@ -381,6 +486,7 @@ int main(const int argc, char* argv[]) {
         // Set up signal handlers
         std::signal(SIGINT, main_application::signal_handler);
         std::signal(SIGTERM, main_application::signal_handler);
+        std::signal(SIGHUP, main_application::signal_handler);
 
         spdlog::info("Creating main application...");
         auto app = std::make_unique<main_application>(config_path, daemon_mode, systemd_mode);

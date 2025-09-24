@@ -8,7 +8,6 @@
 #include <unistd.h>
 #include <chrono>
 #include <regex>
-#include <cstring>
 #include <sstream>
 #include <sys/time.h>
 #include <cerrno>

@@ -53,7 +53,27 @@ arguspp -s -l /custom/path.log config.json       # systemd mode + custom log fil
 - `-s, --systemd`: Run in systemd mode (no fork, journal logging)
 - `-l, --log-file <path>`: Log to specified file (overrides config/systemd settings)
 
-## Configuration
+## Configuration Hot-Reload
+
+Argus++ supports configuration hot-reload using the SIGHUP signal. This allows you to update the configuration without restarting the service:
+
+```bash
+# Edit your configuration file
+vim my_config.json
+
+# Send SIGHUP signal to reload configuration
+kill -SIGHUP <pid>
+# or using systemctl for systemd services
+sudo systemctl reload arguspp
+```
+
+### Hot-Reload Features
+- **Graceful reload**: Current monitoring stops gracefully before applying new config
+- **Rollback on failure**: If new configuration fails to load, automatically rolls back to previous config
+- **Zero downtime**: Web interface remains available during reload (brief interruption only)
+- **Comprehensive logging**: All reload steps are logged for troubleshooting
+
+### Configuration
 
 ### Basic Configuration
 ```json
