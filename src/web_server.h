@@ -36,6 +36,9 @@ private:
     void generate_static_html_page();
     std::string generate_json_status() const;
 
+    // Template loading methods
+    static std::string load_html_template_from_file(const std::string& template_path);
+
     // Cache management
     [[nodiscard]] bool is_json_cache_valid() const;
     void invalidate_json_cache() const;

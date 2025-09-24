@@ -5,11 +5,11 @@
 #include <algorithm>
 #include <utility>
 #include <chrono>
+#include <fstream>
 #include <nlohmann/json.hpp>
 
 web_server::web_server(monitor_config config, const std::map<std::string, std::shared_ptr<monitor_state>>& monitors)
-    : config_(std::move(config)), monitors_(monitors), json_status_cached_(false),
-      cache_duration_(std::chrono::seconds(config_.cache_duration_seconds)) {
+    : config_(std::move(config)), monitors_(monitors), json_status_cached_(false), cache_duration_(std::chrono::seconds(config_.cache_duration_seconds)) {
 
     // Initialize cached config name with fallback
     try {
@@ -117,137 +117,17 @@ void web_server::handle_api_status_request(const httplib::Request& req, httplib:
 }
 
 void web_server::generate_static_html_page() {
-    std::ostringstream html;
-    // Reserve space for efficiency - typical page is around 8KB
-    html.str().reserve(8192);
+    // HTML template is required - no fallback to inline generation
+    if (!config_.html_template.has_value() || config_.html_template->empty()) {
+        throw std::runtime_error("html_template configuration is required - no default template available");
+    }
 
-    html << "<!DOCTYPE html>\n";
-    html << "<html>\n";
-    html << "<head>\n";
-    html << "    <title>" << cached_config_name_ << " - Network Monitor</title>\n";
-    html << "    <meta charset=\"UTF-8\">\n";
-    html << "    <style>\n";
-    html << "        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f5f5f5; }\n";
-    html << "        .header { background-color: #2c3e50; color: white; padding: 8px 15px; border-radius: 3px; margin-bottom: 15px; }\n";
-    html << "        .group { background-color: white; margin-bottom: 20px; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }\n";
-    html << "        .group-header { background-color: #34495e; color: white; padding: 15px; border-radius: 5px 5px 0 0; font-size: 18px; font-weight: bold; }\n";
-    html << "        .monitor-table { width: 100%; border-collapse: collapse; table-layout: fixed; }\n";
-    html << "        .monitor-table th, .monitor-table td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }\n";
-    html << "        .monitor-table th:nth-child(1), .monitor-table td:nth-child(1) { width: 20%; }\n";
-    html << "        .monitor-table th:nth-child(2), .monitor-table td:nth-child(2) { width: 15%; }\n";
-    html << "        .monitor-table th:nth-child(3), .monitor-table td:nth-child(3) { width: 10%; }\n";
-    html << "        .monitor-table th:nth-child(4), .monitor-table td:nth-child(4) { width: 12%; }\n";
-    html << "        .monitor-table th:nth-child(5), .monitor-table td:nth-child(5) { width: 12%; }\n";
-    html << "        .monitor-table th:nth-child(6), .monitor-table td:nth-child(6) { width: 15%; }\n";
-    html << "        .monitor-table th:nth-child(7), .monitor-table td:nth-child(7) { width: 16%; }\n";
-    html << "        .monitor-table th { background-color: #ecf0f1; font-weight: bold; }\n";
-    html << "        .status-ok { color: #27ae60; font-weight: bold; }\n";
-    html << "        .status-warning { color: #f39c12; font-weight: bold; }\n";
-    html << "        .status-error { color: #e74c3c; font-weight: bold; }\n";
-    html << "        .last-updated { text-align: center; margin-top: 20px; color: #7f8c8d; font-style: italic; }\n";
-    html << "        .uptime-bar { width: 100px; height: 20px; background-color: #ecf0f1; border-radius: 10px; overflow: hidden; position: relative; display: inline-block; }\n";
-    html << "        .uptime-fill { height: 100%; background-color: #27ae60; transition: width 0.3s ease; }\n";
-    html << "        .loading { text-align: center; padding: 20px; color: #666; }\n";
-    html << "        .error { text-align: center; padding: 20px; color: #e74c3c; }\n";
-    html << "    </style>\n";
-    html << "</head>\n";
-    html << "<body>\n";
-    html << "    <div class=\"header\">\n";
-    html << "        <h3 style=\"margin: 0; font-size: 18px;\" id=\"page-title\">" << cached_config_name_ << "</h3>\n";
-    html << "    </div>\n";
-    html << "\n";
-    html << "    <div id=\"content\">\n";
-    html << "        <div class=\"loading\">Loading monitor data...</div>\n";
-    html << "    </div>\n";
-    html << "\n";
-    html << "    <div class=\"last-updated\" id=\"last-updated\">\n";
-    html << "        Loading...\n";
-    html << "    </div>\n";
-    html << "\n";
-    html << "    <script>\n";
-    html << "        function getStatusClass(status) {\n";
-    html << "            switch (status.toLowerCase()) {\n";
-    html << "                case 'ok': return 'status-ok';\n";
-    html << "                case 'warning': return 'status-warning';\n";
-    html << "                case 'failure': return 'status-error';\n";
-    html << "                default: return 'status-ok';\n";
-    html << "            }\n";
-    html << "        }\n";
-    html << "\n";
-    html << "        function escapeHtml(text) {\n";
-    html << "            const div = document.createElement('div');\n";
-    html << "            div.textContent = text;\n";
-    html << "            return div.innerHTML;\n";
-    html << "        }\n";
-    html << "\n";
-    html << "        function updateMonitorData() {\n";
-    html << "            fetch('/api/status')\n";
-    html << "                .then(response => {\n";
-    html << "                    if (!response.ok) {\n";
-    html << "                        throw new Error('Network response was not ok');\n";
-    html << "                    }\n";
-    html << "                    return response.json();\n";
-    html << "                })\n";
-    html << "                .then(data => {\n";
-    html << "                    // Update page title\n";
-    html << "                    document.getElementById('page-title').textContent = data.name;\n";
-    html << "                    document.title = data.name + ' - Network Monitor';\n";
-    html << "\n";
-    html << "                    // Generate HTML for groups\n";
-    html << "                    let html = '';\n";
-    html << "                    data.groups.forEach(group => {\n";
-    html << "                        html += '<div class=\"group\">';\n";
-    html << "                        html += '<div class=\"group-header\">' + escapeHtml(group.name) + '</div>';\n";
-    html << "                        html += '<table class=\"monitor-table\">';\n";
-    html << "                        html += '<thead><tr>';\n";
-    html << "                        html += '<th>Service</th><th>Host</th><th>Status</th><th>Response Time</th><th>Uptime</th><th>Last Check</th><th>Details</th>';\n";
-    html << "                        html += '</tr></thead><tbody>';\n";
-    html << "\n";
-    html << "                        group.monitors.forEach(monitor => {\n";
-    html << "                            const statusClass = getStatusClass(monitor.status);\n";
-    html << "                            html += '<tr>';\n";
-    html << "                            html += '<td>' + escapeHtml(monitor.service) + '</td>';\n";
-    html << "                            html += '<td>' + escapeHtml(monitor.host) + '</td>';\n";
-    html << "                            html += '<td class=\"' + statusClass + '\">' + escapeHtml(monitor.status) + '</td>';\n";
-    html << "                            html += '<td>' + escapeHtml(monitor.response_time) + '</td>';\n";
-    html << "                            html += '<td>';\n";
-    html << "                            html += '<div class=\"uptime-bar\">';\n";
-    html << "                            html += '<div class=\"uptime-fill\" style=\"width: ' + monitor.uptime_percent + '%\"></div>';\n";
-    html << "                            html += '</div> ' + monitor.uptime_percent.toFixed(1) + '%';\n";
-    html << "                            html += '</td>';\n";
-    html << "                            html += '<td>' + escapeHtml(monitor.last_check) + '</td>';\n";
-    html << "                            html += '<td>' + escapeHtml(monitor.details) + '</td>';\n";
-    html << "                            html += '</tr>';\n";
-    html << "                        });\n";
-    html << "\n";
-    html << "                        html += '</tbody></table></div>';\n";
-    html << "                    });\n";
-    html << "\n";
-    html << "                    document.getElementById('content').innerHTML = html;\n";
-    html << "\n";
-    html << "                    // Update timestamp\n";
-    html << "                    document.getElementById('last-updated').textContent = \n";
-    html << "                        'Last updated: ' + data.timestamp + ' | Auto-refresh every 30 seconds';\n";
-    html << "                })\n";
-    html << "                .catch(error => {\n";
-    html << "                    console.error('Error fetching monitor data:', error);\n";
-    html << "                    document.getElementById('content').innerHTML = \n";
-    html << "                        '<div class=\"error\">Error loading monitor data. Please try refreshing the page.</div>';\n";
-    html << "                });\n";
-    html << "        }\n";
-    html << "\n";
-    html << "        // Initial load\n";
-    html << "        updateMonitorData();\n";
-    html << "\n";
-    html << "        // Auto-refresh every 30 seconds\n";
-    html << "        setInterval(updateMonitorData, 30000);\n";
-    html << "    </script>\n";
-    html << "</body>\n";
-    html << "</html>\n";
-
-    // Store the static HTML page
-    static_html_page_ = html.str();
-    spdlog::debug("Generated static HTML page ({} bytes)", static_html_page_.length());
+    try {
+        static_html_page_ = load_html_template_from_file(*config_.html_template);
+        spdlog::info("Loaded static HTML template: {} ({} bytes)", *config_.html_template, static_html_page_.length());
+    } catch (const std::exception& e) {
+        throw std::runtime_error("Failed to load required HTML template '" + *config_.html_template + "': " + e.what());
+    }
 }
 
 std::string web_server::generate_json_status() const {
@@ -273,8 +153,7 @@ std::string web_server::generate_json_status() const {
         }
 
         // Sort groups and monitors
-        std::vector<std::pair<std::string, std::vector<std::shared_ptr<monitor_state>>>> sorted_groups(
-            grouped_monitors.begin(), grouped_monitors.end());
+        std::vector<std::pair<std::string, std::vector<std::shared_ptr<monitor_state>>>> sorted_groups(grouped_monitors.begin(), grouped_monitors.end());
 
         for (auto& [group_name, states] : sorted_groups) {
             // Sort monitors within group by destination sort order
@@ -371,4 +250,21 @@ void web_server::invalidate_json_cache() const {
     json_status_cached_ = false;
     cached_json_status_.clear();
 }
+
+std::string web_server::load_html_template_from_file(const std::string& template_path) {
+    std::ifstream file(template_path);
+    if (!file.is_open()) {
+        throw std::runtime_error("Cannot open HTML template file: " + template_path);
+    }
+
+    std::ostringstream buffer;
+    buffer << file.rdbuf();
+
+    if (buffer.str().empty()) {
+        throw std::runtime_error("HTML template file is empty: " + template_path);
+    }
+
+    return buffer.str();
+}
+
 

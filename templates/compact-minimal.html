@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Argus++ Monitor</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Courier New', monospace;
+            margin: 10px;
+            background-color: #000;
+            color: #00ff00;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        .header {
+            border: 1px solid #00ff00;
+            padding: 5px 10px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .header h3 {
+            margin: 0;
+            font-size: 14px;
+            color: #00ff00;
+        }
+        .group {
+            border: 1px solid #333;
+            margin-bottom: 10px;
+            background-color: #111;
+        }
+        .group-header {
+            background-color: #333;
+            color: #fff;
+            padding: 5px 10px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .monitor-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+        }
+        .monitor-table th, .monitor-table td {
+            padding: 3px 6px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .monitor-table th {
+            background-color: #222;
+            color: #ccc;
+            font-weight: bold;
+        }
+        .status-ok { color: #00ff00; }
+        .status-warning { color: #ffff00; }
+        .status-error { color: #ff0000; }
+        .last-updated {
+            text-align: center;
+            margin-top: 10px;
+            color: #666;
+            font-size: 10px;
+        }
+        .uptime-bar {
+            width: 50px;
+            height: 10px;
+            background-color: #333;
+            overflow: hidden;
+            position: relative;
+            display: inline-block;
+            margin-right: 3px;
+            vertical-align: middle;
+        }
+        .uptime-fill {
+            height: 100%;
+            background-color: #00ff00;
+            transition: width 0.3s ease;
+        }
+        .loading, .error {
+            text-align: center;
+            padding: 20px;
+            font-size: 12px;
+        }
+        .loading { color: #666; }
+        .error { color: #ff0000; }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .monitor-table th:nth-child(n+5),
+            .monitor-table td:nth-child(n+5) {
+                display: none;
+            }
+            body { margin: 5px; font-size: 11px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h3 id="page-title">Argus++ Monitor</h3>
+    </div>
+
+    <div id="content">
+        <div class="loading">Loading...</div>
+    </div>
+
+    <div class="last-updated" id="last-updated">Loading...</div>
+
+    <script>
+        function getStatusClass(status) {
+            switch (status.toLowerCase()) {
+                case 'ok': return 'status-ok';
+                case 'warning': return 'status-warning';
+                case 'failure': return 'status-error';
+                default: return 'status-ok';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function updateMonitorData() {
+            fetch('/api/status')
+                .then(response => response.ok ? response.json() : Promise.reject('Network error'))
+                .then(data => {
+                    document.getElementById('page-title').textContent = data.name;
+                    document.title = data.name + ' - Monitor';
+
+                    let html = '';
+                    data.groups.forEach(group => {
+                        html += '<div class="group">';
+                        html += '<div class="group-header">' + escapeHtml(group.name) + '</div>';
+                        html += '<table class="monitor-table">';
+                        html += '<thead><tr><th>Service</th><th>Host</th><th>Status</th><th>Time</th><th>Up%</th><th>Check</th><th>Details</th></tr></thead><tbody>';
+
+                        group.monitors.forEach(monitor => {
+                            const statusClass = getStatusClass(monitor.status);
+                            html += '<tr>';
+                            html += '<td>' + escapeHtml(monitor.service) + '</td>';
+                            html += '<td>' + escapeHtml(monitor.host) + '</td>';
+                            html += '<td class="' + statusClass + '">' + escapeHtml(monitor.status) + '</td>';
+                            html += '<td>' + escapeHtml(monitor.response_time) + '</td>';
+                            html += '<td><div class="uptime-bar"><div class="uptime-fill" style="width: ' + monitor.uptime_percent + '%"></div></div>' + monitor.uptime_percent.toFixed(0) + '%</td>';
+                            html += '<td>' + escapeHtml(monitor.last_check.split(' ')[1] || 'Never') + '</td>';
+                            html += '<td>' + escapeHtml(monitor.details.substring(0, 20)) + '</td>';
+                            html += '</tr>';
+                        });
+
+                        html += '</tbody></table></div>';
+                    });
+
+                    document.getElementById('content').innerHTML = html;
+                    document.getElementById('last-updated').textContent = 'Updated: ' + data.timestamp.split(' ')[1];
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('content').innerHTML = '<div class="error">Error loading data</div>';
+                });
+        }
+
+        updateMonitorData();
+        setInterval(updateMonitorData, 30000);
+    </script>
+</body>
+</html>

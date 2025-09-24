@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Argus++ Network Monitor</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #ffffff;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: rgba(0,0,0,0.3);
+            padding: 15px 25px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .header h3 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 300;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .group {
+            background: rgba(255,255,255,0.95);
+            color: #333;
+            margin-bottom: 25px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .group-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 18px 25px;
+            font-size: 18px;
+            font-weight: 500;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        .monitor-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+        .monitor-table th, .monitor-table td {
+            padding: 16px 20px;
+            text-align: left;
+            border-bottom: 1px solid rgba(0,0,0,0.06);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .monitor-table th:nth-child(1), .monitor-table td:nth-child(1) { width: 20%; }
+        .monitor-table th:nth-child(2), .monitor-table td:nth-child(2) { width: 15%; }
+        .monitor-table th:nth-child(3), .monitor-table td:nth-child(3) { width: 10%; }
+        .monitor-table th:nth-child(4), .monitor-table td:nth-child(4) { width: 12%; }
+        .monitor-table th:nth-child(5), .monitor-table td:nth-child(5) { width: 12%; }
+        .monitor-table th:nth-child(6), .monitor-table td:nth-child(6) { width: 15%; }
+        .monitor-table th:nth-child(7), .monitor-table td:nth-child(7) { width: 16%; }
+        .monitor-table th {
+            background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
+            font-weight: 600;
+            color: #495057;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .monitor-table tbody tr:hover {
+            background-color: rgba(0,0,0,0.02);
+        }
+        .status-ok { color: #28a745; font-weight: 600; }
+        .status-warning { color: #ffc107; font-weight: 600; }
+        .status-error { color: #dc3545; font-weight: 600; }
+        .last-updated {
+            text-align: center;
+            margin-top: 30px;
+            color: rgba(255,255,255,0.8);
+            font-style: italic;
+            font-size: 14px;
+        }
+        .uptime-bar {
+            width: 80px;
+            height: 16px;
+            background-color: rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .uptime-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            transition: width 0.3s ease;
+            border-radius: 8px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: rgba(255,255,255,0.7);
+            font-size: 16px;
+        }
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #ff6b6b;
+            font-size: 16px;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .loading {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h3 id="page-title">Argus++ Network Monitor</h3>
+        </div>
+
+        <div id="content">
+            <div class="loading">Loading monitor data...</div>
+        </div>
+
+        <div class="last-updated" id="last-updated">
+            Loading...
+        </div>
+    </div>
+
+    <script>
+        function getStatusClass(status) {
+            switch (status.toLowerCase()) {
+                case 'ok': return 'status-ok';
+                case 'warning': return 'status-warning';
+                case 'failure': return 'status-error';
+                default: return 'status-ok';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function updateMonitorData() {
+            fetch('/api/status')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    document.getElementById('page-title').textContent = data.name;
+                    document.title = data.name + ' - Network Monitor';
+
+                    let html = '';
+                    data.groups.forEach(group => {
+                        html += '<div class="group">';
+                        html += '<div class="group-header">' + escapeHtml(group.name) + '</div>';
+                        html += '<table class="monitor-table">';
+                        html += '<thead><tr>';
+                        html += '<th>Service</th><th>Host</th><th>Status</th><th>Response Time</th><th>Uptime</th><th>Last Check</th><th>Details</th>';
+                        html += '</tr></thead><tbody>';
+
+                        group.monitors.forEach(monitor => {
+                            const statusClass = getStatusClass(monitor.status);
+                            html += '<tr>';
+                            html += '<td>' + escapeHtml(monitor.service) + '</td>';
+                            html += '<td>' + escapeHtml(monitor.host) + '</td>';
+                            html += '<td class="' + statusClass + '">' + escapeHtml(monitor.status) + '</td>';
+                            html += '<td>' + escapeHtml(monitor.response_time) + '</td>';
+                            html += '<td>';
+                            html += '<div class="uptime-bar">';
+                            html += '<div class="uptime-fill" style="width: ' + monitor.uptime_percent + '%"></div>';
+                            html += '</div>' + monitor.uptime_percent.toFixed(1) + '%';
+                            html += '</td>';
+                            html += '<td>' + escapeHtml(monitor.last_check) + '</td>';
+                            html += '<td>' + escapeHtml(monitor.details) + '</td>';
+                            html += '</tr>';
+                        });
+
+                        html += '</tbody></table></div>';
+                    });
+
+                    document.getElementById('content').innerHTML = html;
+                    document.getElementById('last-updated').textContent =
+                        'Last updated: ' + data.timestamp + ' | Auto-refresh every 30 seconds';
+                })
+                .catch(error => {
+                    console.error('Error fetching monitor data:', error);
+                    document.getElementById('content').innerHTML =
+                        '<div class="error">Error loading monitor data. Please try refreshing the page.</div>';
+                });
+        }
+
+        updateMonitorData();
+        setInterval(updateMonitorData, 30000);
+    </script>
+</body>
+</html>

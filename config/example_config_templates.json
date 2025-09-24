@@ -1,0 +1,80 @@
+{
+  "name": "Argus++ Template Demo",
+  "listen": "localhost:8080",
+  "log_file": "/var/log/arguspp.log",
+  "ping_implementation": "system_ping",
+  "cache_duration_seconds": 30,
+  "html_template": "templates/modern-dark.html",
+  "monitors": [
+    {
+      "sort": 1,
+      "group": "Web Services",
+      "destinations": [
+        {
+          "sort": 1,
+          "name": "Google DNS",
+          "timeout": 5000,
+          "warning": 100,
+          "failure": 1000,
+          "reset": 3,
+          "interval": 30,
+          "history": 50,
+          "test": {
+            "method": "ping",
+            "host": "8.8.8.8"
+          }
+        },
+        {
+          "sort": 2,
+          "name": "Google Search",
+          "timeout": 10000,
+          "warning": 2000,
+          "failure": 5000,
+          "reset": 3,
+          "interval": 60,
+          "history": 50,
+          "test": {
+            "method": "url",
+            "url": "https://www.google.com"
+          }
+        }
+      ]
+    },
+    {
+      "sort": 2,
+      "group": "Infrastructure",
+      "destinations": [
+        {
+          "sort": 1,
+          "name": "Local SSH",
+          "timeout": 5000,
+          "warning": 100,
+          "failure": 1000,
+          "reset": 3,
+          "interval": 30,
+          "history": 50,
+          "test": {
+            "method": "connect",
+            "protocol": "tcp",
+            "host": "localhost",
+            "port": 22
+          }
+        },
+        {
+          "sort": 2,
+          "name": "Cloudflare DNS",
+          "timeout": 5000,
+          "warning": 50,
+          "failure": 500,
+          "reset": 3,
+          "interval": 30,
+          "history": 50,
+          "test": {
+            "method": "ping",
+            "host": "1.1.1.1"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -3,6 +3,7 @@
   "listen": "127.0.0.1:8080",
   "ping_implementation": "system_ping",
   "cache_duration_seconds": 30,
+  "html_template": "templates/dense-status.html",
   "monitors": [
     {
       "sort": 1,

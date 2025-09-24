@@ -53,6 +53,10 @@ monitor_config monitor_config_loader::load_config(const std::string& config_path
         }
     }
 
+    if (root.contains("html_template")) {
+        config.html_template = root["html_template"].get<std::string>();
+    }
+
     for (const auto& monitors_node = root["monitors"]; const auto& monitor_node : monitors_node) {
         config.monitors.push_back(parse_group(monitor_node));
     }

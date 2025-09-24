@@ -2,6 +2,7 @@
   "name": "Argus++ Stress Test Monitor",
   "listen": "127.0.0.1:8080",
   "ping_implementation": "system_ping",
+  "html_template": "templates/ultra-dense-table.html",
   "monitors": [
     {
       "sort": 1,

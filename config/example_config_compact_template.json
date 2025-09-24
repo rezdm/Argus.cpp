@@ -1,0 +1,42 @@
+{
+  "name": "Compact Monitor",
+  "listen": "8080",
+  "cache_duration_seconds": 60,
+  "html_template": "templates/compact-minimal.html",
+  "monitors": [
+    {
+      "sort": 1,
+      "group": "Essential Services",
+      "destinations": [
+        {
+          "sort": 1,
+          "name": "Internet",
+          "timeout": 3000,
+          "warning": 50,
+          "failure": 200,
+          "reset": 2,
+          "interval": 15,
+          "history": 20,
+          "test": {
+            "method": "ping",
+            "host": "8.8.8.8"
+          }
+        },
+        {
+          "sort": 2,
+          "name": "Web Server",
+          "timeout": 5000,
+          "warning": 1000,
+          "failure": 3000,
+          "reset": 2,
+          "interval": 30,
+          "history": 20,
+          "test": {
+            "method": "url",
+            "url": "https://httpbin.org/status/200"
+          }
+        }
+      ]
+    }
+  ]
+}
