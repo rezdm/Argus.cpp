@@ -1,0 +1,35 @@
+[Unit]
+Description=Argus++ Network Monitor
+Documentation=https://github.com/rezdm/Argus.cpp
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+ExecStart=@CMAKE_INSTALL_PREFIX@/bin/arguspp -s @CMAKE_INSTALL_PREFIX@/etc/config.json
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=5
+TimeoutStartSec=30
+TimeoutStopSec=30
+
+# Security settings
+User=argus
+Group=argus
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/arguspp /var/log/arguspp
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+
+# Working directory
+WorkingDirectory=@CMAKE_INSTALL_PREFIX@
+
+# Environment
+Environment=TMPDIR=/var/lib/arguspp/tmp
+
+[Install]
+WantedBy=multi-user.target

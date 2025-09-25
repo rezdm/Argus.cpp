@@ -13,6 +13,7 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #ifdef HAVE_SYSTEMD
 #include <spdlog/sinks/systemd_sink.h>
+#include <systemd/sd-daemon.h>
 #endif
 
 #include "types.h"
@@ -244,8 +245,14 @@ bool is_systemd_service() {
 
 // Notify systemd of readiness
 void notify_systemd_ready() {
+#ifdef HAVE_SYSTEMD
+    if (sd_notify(0, "READY=1") < 0) {
+        spdlog::warn("Failed to notify systemd of readiness");
+    } else {
+        spdlog::info("Notified systemd of service readiness");
+    }
+#else
     if (std::getenv("NOTIFY_SOCKET")) {
-        // Simple implementation - in production you might want libsystemd
         const std::string cmd = "systemd-notify --ready";
         if (system(cmd.c_str()) != 0) {
             spdlog::warn("Failed to notify systemd of readiness");
@@ -253,14 +260,21 @@ void notify_systemd_ready() {
             spdlog::info("Notified systemd of service readiness");
         }
     }
+#endif
 }
 
 // Systemd watchdog ping
 void notify_systemd_watchdog() {
+#ifdef HAVE_SYSTEMD
+    if (std::getenv("WATCHDOG_USEC")) {
+        sd_notify(0, "WATCHDOG=1");
+    }
+#else
     if (std::getenv("WATCHDOG_USEC")) {
         const std::string cmd = "systemd-notify WATCHDOG=1";
         system(cmd.c_str());
     }
+#endif
 }
 
 // Daemon implementation

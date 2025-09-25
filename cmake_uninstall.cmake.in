@@ -1,0 +1,118 @@
+cmake_minimum_required(VERSION 3.20)
+
+# Uninstall script for Argus++
+message(STATUS "=== Argus++ Uninstall Script ===")
+
+# Stop and disable systemd service if it exists
+if(EXISTS "/etc/systemd/system/arguspp.service")
+    message(STATUS "Stopping and disabling arguspp service...")
+    execute_process(
+        COMMAND systemctl stop arguspp
+        RESULT_VARIABLE STOP_RESULT
+        OUTPUT_QUIET ERROR_QUIET
+    )
+
+    execute_process(
+        COMMAND systemctl disable arguspp
+        RESULT_VARIABLE DISABLE_RESULT
+        OUTPUT_QUIET ERROR_QUIET
+    )
+
+    if(STOP_RESULT EQUAL 0 AND DISABLE_RESULT EQUAL 0)
+        message(STATUS "Service stopped and disabled successfully")
+    else()
+        message(WARNING "Failed to stop/disable service (may not be running)")
+    endif()
+
+    # Remove systemd service file
+    message(STATUS "Removing systemd service file...")
+    file(REMOVE "/etc/systemd/system/arguspp.service")
+
+    # Reload systemd daemon
+    execute_process(
+        COMMAND systemctl daemon-reload
+        RESULT_VARIABLE RELOAD_RESULT
+        OUTPUT_QUIET ERROR_QUIET
+    )
+
+    if(RELOAD_RESULT EQUAL 0)
+        message(STATUS "Systemd daemon reloaded")
+    else()
+        message(WARNING "Failed to reload systemd daemon")
+    endif()
+endif()
+
+# Remove installation files using CMake's install manifest
+if(EXISTS "@CMAKE_BINARY_DIR@/install_manifest.txt")
+    message(STATUS "Removing installed files from manifest...")
+    file(READ "@CMAKE_BINARY_DIR@/install_manifest.txt" files)
+    string(REGEX REPLACE "\n" ";" files "${files}")
+    foreach(file ${files})
+        message(STATUS "Removing: ${file}")
+        if(IS_SYMLINK "${file}" OR EXISTS "${file}")
+            file(REMOVE "${file}")
+        endif()
+    endforeach()
+else()
+    # Fallback: remove known installation directories
+    message(STATUS "No install manifest found, removing installation directory...")
+    if(EXISTS "@CMAKE_INSTALL_PREFIX@")
+        file(REMOVE_RECURSE "@CMAKE_INSTALL_PREFIX@")
+        message(STATUS "Removed: @CMAKE_INSTALL_PREFIX@")
+    endif()
+endif()
+
+# Clean up empty parent directories
+if(EXISTS "@CMAKE_INSTALL_PREFIX@")
+    message(STATUS "Cleaning up empty directories...")
+    file(REMOVE_RECURSE "@CMAKE_INSTALL_PREFIX@")
+    message(STATUS "Removed: @CMAKE_INSTALL_PREFIX@")
+endif()
+
+# Remove log and runtime directories
+message(STATUS "Removing log and runtime directories...")
+if(EXISTS "/var/log/arguspp")
+    file(REMOVE_RECURSE "/var/log/arguspp")
+    message(STATUS "Removed: /var/log/arguspp")
+endif()
+
+if(EXISTS "/var/lib/arguspp")
+    file(REMOVE_RECURSE "/var/lib/arguspp")
+    message(STATUS "Removed: /var/lib/arguspp")
+endif()
+
+# Check if argus user exists and offer to remove it
+execute_process(
+    COMMAND id -u argus
+    RESULT_VARIABLE USER_EXISTS
+    OUTPUT_QUIET ERROR_QUIET
+)
+
+if(USER_EXISTS EQUAL 0)
+    message(STATUS "")
+    message(STATUS "The 'argus' user still exists. To remove it manually, run:")
+    message(STATUS "  sudo userdel argus")
+    message(STATUS "  sudo groupdel argus  # if group exists")
+else()
+    message(STATUS "User 'argus' not found (may have been removed already)")
+endif()
+
+message(STATUS "")
+message(STATUS "=== Uninstall Complete ===")
+message(STATUS "Argus++ has been removed from the system")
+
+# Check for any remaining processes
+execute_process(
+    COMMAND pgrep arguspp
+    RESULT_VARIABLE PROC_RUNNING
+    OUTPUT_QUIET ERROR_QUIET
+)
+
+if(PROC_RUNNING EQUAL 0)
+    message(STATUS "")
+    message(WARNING "arguspp processes may still be running. Check with:")
+    message(WARNING "  ps aux | grep arguspp")
+    message(WARNING "  sudo pkill arguspp  # to terminate if needed")
+endif()
+
+message(STATUS "")

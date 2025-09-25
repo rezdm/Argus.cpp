@@ -146,3 +146,164 @@ set_target_properties(arguspp
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
 
+# Installation configuration
+set(CMAKE_INSTALL_PREFIX "/opt/arguspp" CACHE PATH "Installation directory")
+
+# Install executable
+install(TARGETS arguspp
+    RUNTIME DESTINATION bin
+    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+)
+
+# Configure and install default configuration
+configure_file(../config/example_config.json.in
+    ${CMAKE_CURRENT_BINARY_DIR}/config.json
+    @ONLY
+)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/config.json
+    DESTINATION etc
+    PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
+)
+
+# Install HTML templates
+install(DIRECTORY ../templates/
+    DESTINATION share/templates
+    FILES_MATCHING PATTERN "*.html"
+    PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
+)
+
+# Install systemd service file if systemd is available
+if(SYSTEMD_FOUND)
+    configure_file(../arguspp.service.in
+        ${CMAKE_CURRENT_BINARY_DIR}/arguspp.service
+        @ONLY
+    )
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/arguspp.service
+        DESTINATION /etc/systemd/system
+        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
+    )
+
+    # Create a post-install script for systemd setup
+    install(CODE "
+        message(STATUS \"Installing systemd service...\")
+        execute_process(COMMAND systemctl daemon-reload
+            RESULT_VARIABLE DAEMON_RELOAD_RESULT
+            OUTPUT_QUIET ERROR_QUIET
+        )
+        if(DAEMON_RELOAD_RESULT EQUAL 0)
+            message(STATUS \"Systemd service installed successfully\")
+            message(STATUS \"To enable and start the service, run:\")
+            message(STATUS \"  sudo systemctl enable arguspp\")
+            message(STATUS \"  sudo systemctl start arguspp\")
+        else()
+            message(WARNING \"Failed to reload systemd daemon. You may need to run 'sudo systemctl daemon-reload' manually.\")
+        endif()
+    ")
+endif()
+
+# Create necessary directories and set capabilities
+install(CODE "
+    # Create argus user and group if they don't exist
+    message(STATUS \"Creating argus user and group...\")
+    execute_process(
+        COMMAND id -u argus
+        RESULT_VARIABLE USER_EXISTS
+        OUTPUT_QUIET ERROR_QUIET
+    )
+
+    if(NOT USER_EXISTS EQUAL 0)
+        execute_process(
+            COMMAND useradd -r -s /bin/false -d /var/lib/arguspp argus
+            RESULT_VARIABLE CREATE_USER_RESULT
+            OUTPUT_QUIET ERROR_QUIET
+        )
+
+        if(CREATE_USER_RESULT EQUAL 0)
+            message(STATUS \"Created argus system user\")
+        else()
+            message(WARNING \"Failed to create argus user. You may need to create it manually:\")
+            message(WARNING \"  sudo useradd -r -s /bin/false -d /var/lib/arguspp argus\")
+        endif()
+    else()
+        message(STATUS \"User 'argus' already exists\")
+    endif()
+
+    # Create log directory
+    file(MAKE_DIRECTORY \"/var/log/arguspp\")
+
+    # Create runtime directory
+    file(MAKE_DIRECTORY \"/var/lib/arguspp\")
+
+    # Set ownership of all installed files and directories to argus user
+    execute_process(
+        COMMAND chown -R argus:argus \${CMAKE_INSTALL_PREFIX} /var/log/arguspp /var/lib/arguspp
+        RESULT_VARIABLE CHOWN_RESULT
+        OUTPUT_QUIET ERROR_QUIET
+    )
+
+    if(CHOWN_RESULT EQUAL 0)
+        message(STATUS \"Set ownership of installation and system directories to argus user\")
+    else()
+        message(WARNING \"Failed to set ownership. You may need to run:\")
+        message(WARNING \"  sudo chown -R argus:argus \${CMAKE_INSTALL_PREFIX} /var/log/arguspp /var/lib/arguspp\")
+    endif()
+
+    # Ensure parent directories are accessible by argus user
+    get_filename_component(PARENT_DIR \${CMAKE_INSTALL_PREFIX} DIRECTORY)
+    execute_process(
+        COMMAND chmod o+x \${PARENT_DIR}
+        RESULT_VARIABLE CHMOD_PARENT_RESULT
+        OUTPUT_QUIET ERROR_QUIET
+    )
+
+    if(CHMOD_PARENT_RESULT EQUAL 0)
+        message(STATUS \"Set execute permission on parent directory\")
+    else()
+        message(WARNING \"Failed to set parent directory permissions. You may need to run:\")
+        message(WARNING \"  sudo chmod o+x \${PARENT_DIR}\")
+    endif()
+
+    # Set capabilities for ping functionality
+    message(STATUS \"Setting capabilities for ping functionality...\")
+    execute_process(
+        COMMAND setcap cap_net_raw+ep \${CMAKE_INSTALL_PREFIX}/bin/arguspp
+        RESULT_VARIABLE SETCAP_RESULT
+        OUTPUT_QUIET ERROR_QUIET
+    )
+
+    if(SETCAP_RESULT EQUAL 0)
+        message(STATUS \"Capabilities set successfully\")
+    else()
+        message(WARNING \"Failed to set capabilities. To enable ping functionality, run:\")
+        message(WARNING \"  sudo setcap cap_net_raw+ep \${CMAKE_INSTALL_PREFIX}/bin/arguspp\")
+        message(WARNING \"Or enable unprivileged ICMP sockets:\")
+        message(WARNING \"  sudo sysctl -w net.ipv4.ping_group_range='0 65535'\")
+    endif()
+
+    # Display installation summary
+    message(STATUS \"\")
+    message(STATUS \"=== Argus++ Installation Complete ===\")
+    message(STATUS \"Installation directory: \${CMAKE_INSTALL_PREFIX}\")
+    message(STATUS \"Executable: \${CMAKE_INSTALL_PREFIX}/bin/arguspp\")
+    message(STATUS \"Config file: \${CMAKE_INSTALL_PREFIX}/etc/config.json\")
+    message(STATUS \"Templates: \${CMAKE_INSTALL_PREFIX}/share/templates/\")
+    message(STATUS \"\")
+    message(STATUS \"To run: \${CMAKE_INSTALL_PREFIX}/bin/arguspp \${CMAKE_INSTALL_PREFIX}/etc/config.json\")
+    if(SYSTEMD_FOUND)
+        message(STATUS \"Or use systemd: sudo systemctl start arguspp\")
+    endif()
+    message(STATUS \"\")
+")
+
+# Create uninstall target
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/../cmake_uninstall.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
+    @ONLY
+)
+
+add_custom_target(uninstall
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
+    COMMENT "Uninstalling Argus++ and cleaning up system files..."
+)
+
