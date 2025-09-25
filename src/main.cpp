@@ -196,6 +196,12 @@ public:
                     }
                 }
 
+                // Also reload HTML template if it exists and the path is the same
+                if (server_instance && current_config_.html_template == new_config.html_template && current_config_.html_template.has_value()) {
+                    spdlog::info("Reloading HTML template from existing path");
+                    server_instance->reload_html_template();
+                }
+
                 spdlog::info("Configuration reload completed successfully");
             } else {
                 // Rollback to previous configuration

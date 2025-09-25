@@ -107,6 +107,16 @@ void web_server::stop() {
     }
 }
 
+void web_server::reload_html_template() {
+    try {
+        spdlog::info("Reloading HTML template from: {}", config_.html_template.value_or("(not configured)"));
+        generate_static_html_page();
+        spdlog::info("HTML template reloaded successfully");
+    } catch (const std::exception& e) {
+        spdlog::error("Failed to reload HTML template: {}", e.what());
+    }
+}
+
 void web_server::handle_status_request(const httplib::Request& req, httplib::Response& res) const {
     spdlog::debug("HTTP request from {}: {} {}", req.remote_addr, req.method, req.path);
 
