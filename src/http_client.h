@@ -7,8 +7,7 @@
 class http_client_base {
 public:
     virtual ~http_client_base() = default;
-    virtual test_result perform_request(const std::string& url, const std::string& path,
-                                       int timeout_ms, const std::string& proxy = "") = 0;
+    virtual test_result perform_request(const std::string& url, const std::string& path, int timeout_ms, const std::string& proxy = "") = 0;
     [[nodiscard]] virtual std::string get_scheme() const = 0;
 
 protected:
@@ -28,9 +27,8 @@ private:
 class https_client final : public http_client_base {
 public:
     https_client();
-    test_result perform_request(const std::string& host, const std::string& path,
-                               int timeout_ms, const std::string& proxy = "") override;
-    std::string get_scheme() const override { return "https"; }
+    test_result perform_request(const std::string& host, const std::string& path, int timeout_ms, const std::string& proxy = "") override;
+    [[nodiscard]] std::string get_scheme() const override { return "https"; }
 
 private:
     static int extract_port_from_host(std::string& host, int default_port = 443);

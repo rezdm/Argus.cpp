@@ -24,8 +24,7 @@ std::string address_family_handler_base::sockaddr_to_string(const sockaddr_stora
 }
 
 // IPv4 Handler Implementation
-std::vector<resolved_address> ipv4_handler::resolve_addresses(
-    const std::string& host, const int port, const int socktype) {
+std::vector<resolved_address> ipv4_handler::resolve_addresses(const std::string& host, const int port, const int socktype) {
 
     std::vector<resolved_address> addresses;
 
@@ -34,8 +33,7 @@ std::vector<resolved_address> ipv4_handler::resolve_addresses(
     hints.ai_family = AF_INET;  // IPv4 only
     hints.ai_socktype = socktype;
 
-    const int status = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &result);
-    if (status != 0) {
+    if (const int status = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &result); status != 0) {
         spdlog::debug("IPv4 DNS resolution failed for {}: {}", host, gai_strerror(status));
         return addresses; // Return empty vector
     }
@@ -94,8 +92,7 @@ bool ipv4_handler::configure_socket(const int socket, const int timeout_ms) {
 }
 
 // IPv6 Handler Implementation
-std::vector<resolved_address> ipv6_handler::resolve_addresses(
-    const std::string& host, const int port, const int socktype) {
+std::vector<resolved_address> ipv6_handler::resolve_addresses(const std::string& host, const int port, const int socktype) {
 
     std::vector<resolved_address> addresses;
 
@@ -175,7 +172,8 @@ std::vector<resolved_address> address_resolver::resolve_with_preference(
 
     std::vector<resolved_address> all_addresses;
 
-    for (const auto handlers = get_handlers_by_preference(); const auto& handler : handlers) {
+    for (const auto handlers = get_handlers_by_preference();
+        const auto& handler : handlers) {
         auto addresses = handler->resolve_addresses(host, port, socktype);
         spdlog::trace("Resolved {} {} addresses for {}", addresses.size(), handler->get_family_name(), host);
 

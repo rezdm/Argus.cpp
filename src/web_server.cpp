@@ -8,10 +8,8 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 
-web_server::web_server(monitor_config config, const std::map<std::string, std::shared_ptr<monitor_state>>& monitors,
-                       std::shared_ptr<thread_pool> pool)
-    : config_(std::move(config)), monitors_(monitors), thread_pool_(std::move(pool)),
-      json_status_cached_(false), cache_duration_(std::chrono::seconds(config_.cache_duration_seconds)) {
+web_server::web_server(monitor_config config, const std::map<std::string, std::shared_ptr<monitor_state>>& monitors, std::shared_ptr<thread_pool> pool)
+    : config_(std::move(config)), monitors_(monitors), thread_pool_(std::move(pool)), json_status_cached_(false), cache_duration_(std::chrono::seconds(config_.cache_duration_seconds)) {
 
     // Initialize cached config name with fallback
     try {
@@ -173,9 +171,10 @@ std::string web_server::generate_json_status() const {
         }
 
         // Sort groups and monitors
-        std::vector<std::pair<std::string, std::vector<std::shared_ptr<monitor_state>>>> sorted_groups(grouped_monitors.begin(), grouped_monitors.end());
 
-        for (auto& [group_name, states] : sorted_groups) {
+        for (std::vector<std::pair<std::string, std::vector<std::shared_ptr<monitor_state>>>>
+            sorted_groups(grouped_monitors.begin(), grouped_monitors.end());
+            auto& [group_name, states] : sorted_groups) {
             // Sort monitors within group by destination sort order
             std::ranges::sort(states, [](const auto& a, const auto& b) {
                 if (!a || !b) return false;
@@ -234,20 +233,20 @@ std::string web_server::generate_json_status() const {
     }
 }
 
-std::string web_server::get_status_class(const monitor_status status) {
-    switch (status) {
-        case monitor_status::ok: return "status-ok";
-        case monitor_status::warning: return "status-warning";
-        case monitor_status::failure: return "status-error";
-        default: return "status-ok";
+std::string web_server::load_html_template_from_file(const std::string& template_path) {
+    std::ifstream file(template_path);
+    if (!file.is_open()) {
+        throw std::runtime_error("Cannot open HTML template file: " + template_path);
     }
-}
 
-std::string web_server::format_timestamp(const std::chrono::system_clock::time_point& timestamp) {
-    const auto time_t = std::chrono::system_clock::to_time_t(timestamp);
-    std::ostringstream oss;
-    oss << std::put_time(std::localtime(&time_t), "%Y-%m-%d %H:%M:%S");
-    return oss.str();
+    std::ostringstream buffer;
+    buffer << file.rdbuf();
+
+    if (buffer.str().empty()) {
+        throw std::runtime_error("HTML template file is empty: " + template_path);
+    }
+
+    return buffer.str();
 }
 
 bool web_server::is_json_cache_valid() const {
@@ -271,20 +270,20 @@ void web_server::invalidate_json_cache() const {
     cached_json_status_.clear();
 }
 
-std::string web_server::load_html_template_from_file(const std::string& template_path) {
-    std::ifstream file(template_path);
-    if (!file.is_open()) {
-        throw std::runtime_error("Cannot open HTML template file: " + template_path);
+std::string web_server::get_status_class(const monitor_status status) {
+    switch (status) {
+        case monitor_status::ok: return "status-ok";
+        case monitor_status::warning: return "status-warning";
+        case monitor_status::failure: return "status-error";
+        default: return "status-ok";
     }
+}
 
-    std::ostringstream buffer;
-    buffer << file.rdbuf();
-
-    if (buffer.str().empty()) {
-        throw std::runtime_error("HTML template file is empty: " + template_path);
-    }
-
-    return buffer.str();
+std::string web_server::format_timestamp(const std::chrono::system_clock::time_point& timestamp) {
+    const auto time_t = std::chrono::system_clock::to_time_t(timestamp);
+    std::ostringstream oss;
+    oss << std::put_time(std::localtime(&time_t), "%Y-%m-%d %H:%M:%S");
+    return oss.str();
 }
 
 

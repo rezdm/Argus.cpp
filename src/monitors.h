@@ -39,7 +39,7 @@ private:
     std::atomic<bool> running_;
 
     // Async test execution
-    void perform_test_async(const std::shared_ptr<monitor_state>& state);
+    void perform_test_async(const std::shared_ptr<monitor_state>& state) const;
     static std::future<test_result> execute_test_async(const std::shared_ptr<monitor_state>& state);
     void schedule_monitor_test(const std::shared_ptr<monitor_state>& state);
 };

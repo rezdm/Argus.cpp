@@ -41,8 +41,7 @@ test_result http_client::perform_request(const std::string &host, const std::str
         auto result = client.Get(path, headers);
 
         const auto end_time = std::chrono::steady_clock::now();
-        const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-            end_time - start_time).count();
+        const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
 
         if (!result) {
             spdlog::debug("HTTP request failed for {}:{}{}: Connection error", actual_host, port, path);
@@ -59,8 +58,7 @@ test_result http_client::perform_request(const std::string &host, const std::str
 
     } catch (const std::exception& e) {
         const auto end_time = std::chrono::steady_clock::now();
-        const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-            end_time - start_time).count();
+        const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
         return create_error_result(e.what(), duration);
     }
 }
@@ -81,8 +79,7 @@ https_client::https_client() : enable_cert_verification_(false) {
     // This could be made configurable in the future
 }
 
-test_result https_client::perform_request(const std::string& host, const std::string& path,
-                                         const int timeout_ms, const std::string& proxy) {
+test_result https_client::perform_request(const std::string& host, const std::string& path, const int timeout_ms, const std::string& proxy) {
     const auto start_time = std::chrono::steady_clock::now();
 
     try {
@@ -114,8 +111,7 @@ test_result https_client::perform_request(const std::string& host, const std::st
         auto result = ssl_client.Get(path, headers);
 
         const auto end_time = std::chrono::steady_clock::now();
-        const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
-            end_time - start_time).count();
+        const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
 
         if (!result) {
             spdlog::debug("HTTPS request failed for {}:{}{}: Connection error", actual_host, port, path);

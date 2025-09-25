@@ -17,8 +17,8 @@ test_result network_test_ping::execute(const test_config& config, const int time
         }
 
         // Use auto-fallback ping tester
-        auto tester = ping_tester_factory::create_auto_fallback();
-        auto result = tester->ping_host(config.host.value(), timeout_ms);
+        const auto tester = ping_tester_factory::create_auto_fallback();
+        const auto result = tester->ping_host(config.host.value(), timeout_ms);
         success = result.success;
 
         if (!success && result.error.has_value()) {

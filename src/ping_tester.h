@@ -80,7 +80,7 @@ private:
 
     static bool initialize_socket(socket_family family, ping_context& ctx);
 
-    static bool send_icmp_packet(const ping_context& ctx, const struct sockaddr* dest_addr, socklen_t addr_len);
+    static bool send_icmp_packet(const ping_context& ctx, const sockaddr* dest_addr, socklen_t addr_len);
 
     static bool wait_for_reply(const ping_context& ctx, int timeout_ms);
 

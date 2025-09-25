@@ -45,10 +45,9 @@ private:
 
 // Template implementation must be in header
 template<class F, class... Args>
-auto thread_pool::enqueue(F&& f, Args&&... args)
-    -> std::future<typename std::invoke_result_t<F, Args...>> {
+auto thread_pool::enqueue(F&& f, Args&&... args) -> std::future<typename std::invoke_result_t<F, Args...>> {
 
-    using return_type = typename std::invoke_result_t<F, Args...>;
+    using return_type = std::invoke_result_t<F, Args...>;
 
     auto task = std::make_shared<std::packaged_task<return_type()>>(
         std::bind(std::forward<F>(f), std::forward<Args>(args)...)

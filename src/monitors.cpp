@@ -114,7 +114,7 @@ void monitors::schedule_monitor_test(const std::shared_ptr<monitor_state>& state
     scheduled_task_ids_.push_back(task_id);
 }
 
-void monitors::perform_test_async(const std::shared_ptr<monitor_state>& state) {
+void monitors::perform_test_async(const std::shared_ptr<monitor_state>& state) const {
     if (!running_) {
         spdlog::debug("Monitoring stopped, skipping test for {}", state->get_destination().name);
         return;
@@ -138,15 +138,14 @@ void monitors::perform_test_async(const std::shared_ptr<monitor_state>& state) {
                         result = future.get();
                     } catch (const std::exception& e) {
                         spdlog::debug("Test execution failed for {}: {}", state->get_destination().name, e.what());
-                        result = test_result{false, static_cast<long>(timeout.count()),
-                                           std::chrono::system_clock::now(), e.what()};
+                        result = test_result{false, static_cast<long>(timeout.count()), std::chrono::system_clock::now(), e.what()};
                     }
                 } else if (status == std::future_status::timeout) {
                     spdlog::warn("Test timeout exceeded for {} ({}ms + 5s buffer)", state->get_destination().name, state->get_destination().timeout);
                     result = test_result{false, static_cast<long>(timeout.count()), std::chrono::system_clock::now(), "Test timeout exceeded"};
                 } else {
-                    spdlog::error("Test deferred/cancelled for {}", state->get_destination().name);
-                    result = test_result{false, 0, std::chrono::system_clock::now(), "Test deferred or cancelled"};
+                    spdlog::error("Test deferred/canceled for {}", state->get_destination().name);
+                    result = test_result{false, 0, std::chrono::system_clock::now(), "Test deferred or canceled"};
                 }
 
                 state->add_result(result);

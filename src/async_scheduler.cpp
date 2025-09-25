@@ -2,8 +2,7 @@
 #include <spdlog/spdlog.h>
 #include <algorithm>
 
-async_scheduler::async_scheduler(std::shared_ptr<thread_pool> pool)
-    : thread_pool_(std::move(pool)), running_(false), next_task_id_(1) {
+async_scheduler::async_scheduler(std::shared_ptr<thread_pool> pool) : thread_pool_(std::move(pool)), running_(false), next_task_id_(1) {
     spdlog::debug("Async scheduler created");
 }
 
@@ -37,9 +36,9 @@ void async_scheduler::stop() {
 
 size_t async_scheduler::schedule_once(const std::chrono::seconds delay, std::function<void()> task) {
     const auto task_id = next_task_id_++;
-    const auto next_run = std::chrono::steady_clock::now() + delay;
 
     {
+        const auto next_run = std::chrono::steady_clock::now() + delay;
         std::unique_lock<std::mutex> lock(queue_mutex_);
         task_queue_.emplace(scheduled_task{
             next_run,
@@ -76,7 +75,7 @@ size_t async_scheduler::schedule_repeating(const std::chrono::seconds interval, 
 bool async_scheduler::cancel_task(size_t task_id) {
     std::unique_lock<std::mutex> lock(queue_mutex_);
 
-    // Create a new queue without the cancelled task
+    // Create a new queue without the canceled task
     std::priority_queue<scheduled_task, std::vector<scheduled_task>, std::greater<>> new_queue;
     bool found = false;
 
@@ -86,7 +85,7 @@ bool async_scheduler::cancel_task(size_t task_id) {
 
         if (task.id == task_id) {
             found = true;
-            spdlog::trace("Cancelled task {}", task_id);
+            spdlog::trace("Canceled task {}", task_id);
         } else {
             new_queue.push(std::move(task));
         }
