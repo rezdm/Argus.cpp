@@ -9,11 +9,11 @@
 #include <nlohmann/json.hpp>
 
 web_server::web_server(monitor_config config, const std::map<std::string, std::shared_ptr<monitor_state>>& monitors, std::shared_ptr<thread_pool> pool)
-    : config_(std::move(config)), monitors_(monitors), thread_pool_(std::move(pool)), json_status_cached_(false), cache_duration_(std::chrono::seconds(config_.cache_duration_seconds)) {
+    : config_(std::move(config)), monitors_(monitors), thread_pool_(std::move(pool)), json_status_cached_(false), cache_duration_(std::chrono::seconds(config_.get_cache_duration_seconds())) {
 
     // Initialize cached config name with fallback
     try {
-        cached_config_name_ = config_.name.empty() ? "Argus++ Monitor" : config_.name;
+        cached_config_name_ = config_.get_name().empty() ? "Argus++ Monitor" : config_.get_name();
     } catch (...) {
         cached_config_name_ = "Argus++ Monitor";
         spdlog::warn("Failed to access config name, using default");
@@ -46,36 +46,36 @@ web_server::web_server(monitor_config config, const std::map<std::string, std::s
     int port;
 
     // Handle IPv6 address format [::1]:8080 or plain port number
-    if (config_.listen.front() == '[') {
+    if (config_.get_listen().front() == '[') {
         // IPv6 address in brackets format: [::1]:8080
-        const size_t close_bracket = config_.listen.find(']');
+        const size_t close_bracket = config_.get_listen().find(']');
         if (close_bracket != std::string::npos) {
-            host = config_.listen.substr(1, close_bracket - 1); // Extract address without brackets
-            const size_t colon_pos = config_.listen.find(':', close_bracket);
+            host = config_.get_listen().substr(1, close_bracket - 1); // Extract address without brackets
+            const size_t colon_pos = config_.get_listen().find(':', close_bracket);
             if (colon_pos != std::string::npos) {
-                port = std::stoi(config_.listen.substr(colon_pos + 1));
+                port = std::stoi(config_.get_listen().substr(colon_pos + 1));
             } else {
-                throw std::invalid_argument("Invalid IPv6 listen format: " + config_.listen);
+                throw std::invalid_argument("Invalid IPv6 listen format: " + config_.get_listen());
             }
         } else {
-            throw std::invalid_argument("Invalid IPv6 listen format: " + config_.listen);
+            throw std::invalid_argument("Invalid IPv6 listen format: " + config_.get_listen());
         }
-    } else if (const size_t last_colon = config_.listen.rfind(':'); last_colon != std::string::npos) {
+    } else if (const size_t last_colon = config_.get_listen().rfind(':'); last_colon != std::string::npos) {
         // IPv4 address or hostname format: 127.0.0.1:8080 or hostname:8080
         // Use rfind to get the last colon (for IPv4 or hostname with port)
-        host = config_.listen.substr(0, last_colon);
-        port = std::stoi(config_.listen.substr(last_colon + 1));
+        host = config_.get_listen().substr(0, last_colon);
+        port = std::stoi(config_.get_listen().substr(last_colon + 1));
 
         // Check if this might be a bare IPv6 address without brackets and port
-        if (host.find(':') != std::string::npos && config_.listen.find("::") != std::string::npos) {
+        if (host.find(':') != std::string::npos && config_.get_listen().find("::") != std::string::npos) {
             // This looks like a bare IPv6 address, treat the whole string as host
-            host = config_.listen;
+            host = config_.get_listen();
             port = 8080; // Default port for IPv6 without explicit port
         }
     } else {
         // Just a port number
         host = "localhost";
-        port = std::stoi(config_.listen);
+        port = std::stoi(config_.get_listen());
     }
     
     // Start server in a separate thread
@@ -88,7 +88,7 @@ web_server::web_server(monitor_config config, const std::map<std::string, std::s
     
     // Give the server a moment to start
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    spdlog::info("Argus++ web server started on {}", config_.listen);
+    spdlog::info("Argus++ web server started on {}", config_.get_listen());
 }
 
 web_server::~web_server() {
@@ -107,7 +107,7 @@ void web_server::stop() {
 
 void web_server::reload_html_template() {
     try {
-        spdlog::info("Reloading HTML template from: {}", config_.html_template.value_or("(not configured)"));
+        spdlog::info("Reloading HTML template from: {}", config_.get_html_template().value_or("(not configured)"));
         generate_static_html_page();
         spdlog::info("HTML template reloaded successfully");
     } catch (const std::exception& e) {
@@ -136,15 +136,15 @@ void web_server::handle_api_status_request(const httplib::Request& req, httplib:
 
 void web_server::generate_static_html_page() {
     // HTML template is required - no fallback to inline generation
-    if (!config_.html_template.has_value() || config_.html_template->empty()) {
+    if (!config_.get_html_template().has_value() || config_.get_html_template()->empty()) {
         throw std::runtime_error("html_template configuration is required - no default template available");
     }
 
     try {
-        static_html_page_ = load_html_template_from_file(*config_.html_template);
-        spdlog::info("Loaded static HTML template: {} ({} bytes)", *config_.html_template, static_html_page_.length());
+        static_html_page_ = load_html_template_from_file(*config_.get_html_template());
+        spdlog::info("Loaded static HTML template: {} ({} bytes)", *config_.get_html_template(), static_html_page_.length());
     } catch (const std::exception& e) {
-        throw std::runtime_error("Failed to load required HTML template '" + *config_.html_template + "': " + e.what());
+        throw std::runtime_error("Failed to load required HTML template '" + *config_.get_html_template() + "': " + e.what());
     }
 }
 
@@ -178,7 +178,7 @@ std::string web_server::generate_json_status() const {
             // Sort monitors within group by destination sort order
             std::ranges::sort(states, [](const auto& a, const auto& b) {
                 if (!a || !b) return false;
-                return a->get_destination().sort < b->get_destination().sort;
+                return a->get_destination().get_sort() < b->get_destination().get_sort();
             });
 
             json group_obj;
@@ -191,19 +191,19 @@ std::string web_server::generate_json_status() const {
                 try {
                     const std::string status_text = to_string(state->get_current_status());
                     const auto* last_result = state->get_last_result();
-                    const std::string last_check = last_result ? format_timestamp(last_result->timestamp) : "Never";
-                    const std::string response_time = last_result ? std::to_string(last_result->duration_ms) + "ms" : "N/A";
+                    const std::string last_check = last_result ? format_timestamp(last_result->get_timestamp()) : "Never";
+                    const std::string response_time = last_result ? std::to_string(last_result->get_duration_ms()) + "ms" : "N/A";
                     const double uptime_percent = state->get_uptime_percentage();
                     const std::string test_details = state->get_test_description();
-                    const std::string host = state->get_destination().test.host.value_or("N/A");
-                    const std::string service_name = state->get_destination().name.empty() ? "Unknown Service" : state->get_destination().name;
+                    const std::string host = state->get_destination().get_test().get_host().value_or("N/A");
+                    const std::string service_name = state->get_destination().get_name().empty() ? "Unknown Service" : state->get_destination().get_name();
 
                     json monitor_obj;
                     monitor_obj["service"] = service_name;
                     monitor_obj["host"] = host;
                     monitor_obj["status"] = status_text;
                     monitor_obj["response_time"] = response_time;
-                    monitor_obj["response_time_ms"] = last_result ? last_result->duration_ms : -1;
+                    monitor_obj["response_time_ms"] = last_result ? last_result->get_duration_ms() : -1;
                     monitor_obj["uptime_percent"] = uptime_percent;
                     monitor_obj["last_check"] = last_check;
                     monitor_obj["details"] = test_details;

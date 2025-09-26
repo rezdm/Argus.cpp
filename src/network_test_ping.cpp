@@ -18,18 +18,18 @@ test_result network_test_ping::execute(const test_config& config, const int time
 
         // Use auto-fallback ping tester
         const auto tester = ping_tester_factory::create_auto_fallback();
-        const auto result = tester->ping_host(config.host.value(), timeout_ms);
-        success = result.success;
+        const auto result = tester->ping_host(config.get_host().value(), timeout_ms);
+        success = result.is_success();
 
-        if (!success && result.error.has_value()) {
-            error = result.error.value();
+        if (!success && result.has_error()) {
+            error = result.get_error().value();
         } else if (!success) {
             error = "Host unreachable";
         }
 
     } catch (const std::exception& e) {
         error = e.what();
-        std::string host_str = config.host.value_or("unknown");
+        std::string host_str = config.get_host().value_or("unknown");
         spdlog::debug("Ping test failed for {}: {}", host_str, error);
     }
 
@@ -40,11 +40,11 @@ test_result network_test_ping::execute(const test_config& config, const int time
 }
 
 std::string network_test_ping::get_description(const test_config& config) const {
-    return "PING " + config.host.value_or("unknown");
+    return "PING " + config.get_host().value_or("unknown");
 }
 
 void network_test_ping::validate_config(const test_config& config) const {
-    if (!config.host || config.host->empty()) {
+    if (!config.get_host() || config.get_host()->empty()) {
         throw std::invalid_argument("Host is required for ping test");
     }
 }

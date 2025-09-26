@@ -347,7 +347,7 @@ raw_socket_ping_tester::socket_family raw_socket_ping_tester::determine_address_
         return socket_family::ipv4;
     }
 
-    socket_family family = socket_family::ipv4; // Default
+    auto family = socket_family::ipv4; // Default
     if (result->ai_family == AF_INET6) {
         family = socket_family::ipv6;
     }
@@ -409,7 +409,7 @@ test_result auto_fallback_ping_tester::ping_host(const std::string& host, const 
     for (const auto& impl : implementations_) {
         test_result result = impl->ping_host(host, timeout_ms);
 
-        if (result.success) {
+        if (result.is_success()) {
             current_implementation_ = impl->get_implementation_type();
             return result;
         }

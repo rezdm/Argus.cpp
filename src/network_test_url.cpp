@@ -16,10 +16,10 @@ test_result network_test_url::execute(const test_config& config, const int timeo
             throw std::invalid_argument("Invalid timeout: must be between 1ms and 300000ms");
         }
 
-        success = perform_http_request(config.url.value(), config.proxy.value_or(""), timeout_ms);
+        success = perform_http_request(config.get_url().value(), config.get_proxy().value_or(""), timeout_ms);
     } catch (const std::exception& e) {
         error = e.what();
-        std::string url_str = config.url.value_or("unknown");
+        std::string url_str = config.get_url().value_or("unknown");
         spdlog::debug("URL test failed for {}: {}", url_str, error);
     }
 
@@ -30,20 +30,20 @@ test_result network_test_url::execute(const test_config& config, const int timeo
 }
 
 std::string network_test_url::get_description(const test_config& config) const {
-    std::string desc = "URL: " + config.url.value_or("unknown");
-    if (config.proxy && !config.proxy->empty()) {
+    std::string desc = "URL: " + config.get_url().value_or("unknown");
+    if (config.get_proxy() && !config.get_proxy()->empty()) {
         desc += " (via proxy)";
     }
     return desc;
 }
 
 void network_test_url::validate_config(const test_config& config) const {
-    if (!config.url || config.url->empty()) {
+    if (!config.get_url() || config.get_url()->empty()) {
         throw std::invalid_argument("URL is required for URL test");
     }
     
     // Basic URL validation - check if it starts with http:// or https://
-    const std::string& url = config.url.value();
+    const std::string& url = config.get_url().value();
     if (url.find("http://") != 0 && url.find("https://") != 0) {
         throw std::invalid_argument("Invalid URL format: " + url);
     }
@@ -74,7 +74,7 @@ bool network_test_url::perform_http_request(const std::string& url, const std::s
         const auto client = http_client_factory::create(scheme);
         const auto result = client->perform_request(host, path, timeout_ms, proxy);
 
-        return result.success;
+        return result.is_success();
 
     } catch (const std::exception& e) {
         spdlog::debug("Exception in HTTP request for {}: {}", url, e.what());

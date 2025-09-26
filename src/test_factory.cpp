@@ -49,7 +49,7 @@ std::set<test_method> test_factory::get_supported_methods() {
 }
 
 std::string test_factory::validate_and_describe(const test_config& config) {
-    const auto test = get_test(config.test_method_type);
+    const auto test = get_test(config.get_test_method());
     test->validate_config(config);
     return test->get_description(config);
 }

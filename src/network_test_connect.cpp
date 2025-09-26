@@ -17,15 +17,15 @@ test_result network_test_connect::execute(const test_config& config, const int t
         }
 
         // Use factory pattern to create appropriate connection tester
-        auto tester = connection_tester_factory::create(config.protocol_type.value());
-        auto result = tester->test_connection(config.host.value(), config.port, timeout_ms);
-        success = result.success;
+        auto tester = connection_tester_factory::create(config.get_protocol().value());
+        auto result = tester->test_connection(config.get_host().value(), config.get_port(), timeout_ms);
+        success = result.is_success();
 
     } catch (const std::exception& e) {
         error = e.what();
-        std::string host_str = config.host.value_or("unknown");
-        std::string protocol_str = to_string(config.protocol_type.value());
-        spdlog::debug("Connection test failed for {}:{} ({}): {}", host_str, config.port, protocol_str, error);
+        std::string host_str = config.get_host().value_or("unknown");
+        std::string protocol_str = to_string(config.get_protocol().value());
+        spdlog::debug("Connection test failed for {}:{} ({}): {}", host_str, config.get_port(), protocol_str, error);
     }
 
     const auto end_time = std::chrono::steady_clock::now();
@@ -35,17 +35,17 @@ test_result network_test_connect::execute(const test_config& config, const int t
 }
 
 std::string network_test_connect::get_description(const test_config& config) const {
-    return config.host.value_or("unknown") + ":" + std::to_string(config.port) + " (" + to_string(config.protocol_type.value()) + ")";
+    return config.get_host().value_or("unknown") + ":" + std::to_string(config.get_port()) + " (" + to_string(config.get_protocol().value()) + ")";
 }
 
 void network_test_connect::validate_config(const test_config& config) const {
-    if (!config.host || config.host->empty()) {
+    if (!config.get_host() || config.get_host()->empty()) {
         throw std::invalid_argument("Host is required for connection test");
     }
-    if (config.port <= 0 || config.port > 65535) {
+    if (config.get_port() <= 0 || config.get_port() > 65535) {
         throw std::invalid_argument("Valid port (1-65535) is required for connection test");
     }
-    if (!config.protocol_type) {
+    if (!config.get_protocol()) {
         throw std::invalid_argument("Protocol must be 'tcp' or 'udp' for connection test");
     }
 }

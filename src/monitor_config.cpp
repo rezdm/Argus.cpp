@@ -7,19 +7,6 @@
 
 using json = nlohmann::json;
 
-destination::destination(int sort, const std::string& name, int timeout, int warning, int failure, int reset, int interval, int history, test_config test)
-    : sort(sort), name(name), timeout(timeout), warning(warning), failure(failure), reset(reset), interval(interval), history(history), test(std::move(test)) {
-    
-    if (this->name.empty()) {
-        throw std::invalid_argument("Destination name cannot be empty");
-    }
-    if (timeout <= 0) {
-        throw std::invalid_argument("Timeout must be positive");
-    }
-    if (warning <= 0 || failure <= 0) {
-        throw std::invalid_argument("Warning and failure thresholds must be positive");
-    }
-}
 
 monitor_config monitor_config::load_config(const std::string& config_path) {
     return monitor_config_loader::load_config(config_path);
@@ -35,65 +22,64 @@ monitor_config monitor_config_loader::load_config(const std::string& config_path
     config_file >> root;
 
     monitor_config config;
-    config.name = root["name"].get<std::string>();
-    config.listen = root["listen"].get<std::string>();
+    config.set_name(root["name"].get<std::string>());
+    config.set_listen(root["listen"].get<std::string>());
 
     if (root.contains("log_file")) {
-        config.log_file = root["log_file"].get<std::string>();
+        config.set_log_file(root["log_file"].get<std::string>());
     }
 
 
     if (root.contains("cache_duration_seconds")) {
-        config.cache_duration_seconds = root["cache_duration_seconds"].get<int>();
-        if (config.cache_duration_seconds < 0) {
-            throw std::invalid_argument("cache_duration_seconds must be non-negative (0 = no caching)");
-        }
+        config.set_cache_duration_seconds(root["cache_duration_seconds"].get<int>());
     }
 
     if (root.contains("html_template")) {
-        config.html_template = root["html_template"].get<std::string>();
+        config.set_html_template(root["html_template"].get<std::string>());
     }
 
     if (root.contains("thread_pool_size")) {
-        config.thread_pool_size = root["thread_pool_size"].get<size_t>();
-        if (config.thread_pool_size > 1000) {
-            spdlog::warn("Large thread pool size specified: {}. Consider using a smaller value for better resource management.", config.thread_pool_size);
+        config.set_thread_pool_size(root["thread_pool_size"].get<size_t>());
+        if (config.get_thread_pool_size() > 1000) {
+            spdlog::warn("Large thread pool size specified: {}. Consider using a smaller value for better resource management.", config.get_thread_pool_size());
         }
     }
 
     for (const auto& monitors_node = root["monitors"]; const auto& monitor_node : monitors_node) {
-        config.monitors.push_back(parse_group(monitor_node));
+        config.add_monitor_group(parse_group(monitor_node));
     }
 
     // Sort groups by sort order
-    std::ranges::sort(config.monitors, [](const group& a, const group& b) { return a.sort < b.sort; });
+    auto monitors = config.get_monitors();
+    std::ranges::sort(monitors, [](const group& a, const group& b) { return a.get_sort() < b.get_sort(); });
+    config.set_monitors(monitors);
 
     return config;
 }
 
 test_config monitor_config_loader::parse_test_config(const json& test_node) {
     test_config config;
-    
-    config.test_method_type = parse_test_method(test_node["method"].get<std::string>());
-    
+
+    config.set_test_method(parse_test_method(test_node["method"].get<std::string>()));
+
     if (test_node.contains("protocol")) {
-        config.protocol_type = parse_protocol(test_node["protocol"].get<std::string>());
+        config.set_protocol(parse_protocol(test_node["protocol"].get<std::string>()));
     }
-    
+
     if (test_node.contains("port")) {
-        config.port = test_node["port"].get<int>();
+        config.set_port(test_node["port"].get<int>());
     }
-    
+
     if (test_node.contains("url")) {
-        config.url = test_node["url"].get<std::string>();
+        config.set_url(test_node["url"].get<std::string>());
     }
-    
+
     if (test_node.contains("proxy")) {
-        config.proxy = test_node["proxy"].get<std::string>();
+        config.set_proxy(test_node["proxy"].get<std::string>());
     }
-    
+
     if (test_node.contains("host")) {
-        config.host = test_node["host"].get<std::string>();
+        config.set_host(test_node["host"].get<std::string>());
     }
     
     return config;
@@ -117,15 +103,17 @@ destination monitor_config_loader::parse_destination(const json& dest_node) {
 
 group monitor_config_loader::parse_group(const json& group_node) {
     group grp;
-    grp.sort = group_node["sort"].get<int>();
-    grp.group_name = group_node["group"].get<std::string>();
+    grp.set_sort(group_node["sort"].get<int>());
+    grp.set_group_name(group_node["group"].get<std::string>());
 
     for (const auto& destinations_node = group_node["destinations"]; const auto& dest_node : destinations_node) {
-        grp.destinations.push_back(parse_destination(dest_node));
+        grp.add_destination(parse_destination(dest_node));
     }
 
     // Sort destinations by sort order
-    std::ranges::sort(grp.destinations, [](const destination& a, const destination& b) { return a.sort < b.sort; });
+    auto destinations = grp.get_destinations();
+    std::ranges::sort(destinations, [](const destination& a, const destination& b) { return a.get_sort() < b.get_sort(); });
+    grp.set_destinations(destinations);
 
     return grp;
 }

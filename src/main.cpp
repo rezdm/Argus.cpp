@@ -44,7 +44,7 @@ public:
 
         try {
             current_config_ = monitor_config::load_config(config_path);
-            std::string config_name = current_config_.name;  // Store in variable to avoid warning
+            std::string config_name = current_config_.get_name();  // Store in variable to avoid warning
             spdlog::info("Loaded configuration for instance: {}", config_name);
             log_memory_usage("Config loaded");
 
@@ -135,7 +135,7 @@ public:
         try {
             // Load new configuration and validate it
             monitor_config new_config = monitor_config::load_config(config_path_);
-            spdlog::info("Successfully loaded new configuration for instance: {}", new_config.name);
+            spdlog::info("Successfully loaded new configuration for instance: {}", new_config.get_name());
 
             // Backup current instances before stopping (for rollback on failure)
             auto backup_monitors = monitors_instance;
@@ -198,7 +198,7 @@ public:
                 }
 
                 // Also reload HTML template if it exists and the path is the same
-                if (server_instance && current_config_.html_template == new_config.html_template && current_config_.html_template.has_value()) {
+                if (server_instance && current_config_.get_html_template() == new_config.get_html_template() && current_config_.get_html_template().has_value()) {
                     spdlog::info("Reloading HTML template from existing path");
                     server_instance->reload_html_template();
                 }
@@ -449,8 +449,8 @@ int main(const int argc, char* argv[]) {
     } else {
         try {
             const auto config = monitor_config::load_config(config_path);
-            if (config.log_file.has_value()) {
-                log_file_path = config.log_file.value();
+            if (config.get_log_file().has_value()) {
+                log_file_path = config.get_log_file().value();
             }
         } catch (const std::exception& e) {
             std::cerr << "Error loading config for log file setting: " << e.what() << "\n";
