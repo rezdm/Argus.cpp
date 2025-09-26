@@ -1,6 +1,7 @@
 #pragma once
 
 #include "types.h"
+#include "monitor_config_types.h"
 #include "monitor_state.h"
 #include "thread_pool.h"
 #include <httplib.h>

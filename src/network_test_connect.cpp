@@ -1,7 +1,11 @@
 #include "network_test_connect.h"
 #include "connection_tester.h"
+#include "test_config.h"
+#include "test_result.h"
+#include "monitor_config.h"
 #include <spdlog/spdlog.h>
 #include <chrono>
+#include <optional>
 
 test_result network_test_connect::execute(const test_config& config, const int timeout_ms) const {
     const auto start_time = std::chrono::steady_clock::now();

@@ -1,8 +1,18 @@
 #pragma once
 
-#include "types.h"
+#include "monitor_config_types.h"
+#include "test_config.h"
+#include "destination.h"
+#include "group.h"
 #include <string>
 #include <nlohmann/json.hpp>
+
+// Utility functions for enums
+test_method parse_test_method(const std::string& str);
+protocol parse_protocol(const std::string& str);
+std::string to_string(test_method method);
+std::string to_string(protocol proto);
+std::string to_string(monitor_status status);
 
 class monitor_config_loader {
 public:

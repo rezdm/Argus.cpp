@@ -1,5 +1,7 @@
 #include "ping_tester.h"
+#include "test_result.h"
 #include <spdlog/spdlog.h>
+#include <optional>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/ip_icmp.h>

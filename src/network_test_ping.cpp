@@ -1,7 +1,10 @@
 #include "network_test_ping.h"
 #include "ping_tester.h"
+#include "test_config.h"
+#include "test_result.h"
 #include <spdlog/spdlog.h>
 #include <chrono>
+#include <optional>
 
 test_result network_test_ping::execute(const test_config& config, const int timeout_ms) const {
     const auto start_time = std::chrono::steady_clock::now();

@@ -79,8 +79,12 @@ endif()
 set(ARGUSPP_SOURCES
     main.cpp
     monitor_config.cpp
+    monitor_config_types.cpp
     monitors.cpp
     web_server.cpp
+    test_config.cpp
+    destination.cpp
+    group.cpp
     test_result.cpp
     monitor_state.cpp
     test_factory.cpp

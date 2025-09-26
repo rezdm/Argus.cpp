@@ -1,11 +1,13 @@
 #include "connection_tester.h"
 #include "address_family_handler.h"
+#include "test_result.h"
 #include <spdlog/spdlog.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <chrono>
+#include <optional>
 
 
 test_result connection_tester_base::create_error_result(const std::string& error_msg, const long duration) {

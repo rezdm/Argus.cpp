@@ -1,7 +1,9 @@
 #include "http_client.h"
+#include "test_result.h"
 #include <httplib.h>
 #include <spdlog/spdlog.h>
 #include <chrono>
+#include <optional>
 
 test_result http_client_base::create_error_result(const std::string& error_msg, const long duration) {
     return test_result{false, duration, std::chrono::system_clock::now(), error_msg};

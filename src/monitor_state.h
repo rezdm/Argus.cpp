@@ -1,6 +1,9 @@
 #pragma once
 
 #include "types.h"
+#include "destination.h"
+#include "group.h"
+#include "test_result.h"
 #include "network_test.h"
 #include <deque>
 #include <memory>

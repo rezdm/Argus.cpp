@@ -1,4 +1,5 @@
 #include "web_server.h"
+#include "monitor_config.h"
 #include <spdlog/spdlog.h>
 #include <sstream>
 #include <iomanip>
@@ -48,11 +49,9 @@ web_server::web_server(monitor_config config, const std::map<std::string, std::s
     // Handle IPv6 address format [::1]:8080 or plain port number
     if (config_.get_listen().front() == '[') {
         // IPv6 address in brackets format: [::1]:8080
-        const size_t close_bracket = config_.get_listen().find(']');
-        if (close_bracket != std::string::npos) {
+        if (const size_t close_bracket = config_.get_listen().find(']'); close_bracket != std::string::npos) {
             host = config_.get_listen().substr(1, close_bracket - 1); // Extract address without brackets
-            const size_t colon_pos = config_.get_listen().find(':', close_bracket);
-            if (colon_pos != std::string::npos) {
+            if (const size_t colon_pos = config_.get_listen().find(':', close_bracket); colon_pos != std::string::npos) {
                 port = std::stoi(config_.get_listen().substr(colon_pos + 1));
             } else {
                 throw std::invalid_argument("Invalid IPv6 listen format: " + config_.get_listen());
