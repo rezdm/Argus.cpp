@@ -1,7 +1,13 @@
 # Build
+Regular build
 ```
 cmake -S src/ -B build-release/ -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt/argus
-cmake --build build-release/ -j4
+```
+
+With tests
+```
+rm -rf build && cmake -S src -B build/ && cmake --build build/ -j$(nproc) && cmake --build build/ --target check
+
 ```
 
 # Install

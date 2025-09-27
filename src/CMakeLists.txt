@@ -13,6 +13,12 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
+# Enable testing
+enable_testing()
+
+# Option to run tests automatically during build
+option(RUN_TESTS_ON_BUILD "Run tests automatically when building the main target" OFF)
+
 # Find required packages
 find_package(PkgConfig REQUIRED)
 find_package(Threads REQUIRED)
@@ -130,6 +136,50 @@ if(SYSTEMD_FOUND)
     message(STATUS "Found systemd: ${SYSTEMD_VERSION}")
 else()
     message(STATUS "systemd not found - journal logging disabled")
+endif()
+
+# Create test executable
+set(TEST_SOURCES
+    address_family_handler.cpp
+    logging.cpp
+)
+
+add_executable(test_ip_utils test_ip_utils.cpp ${TEST_SOURCES})
+
+# Link test executable with required libraries
+target_link_libraries(test_ip_utils
+    PRIVATE
+        spdlog::spdlog
+        Threads::Threads
+)
+
+# Add test to CTest
+add_test(NAME ip_utils_test COMMAND test_ip_utils)
+
+# Set test properties
+set_tests_properties(ip_utils_test PROPERTIES
+    TIMEOUT 30
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+)
+
+# Create custom target to build and run tests automatically
+add_custom_target(check
+    COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+    DEPENDS test_ip_utils
+    COMMENT "Building and running all tests"
+    VERBATIM
+)
+
+# Optionally make main target depend on tests
+if(RUN_TESTS_ON_BUILD)
+    add_custom_target(run_tests_auto
+        COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+        DEPENDS test_ip_utils
+        COMMENT "Running tests automatically before building main target"
+        VERBATIM
+    )
+    add_dependencies(arguspp run_tests_auto)
+    message(STATUS "Tests will run automatically when building main target")
 endif()
 
 # Configure compiler warnings and options

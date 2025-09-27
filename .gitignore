@@ -3,6 +3,7 @@ build-debug/
 build-release/
 *.log
 .idea
+Testing/
 
 # Prerequisites
 *.d

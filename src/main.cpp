@@ -47,7 +47,7 @@ public:
         try {
             current_config_ = monitor_config::load_config(config_path);
             std::string config_name = current_config_.get_name();  // Store in variable to avoid warning
-            argus::logging::Logger::log_config_loaded(config_name);
+            argus::logging::logger::log_config_loaded(config_name);
             log_memory_usage("Config loaded");
 
             // Initialize monitors with graceful degradation
@@ -132,12 +132,12 @@ public:
     void reload_config() {
         std::lock_guard<std::mutex> lock(reload_mutex_);
 
-        argus::logging::Logger::log_config_reload_start(config_path_);
+        argus::logging::logger::log_config_reload_start(config_path_);
 
         try {
             // Load new configuration and validate it
             monitor_config new_config = monitor_config::load_config(config_path_);
-            argus::logging::Logger::log_config_loaded(new_config.get_name());
+            argus::logging::logger::log_config_loaded(new_config.get_name());
 
             // Backup current instances before stopping (for rollback on failure)
             auto backup_monitors = monitors_instance;
@@ -205,7 +205,7 @@ public:
                     server_instance->reload_html_template();
                 }
 
-                argus::logging::Logger::log_config_reload_success();
+                argus::logging::logger::log_config_reload_success();
             } else {
                 // Rollback to previous configuration
                 spdlog::warn("Configuration reload failed, rolling back to previous configuration");
@@ -249,12 +249,12 @@ bool is_systemd_service() {
 void notify_systemd_ready() {
 #ifdef HAVE_SYSTEMD
     const bool success = sd_notify(0, "READY=1") >= 0;
-    argus::logging::Logger::log_systemd_operation("service readiness", success);
+    argus::logging::logger::log_systemd_operation("service readiness", success);
 #else
     if (std::getenv("NOTIFY_SOCKET")) {
         const std::string cmd = "systemd-notify --ready";
         const bool success = system(cmd.c_str()) == 0;
-        argus::logging::Logger::log_systemd_operation("service readiness", success);
+        argus::logging::logger::log_systemd_operation("service readiness", success);
     }
 #endif
 }

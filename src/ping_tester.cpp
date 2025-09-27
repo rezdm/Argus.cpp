@@ -267,7 +267,7 @@ test_result raw_socket_ping_tester::ping_host(const std::string& host, const int
 
 bool raw_socket_ping_tester::initialize_socket(socket_family family, ping_context& ctx) {
     const int domain = (family == socket_family::ipv4) ? AF_INET : AF_INET6;
-    const int protocol = (family == socket_family::ipv4) ? IPPROTO_ICMP : IPPROTO_ICMPV6;
+    const int protocol = (family == socket_family::ipv4) ? static_cast<int>(IPPROTO_ICMP) : static_cast<int>(IPPROTO_ICMPV6);
 
     ctx.socket_fd = socket(domain, SOCK_RAW, protocol);
     if (ctx.socket_fd < 0) {
