@@ -1,4 +1,6 @@
 #include "address_family_handler.h"
+#include "constants.h"
+#include "logging.h"
 #include <spdlog/spdlog.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -34,7 +36,7 @@ std::vector<resolved_address> ipv4_handler::resolve_addresses(const std::string&
     hints.ai_socktype = socktype;
 
     if (const int status = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &result); status != 0) {
-        spdlog::debug("IPv4 DNS resolution failed for {}: {}", host, gai_strerror(status));
+        LOG_NETWORK_DEBUG("IPv4 DNS resolution", host, gai_strerror(status));
         return addresses; // Return empty vector
     }
 
@@ -66,7 +68,7 @@ int ipv4_handler::create_socket(const resolved_address& addr) {
     }
 
     // Set IPv4-specific socket options
-    constexpr int opt = 1;
+    constexpr int opt = argus::constants::SOCKET_OPTION_ENABLE;
     setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
     return sock;
@@ -75,8 +77,8 @@ int ipv4_handler::create_socket(const resolved_address& addr) {
 bool ipv4_handler::configure_socket(const int socket, const int timeout_ms) {
     // Set timeout options
     timeval tv{};
-    tv.tv_sec = timeout_ms / 1000;
-    tv.tv_usec = (timeout_ms % 1000) * 1000;
+    tv.tv_sec = timeout_ms / argus::constants::MILLISECONDS_PER_SECOND;
+    tv.tv_usec = (timeout_ms % argus::constants::MILLISECONDS_PER_SECOND) * argus::constants::MICROSECONDS_PER_MILLISECOND;
 
     if (setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)) < 0) {
         spdlog::debug("Failed to set IPv4 send timeout: {}", strerror(errno));
@@ -103,7 +105,7 @@ std::vector<resolved_address> ipv6_handler::resolve_addresses(const std::string&
 
     const int status = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &result);
     if (status != 0) {
-        spdlog::debug("IPv6 DNS resolution failed for {}: {}", host, gai_strerror(status));
+        LOG_NETWORK_DEBUG("IPv6 DNS resolution", host, gai_strerror(status));
         return addresses; // Return empty vector
     }
 
@@ -135,7 +137,7 @@ int ipv6_handler::create_socket(const resolved_address& addr) {
     }
 
     // Set IPv6-specific socket options
-    constexpr int opt = 1;
+    constexpr int opt = argus::constants::SOCKET_OPTION_ENABLE;
     setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
     // Ensure IPv6-only (don't accept IPv4-mapped addresses)
@@ -147,8 +149,8 @@ int ipv6_handler::create_socket(const resolved_address& addr) {
 bool ipv6_handler::configure_socket(const int socket, const int timeout_ms) {
     // Set timeout options (same as IPv4 for now)
     timeval tv{};
-    tv.tv_sec = timeout_ms / 1000;
-    tv.tv_usec = (timeout_ms % 1000) * 1000;
+    tv.tv_sec = timeout_ms / argus::constants::MILLISECONDS_PER_SECOND;
+    tv.tv_usec = (timeout_ms % argus::constants::MILLISECONDS_PER_SECOND) * argus::constants::MICROSECONDS_PER_MILLISECOND;
 
     if (setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)) < 0) {
         spdlog::debug("Failed to set IPv6 send timeout: {}", strerror(errno));

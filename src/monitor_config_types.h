@@ -1,6 +1,7 @@
 #pragma once
 
 #include "group.h"
+#include "constants.h"
 #include <string>
 #include <optional>
 #include <vector>
@@ -17,7 +18,7 @@ private:
 
 public:
     // Constructors
-    monitor_config() : cache_duration_seconds_(30), thread_pool_size_(0) {}
+    monitor_config() : cache_duration_seconds_(argus::constants::DEFAULT_CACHE_DURATION_SECONDS), thread_pool_size_(argus::constants::DEFAULT_THREAD_POOL_SIZE) {}
 
     monitor_config(const std::string& name_val, const std::string& listen_val);
 

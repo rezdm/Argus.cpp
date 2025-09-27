@@ -20,6 +20,8 @@
 #include "monitor_config.h"
 #include "monitors.h"
 #include "web_server.h"
+#include "constants.h"
+#include "logging.h"
 
 // Forward declarations for systemd functions
 bool is_systemd_service();
@@ -39,13 +41,13 @@ private:
 
 public:
     explicit main_application(const std::string& config_path, const bool daemon_mode = false, const bool systemd_mode = false) : daemon_mode_(daemon_mode), systemd_mode_(systemd_mode), config_path_(config_path) {
-        spdlog::info("Starting Argus++ Monitor with config: {}", config_path);
+        LOG_STARTUP(config_path);
         log_memory_usage("Startup");
 
         try {
             current_config_ = monitor_config::load_config(config_path);
             std::string config_name = current_config_.get_name();  // Store in variable to avoid warning
-            spdlog::info("Loaded configuration for instance: {}", config_name);
+            argus::logging::Logger::log_config_loaded(config_name);
             log_memory_usage("Config loaded");
 
             // Initialize monitors with graceful degradation
@@ -53,7 +55,7 @@ public:
                 monitors_instance = std::make_shared<monitors>(current_config_);
                 log_memory_usage("Monitors initialized");
             } catch (const std::exception& e) {
-                spdlog::error("Failed to initialize monitors: {}. Continuing with reduced functionality.", e.what());
+                LOG_COMPONENT_FAILURE("monitors", e.what());
                 // Create empty monitors instance for web server compatibility
                 monitors_instance = nullptr;
             }
@@ -68,7 +70,7 @@ public:
                     server_instance = std::make_shared<web_server>(current_config_, empty_map, nullptr);
                 }
             } catch (const std::exception& e) {
-                spdlog::error("Failed to initialize web server: {}. Web interface will be unavailable.", e.what());
+                LOG_COMPONENT_FAILURE("web server", e.what());
                 server_instance = nullptr;
             }
 
@@ -99,7 +101,7 @@ public:
     }
 
     void shutdown() const {
-        spdlog::info("Shutting down Argus++ Monitor");
+        LOG_SHUTDOWN();
 
         if (server_instance) {
             server_instance->stop();
@@ -130,12 +132,12 @@ public:
     void reload_config() {
         std::lock_guard<std::mutex> lock(reload_mutex_);
 
-        spdlog::info("Starting configuration reload from: {}", config_path_);
+        argus::logging::Logger::log_config_reload_start(config_path_);
 
         try {
             // Load new configuration and validate it
             monitor_config new_config = monitor_config::load_config(config_path_);
-            spdlog::info("Successfully loaded new configuration for instance: {}", new_config.get_name());
+            argus::logging::Logger::log_config_loaded(new_config.get_name());
 
             // Backup current instances before stopping (for rollback on failure)
             auto backup_monitors = monitors_instance;
@@ -203,7 +205,7 @@ public:
                     server_instance->reload_html_template();
                 }
 
-                spdlog::info("Configuration reload completed successfully");
+                argus::logging::Logger::log_config_reload_success();
             } else {
                 // Rollback to previous configuration
                 spdlog::warn("Configuration reload failed, rolling back to previous configuration");
@@ -246,19 +248,13 @@ bool is_systemd_service() {
 // Notify systemd of readiness
 void notify_systemd_ready() {
 #ifdef HAVE_SYSTEMD
-    if (sd_notify(0, "READY=1") < 0) {
-        spdlog::warn("Failed to notify systemd of readiness");
-    } else {
-        spdlog::info("Notified systemd of service readiness");
-    }
+    const bool success = sd_notify(0, "READY=1") >= 0;
+    argus::logging::Logger::log_systemd_operation("service readiness", success);
 #else
     if (std::getenv("NOTIFY_SOCKET")) {
         const std::string cmd = "systemd-notify --ready";
-        if (system(cmd.c_str()) != 0) {
-            spdlog::warn("Failed to notify systemd of readiness");
-        } else {
-            spdlog::info("Notified systemd of service readiness");
-        }
+        const bool success = system(cmd.c_str()) == 0;
+        argus::logging::Logger::log_systemd_operation("service readiness", success);
     }
 #endif
 }
@@ -352,13 +348,13 @@ void setup_logging(const bool daemon_mode, const bool systemd_mode, const std::s
         spdlog::info("Logging to systemd journal");
 #else
         spdlog::warn("systemd not available at compile time, using file logging");
-        std::string log_path = "/var/log/arguspp.log";
+        std::string log_path = argus::constants::DEFAULT_LOG_PATH;
         auto file_logger = spdlog::basic_logger_mt("arguspp", log_path);
         spdlog::set_default_logger(file_logger);
 #endif
     } else if (daemon_mode || !log_file_path.empty()) {
         // For daemon mode or when log file is specified, log to file
-        std::string log_path = log_file_path.empty() ? "/var/log/arguspp.log" : log_file_path;
+        std::string log_path = log_file_path.empty() ? argus::constants::DEFAULT_LOG_PATH : log_file_path;
         const auto file_logger = spdlog::basic_logger_mt("arguspp", log_path);
 
         // Enable immediate flush for daemon mode to see logs in real-time
@@ -380,7 +376,7 @@ void setup_logging(const bool daemon_mode, const bool systemd_mode, const std::s
 
     // For daemon mode, ensure immediate flushing for real-time log viewing
     if (daemon_mode) {
-        spdlog::flush_every(std::chrono::milliseconds(100));  // Flush every 100ms as backup
+        spdlog::flush_every(std::chrono::milliseconds(argus::constants::LOG_FLUSH_INTERVAL_MS));
     }
 }
 
@@ -499,7 +495,7 @@ int main(const int argc, char* argv[]) {
     auto pid = getpid();
 
 
-    spdlog::info("Starting Argus++ Monitor version 1.0.0 (PID: {})", pid);
+    spdlog::info("Starting {} Monitor version {} (PID: {})", argus::constants::APPLICATION_NAME, argus::constants::VERSION, pid);
 
     try {
         spdlog::info("Setting up signal handlers...");

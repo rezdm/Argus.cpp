@@ -98,6 +98,7 @@ set(ARGUSPP_SOURCES
     connection_tester.cpp
     ping_tester.cpp
     address_family_handler.cpp
+    logging.cpp
 )
 
 # Create executable

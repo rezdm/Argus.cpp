@@ -1,5 +1,6 @@
 #include "monitor_state.h"
 #include "test_factory.h"
+#include "constants.h"
 #include <algorithm>
 #include <utility>
 #include <spdlog/spdlog.h>
@@ -16,7 +17,7 @@ void monitor_state::add_result(const test_result& result) {
     
     // Add to history and maintain size limit
     history_.push_back(result);
-    const int max_history = std::min(destination_.get_history(), 1000); // Cap at 1000 records max
+    const int max_history = std::min(destination_.get_history(), argus::constants::MAX_HISTORY_RECORDS);
     while (static_cast<int>(history_.size()) > max_history) {
         history_.pop_front();
     }
@@ -66,7 +67,7 @@ double monitor_state::get_uptime_percentage() const {
     }
 
     const int successful = std::ranges::count_if(history_, [](const test_result& r) { return r.is_success(); });
-    return static_cast<double>(successful) / history_.size() * 100.0;
+    return static_cast<double>(successful) / history_.size() * argus::constants::PERCENTAGE_MULTIPLIER;
 }
 
 std::vector<test_result> monitor_state::get_history() const {

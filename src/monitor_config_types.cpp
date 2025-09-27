@@ -1,8 +1,9 @@
 #include "monitor_config_types.h"
+#include "constants.h"
 #include <stdexcept>
 
 monitor_config::monitor_config(const std::string& name_val, const std::string& listen_val)
-    : name_(name_val), listen_(listen_val), cache_duration_seconds_(30), thread_pool_size_(0) {
+    : name_(name_val), listen_(listen_val), cache_duration_seconds_(argus::constants::DEFAULT_CACHE_DURATION_SECONDS), thread_pool_size_(argus::constants::DEFAULT_THREAD_POOL_SIZE) {
     validate_parameters();
 }
 

@@ -2,6 +2,8 @@
 #include "ping_tester.h"
 #include "test_config.h"
 #include "test_result.h"
+#include "constants.h"
+#include "logging.h"
 #include <spdlog/spdlog.h>
 #include <chrono>
 #include <optional>
@@ -15,7 +17,7 @@ test_result network_test_ping::execute(const test_config& config, const int time
         validate_config(config);
 
         // Validate timeout
-        if (timeout_ms <= 0 || timeout_ms > 300000) { // Max 5 minutes
+        if (timeout_ms <= 0 || timeout_ms > argus::constants::MAX_PING_TIMEOUT_MS) {
             throw std::invalid_argument("Invalid timeout: must be between 1ms and 300000ms");
         }
 
@@ -33,7 +35,7 @@ test_result network_test_ping::execute(const test_config& config, const int time
     } catch (const std::exception& e) {
         error = e.what();
         std::string host_str = config.get_host().value_or("unknown");
-        spdlog::debug("Ping test failed for {}: {}", host_str, error);
+        LOG_TEST_FAILURE("Ping", host_str, error);
     }
 
     const auto end_time = std::chrono::steady_clock::now();
