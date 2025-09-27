@@ -1,5 +1,5 @@
 #include "monitor_config_types.h"
-#include "constants.h"
+#include "../core/constants.h"
 #include <stdexcept>
 
 monitor_config::monitor_config(const std::string& name_val, const std::string& listen_val)

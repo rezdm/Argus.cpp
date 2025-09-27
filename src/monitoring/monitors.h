@@ -1,10 +1,10 @@
 #pragma once
 
-#include "types.h"
+#include "../core/types.h"
 #include "monitor_config_types.h"
 #include "monitor_state.h"
-#include "thread_pool.h"
-#include "async_scheduler.h"
+#include "../utils/thread_pool.h"
+#include "../utils/async_scheduler.h"
 #include <map>
 #include <memory>
 #include <atomic>

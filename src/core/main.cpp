@@ -17,11 +17,11 @@
 #endif
 
 #include "types.h"
-#include "monitor_config.h"
-#include "monitors.h"
-#include "web_server.h"
 #include "constants.h"
 #include "logging.h"
+#include "../monitoring/monitor_config.h"
+#include "../monitoring/monitors.h"
+#include "../web/web_server.h"
 
 // Forward declarations for systemd functions
 bool is_systemd_service();

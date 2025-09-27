@@ -1,6 +1,6 @@
 #include "connection_tester.h"
-#include "address_family_handler.h"
-#include "test_result.h"
+#include "../network/address_family_handler.h"
+#include "../utils/test_result.h"
 #include <spdlog/spdlog.h>
 #include <sys/socket.h>
 #include <netinet/in.h>

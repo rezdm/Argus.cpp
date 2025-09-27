@@ -1,9 +1,9 @@
 #include "network_test_ping.h"
 #include "ping_tester.h"
-#include "test_config.h"
-#include "test_result.h"
-#include "constants.h"
-#include "logging.h"
+#include "../monitoring/test_config.h"
+#include "../utils/test_result.h"
+#include "../core/constants.h"
+#include "../core/logging.h"
 #include <spdlog/spdlog.h>
 #include <chrono>
 #include <optional>

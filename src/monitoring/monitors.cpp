@@ -1,6 +1,6 @@
 #include "monitors.h"
 #include "monitor_config.h"
-#include "network_test_ping.h"
+#include "../testers/network_test_ping.h"
 #include <spdlog/spdlog.h>
 #include <chrono>
 #include <numeric>

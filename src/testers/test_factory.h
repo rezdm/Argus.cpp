@@ -1,7 +1,7 @@
 #pragma once
 
-#include "types.h"
-#include "test_config.h"
+#include "../core/types.h"
+#include "../monitoring/test_config.h"
 #include "network_test.h"
 #include <memory>
 #include <unordered_map>

@@ -1,7 +1,7 @@
 #include "network_test_url.h"
-#include "http_client.h"
-#include "test_config.h"
-#include "test_result.h"
+#include "../network/http_client.h"
+#include "../monitoring/test_config.h"
+#include "../utils/test_result.h"
 #include <spdlog/spdlog.h>
 #include <chrono>
 #include <optional>

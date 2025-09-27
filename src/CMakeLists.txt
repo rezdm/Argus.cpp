@@ -83,28 +83,28 @@ endif()
 
 # Define source files
 set(ARGUSPP_SOURCES
-    main.cpp
-    monitor_config.cpp
-    monitor_config_types.cpp
-    monitors.cpp
-    web_server.cpp
-    test_config.cpp
-    destination.cpp
-    group.cpp
-    test_result.cpp
-    monitor_state.cpp
-    test_factory.cpp
-    network_test_ping.cpp
-    network_test_connect.cpp
-    network_test_url.cpp
-    thread_pool.cpp
-    async_scheduler.cpp
-    network_test_async.cpp
-    http_client.cpp
-    connection_tester.cpp
-    ping_tester.cpp
-    address_family_handler.cpp
-    logging.cpp
+    core/main.cpp
+    core/logging.cpp
+    monitoring/monitor_config.cpp
+    monitoring/monitor_config_types.cpp
+    monitoring/monitors.cpp
+    monitoring/test_config.cpp
+    monitoring/destination.cpp
+    monitoring/group.cpp
+    monitoring/monitor_state.cpp
+    testers/test_factory.cpp
+    testers/network_test_ping.cpp
+    testers/network_test_connect.cpp
+    testers/network_test_url.cpp
+    testers/network_test_async.cpp
+    testers/connection_tester.cpp
+    testers/ping_tester.cpp
+    network/address_family_handler.cpp
+    network/http_client.cpp
+    web/web_server.cpp
+    utils/thread_pool.cpp
+    utils/async_scheduler.cpp
+    utils/test_result.cpp
 )
 
 # Create executable
@@ -140,11 +140,11 @@ endif()
 
 # Create test executable
 set(TEST_SOURCES
-    address_family_handler.cpp
-    logging.cpp
+    network/address_family_handler.cpp
+    core/logging.cpp
 )
 
-add_executable(test_ip_utils test_ip_utils.cpp ${TEST_SOURCES})
+add_executable(test_ip_utils tests/test_ip_utils.cpp ${TEST_SOURCES})
 
 # Link test executable with required libraries
 target_link_libraries(test_ip_utils

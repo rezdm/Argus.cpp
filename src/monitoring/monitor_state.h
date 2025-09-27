@@ -1,10 +1,10 @@
 #pragma once
 
-#include "types.h"
+#include "../core/types.h"
 #include "destination.h"
 #include "group.h"
-#include "test_result.h"
-#include "network_test.h"
+#include "../utils/test_result.h"
+#include "../testers/network_test.h"
 #include <deque>
 #include <memory>
 #include <mutex>

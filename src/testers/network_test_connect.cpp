@@ -1,8 +1,8 @@
 #include "network_test_connect.h"
 #include "connection_tester.h"
-#include "test_config.h"
-#include "test_result.h"
-#include "monitor_config.h"
+#include "../monitoring/test_config.h"
+#include "../utils/test_result.h"
+#include "../monitoring/monitor_config.h"
 #include <spdlog/spdlog.h>
 #include <chrono>
 #include <optional>

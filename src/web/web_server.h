@@ -1,9 +1,9 @@
 #pragma once
 
-#include "types.h"
-#include "monitor_config_types.h"
-#include "monitor_state.h"
-#include "thread_pool.h"
+#include "../core/types.h"
+#include "../monitoring/monitor_config_types.h"
+#include "../monitoring/monitor_state.h"
+#include "../utils/thread_pool.h"
 #include <httplib.h>
 #include <map>
 #include <memory>
