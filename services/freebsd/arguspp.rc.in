@@ -1,0 +1,129 @@
+#!/bin/sh
+
+# PROVIDE: arguspp
+# REQUIRE: DAEMON NETWORKING
+# BEFORE: LOGIN
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+name=arguspp
+rcvar=arguspp_enable
+
+load_rc_config $name
+
+: ${arguspp_enable:="NO"}
+: ${arguspp_user:="argus"}
+: ${arguspp_group:="argus"}
+: ${arguspp_config:="@CMAKE_INSTALL_PREFIX@/etc/config.json"}
+: ${arguspp_pidfile:="/var/run/arguspp.pid"}
+: ${arguspp_logfile:="/var/log/arguspp.log"}
+: ${arguspp_flags:=""}
+
+# Additional runtime directories
+: ${arguspp_rundir:="/var/run"}
+: ${arguspp_logdir:="/var/log"}
+
+pidfile="${arguspp_pidfile}"
+command="@CMAKE_INSTALL_PREFIX@/bin/arguspp"
+command_args="-d -l ${arguspp_logfile} ${arguspp_config} ${arguspp_flags}"
+command_interpreter=""
+
+start_precmd="arguspp_prestart"
+stop_postcmd="arguspp_poststop"
+reload_cmd="arguspp_reload"
+status_cmd="arguspp_status"
+extra_commands="reload"
+
+arguspp_prestart() {
+    # Create necessary directories
+    if [ ! -d "${arguspp_rundir}" ]; then
+        install -d -o ${arguspp_user} -g ${arguspp_group} -m 755 "${arguspp_rundir}"
+    fi
+
+    if [ ! -d "${arguspp_logdir}" ]; then
+        install -d -o ${arguspp_user} -g ${arguspp_group} -m 755 "${arguspp_logdir}"
+    fi
+
+    # Ensure PID directory is writable
+    install -d -o ${arguspp_user} -g ${arguspp_group} -m 755 $(dirname "${pidfile}")
+
+    # Check configuration file
+    if [ ! -f "${arguspp_config}" ]; then
+        err 1 "Configuration file ${arguspp_config} does not exist"
+    fi
+
+    # Check daemon executable
+    if [ ! -x "${command}" ]; then
+        err 1 "Daemon ${command} not found or not executable"
+    fi
+
+    # Set capabilities for ping functionality (FreeBSD specific)
+    if ! /usr/bin/proccontrol -m aslr -s disable "${command}" >/dev/null 2>&1; then
+        warn "Failed to set process control options for ASLR"
+    fi
+
+    # Check for ping group permissions
+    if ! sysctl net.inet.icmp.icmplim_output >/dev/null 2>&1; then
+        warn "ICMP permissions may not be properly configured"
+        warn "Consider running: sysctl net.inet.icmp.icmplim_output=0"
+    fi
+}
+
+arguspp_poststop() {
+    # Clean up PID file
+    if [ -f "${pidfile}" ]; then
+        rm -f "${pidfile}"
+    fi
+
+    # Clean up any stale lock files
+    if [ -f "/var/run/${name}.lock" ]; then
+        rm -f "/var/run/${name}.lock"
+    fi
+}
+
+arguspp_reload() {
+    if [ -f "${pidfile}" ]; then
+        PID=$(cat "${pidfile}")
+        if kill -0 $PID >/dev/null 2>&1; then
+            echo "Reloading ${name} configuration (PID: $PID)"
+            kill -HUP $PID
+            return $?
+        else
+            echo "${name} is not running"
+            return 1
+        fi
+    else
+        echo "${name} is not running (no PID file)"
+        return 1
+    fi
+}
+
+arguspp_status() {
+    if [ -f "${pidfile}" ]; then
+        PID=$(cat "${pidfile}")
+        if kill -0 $PID >/dev/null 2>&1; then
+            echo "${name} is running (PID: $PID)"
+            return 0
+        else
+            echo "${name} is not running (stale PID file)"
+            return 1
+        fi
+    else
+        echo "${name} is not running"
+        return 1
+    fi
+}
+
+# Set process user/group
+command_user="${arguspp_user}:${arguspp_group}"
+
+# FreeBSD-specific daemon options
+if [ -n "$arguspp_facility" ]; then
+    command_args="$command_args --syslog-facility=$arguspp_facility"
+fi
+
+# Handle custom installation prefix in PATH
+export PATH="@CMAKE_INSTALL_PREFIX@/bin:$PATH"
+
+run_rc_command "$1"

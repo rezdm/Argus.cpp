@@ -1,0 +1,95 @@
+<?xml version="1.0"?>
+<!DOCTYPE service_bundle SYSTEM "/usr/share/lib/xml/dtd/service_bundle.dtd.1">
+
+<service_bundle type='manifest' name='arguspp'>
+    <service name='network/arguspp' type='service' version='1'>
+
+        <create_default_instance enabled='false' />
+        <single_instance />
+
+        <!-- Dependencies -->
+        <dependency name='network' grouping='require_all' restart_on='error' type='service'>
+            <service_fmri value='svc:/milestone/network:default' />
+        </dependency>
+
+        <dependency name='filesystem-local' grouping='require_all' restart_on='none' type='service'>
+            <service_fmri value='svc:/system/filesystem/local:default' />
+        </dependency>
+
+        <dependency name='name-services' grouping='optional_all' restart_on='error' type='service'>
+            <service_fmri value='svc:/milestone/name-services:default' />
+        </dependency>
+
+        <!-- Methods -->
+        <exec_method type='method' name='start'
+                     exec='@CMAKE_INSTALL_PREFIX@/bin/arguspp -d @CMAKE_INSTALL_PREFIX@/etc/config.json'
+                     timeout_seconds='30'>
+            <method_credential user='argus' group='argus' />
+            <method_environment>
+                <envvar name='PATH' value='@CMAKE_INSTALL_PREFIX@/bin:/usr/bin:/bin' />
+                <envvar name='LD_LIBRARY_PATH' value='@CMAKE_INSTALL_PREFIX@/lib:/usr/lib' />
+            </method_environment>
+        </exec_method>
+
+        <exec_method type='method' name='stop' exec=':kill' timeout_seconds='60'>
+            <method_credential user='argus' group='argus' />
+        </exec_method>
+
+        <exec_method type='method' name='refresh' exec=':kill -HUP' timeout_seconds='60'>
+            <method_credential user='argus' group='argus' />
+        </exec_method>
+
+        <!-- Process model and restart behavior -->
+        <property_group name='startd' type='framework'>
+            <propval name='duration' type='astring' value='contract' />
+            <propval name='ignore_error' type='astring' value='core,signal' />
+        </property_group>
+
+        <!-- Resource management -->
+        <property_group name='resource_pool' type='framework'>
+            <propval name='name' type='astring' value='pool_default' />
+        </property_group>
+
+        <!-- Application properties -->
+        <property_group name='application' type='application'>
+            <propval name='auto_enable' type='boolean' value='false' />
+            <propval name='config_file' type='astring' value='@CMAKE_INSTALL_PREFIX@/etc/config.json' />
+            <propval name='log_file' type='astring' value='/var/log/arguspp.log' />
+        </property_group>
+
+        <!-- Custom argus properties -->
+        <property_group name='argus' type='application'>
+            <propval name='installation_prefix' type='astring' value='@CMAKE_INSTALL_PREFIX@' />
+            <propval name='daemon_args' type='astring' value='-d' />
+            <propval name='log_level' type='astring' value='info' />
+        </property_group>
+
+        <!-- Service info and authorization -->
+        <property_group name='general' type='framework'>
+            <propval name='action_authorization' type='astring' value='solaris.smf.manage.arguspp' />
+            <propval name='value_authorization' type='astring' value='solaris.smf.value.arguspp' />
+        </property_group>
+
+        <stability value='Evolving' />
+
+        <template>
+            <common_name>
+                <loctext xml:lang='C'>Argus++ Network Monitor</loctext>
+            </common_name>
+
+            <description>
+                <loctext xml:lang='C'>
+                High-performance C++ network monitoring daemon with web dashboard.
+                Monitors network connectivity, services, and endpoints with real-time status reporting.
+                </loctext>
+            </description>
+
+            <documentation>
+                <manpage title='arguspp' section='8' />
+                <doc_link name='GitHub Repository' uri='https://github.com/rezdm/Argus.cpp' />
+                <doc_link name='Installation Guide' uri='file://@CMAKE_INSTALL_PREFIX@/share/doc/arguspp/README.md' />
+            </documentation>
+        </template>
+
+    </service>
+</service_bundle>

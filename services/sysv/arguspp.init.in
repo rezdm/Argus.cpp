@@ -1,0 +1,224 @@
+#!/bin/bash
+#
+# arguspp        Argus++ Network Monitor
+#
+# chkconfig: 35 99 99
+# description: High-performance network monitoring daemon
+#
+### BEGIN INIT INFO
+# Provides: arguspp
+# Required-Start: $local_fs $remote_fs $network $named
+# Required-Stop: $local_fs $remote_fs $network
+# Should-Start: $network-online
+# Should-Stop: $network-online
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: Start and stop arguspp
+# Description: Argus++ Network Monitor daemon
+### END INIT INFO
+
+# Source function library
+if [ -f /etc/rc.d/init.d/functions ]; then
+    . /etc/rc.d/init.d/functions
+elif [ -f /etc/init.d/functions ]; then
+    . /etc/init.d/functions
+elif [ -f /lib/lsb/init-functions ]; then
+    . /lib/lsb/init-functions
+fi
+
+USER="argus"
+DAEMON="arguspp"
+ROOT_DIR="@CMAKE_INSTALL_PREFIX@"
+DAEMON_PATH="$ROOT_DIR/bin/$DAEMON"
+CONFIG_FILE="$ROOT_DIR/etc/config.json"
+LOCK_FILE="/var/lock/subsys/$DAEMON"
+PID_FILE="/var/run/$DAEMON.pid"
+LOG_FILE="/var/log/$DAEMON.log"
+
+# Override with system-specific paths if they exist
+[ -f /etc/sysconfig/arguspp ] && . /etc/sysconfig/arguspp
+[ -f /etc/default/arguspp ] && . /etc/default/arguspp
+
+start() {
+    if [ -f $PID_FILE ] && kill -0 $(cat $PID_FILE) 2>/dev/null; then
+        echo "$DAEMON is already running"
+        return 1
+    fi
+
+    echo -n "Starting $DAEMON: "
+
+    # Create necessary directories
+    [ ! -d /var/run ] && mkdir -p /var/run
+    [ ! -d /var/log ] && mkdir -p /var/log
+
+    # Check config file
+    if [ ! -f "$CONFIG_FILE" ]; then
+        echo "Configuration file $CONFIG_FILE not found"
+        return 1
+    fi
+
+    # Check if daemon exists
+    if [ ! -x "$DAEMON_PATH" ]; then
+        echo "Daemon $DAEMON_PATH not found or not executable"
+        return 1
+    fi
+
+    # Start daemon
+    if command -v daemon >/dev/null 2>&1; then
+        # RHEL/CentOS style
+        daemon --user="$USER" --pidfile="$PID_FILE" \
+               "$DAEMON_PATH" -d -l "$LOG_FILE" "$CONFIG_FILE"
+        RETVAL=$?
+    elif command -v start-stop-daemon >/dev/null 2>&1; then
+        # Debian/Ubuntu style
+        start-stop-daemon --start --quiet --pidfile "$PID_FILE" \
+                          --chuid "$USER" --background --make-pidfile \
+                          --exec "$DAEMON_PATH" -- -l "$LOG_FILE" "$CONFIG_FILE"
+        RETVAL=$?
+    else
+        # Generic fallback
+        su - "$USER" -c "nohup $DAEMON_PATH -d -l $LOG_FILE $CONFIG_FILE" >/dev/null 2>&1 &
+        echo $! > "$PID_FILE"
+        RETVAL=$?
+    fi
+
+    if [ $RETVAL -eq 0 ]; then
+        if command -v success >/dev/null 2>&1; then
+            success
+        else
+            echo "OK"
+        fi
+        touch $LOCK_FILE
+    else
+        if command -v failure >/dev/null 2>&1; then
+            failure
+        else
+            echo "FAILED"
+        fi
+    fi
+
+    echo
+    return $RETVAL
+}
+
+stop() {
+    echo -n "Shutting down $DAEMON: "
+
+    if [ -f $PID_FILE ]; then
+        PID=$(cat $PID_FILE)
+        if kill -0 $PID 2>/dev/null; then
+            kill $PID 2>/dev/null
+
+            # Wait for process to stop
+            for i in {1..30}; do
+                if ! kill -0 $PID 2>/dev/null; then
+                    break
+                fi
+                sleep 1
+            done
+
+            # Force kill if still running
+            if kill -0 $PID 2>/dev/null; then
+                kill -9 $PID 2>/dev/null
+            fi
+
+            rm -f $PID_FILE
+            RETVAL=0
+        else
+            echo "Process not running"
+            rm -f $PID_FILE
+            RETVAL=1
+        fi
+    else
+        echo "PID file not found"
+        RETVAL=1
+    fi
+
+    if [ $RETVAL -eq 0 ]; then
+        if command -v success >/dev/null 2>&1; then
+            success
+        else
+            echo "OK"
+        fi
+        rm -f $LOCK_FILE
+    else
+        if command -v failure >/dev/null 2>&1; then
+            failure
+        else
+            echo "FAILED"
+        fi
+    fi
+
+    echo
+    return $RETVAL
+}
+
+restart() {
+    stop
+    sleep 2
+    start
+}
+
+reload() {
+    if [ -f $PID_FILE ]; then
+        PID=$(cat $PID_FILE)
+        if kill -0 $PID 2>/dev/null; then
+            echo "Reloading $DAEMON configuration"
+            kill -HUP $PID
+            RETVAL=$?
+        else
+            echo "$DAEMON is not running"
+            RETVAL=1
+        fi
+    else
+        echo "$DAEMON is not running"
+        RETVAL=1
+    fi
+    return $RETVAL
+}
+
+status() {
+    if [ -f $PID_FILE ]; then
+        PID=$(cat $PID_FILE)
+        if kill -0 $PID 2>/dev/null; then
+            echo "$DAEMON is running (PID $PID)"
+            RETVAL=0
+        else
+            echo "$DAEMON is stopped but PID file exists"
+            RETVAL=1
+        fi
+    else
+        echo "$DAEMON is stopped"
+        RETVAL=3
+    fi
+    return $RETVAL
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        restart
+        ;;
+    reload)
+        reload
+        ;;
+    status)
+        status
+        ;;
+    condrestart|try-restart)
+        if [ -f $LOCK_FILE ]; then
+            restart
+        fi
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|reload|status|condrestart|try-restart}"
+        exit 1
+        ;;
+esac
+
+exit $?

@@ -231,9 +231,35 @@ install(DIRECTORY ../templates/
     PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
 )
 
-# Install systemd service file if systemd is available
-if(SYSTEMD_FOUND)
-    configure_file(../arguspp.service.in
+# Platform-specific service management detection and installation
+set(SERVICE_TYPE "none")
+
+# Detect init system based on platform and available tools
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    if(SYSTEMD_FOUND)
+        set(SERVICE_TYPE "systemd")
+    elseif(EXISTS "/etc/init.d")
+        set(SERVICE_TYPE "sysv")
+    endif()
+elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+    set(SERVICE_TYPE "freebsd_rc")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "OpenBSD" OR CMAKE_SYSTEM_NAME STREQUAL "NetBSD")
+    set(SERVICE_TYPE "bsd_rc")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "SunOS")
+    set(SERVICE_TYPE "solaris_smf")
+else()
+    # Default to SysV for unknown Unix systems
+    if(EXISTS "/etc/init.d")
+        set(SERVICE_TYPE "sysv")
+    endif()
+endif()
+
+message(STATUS "Detected service management: ${SERVICE_TYPE}")
+
+# Install appropriate service files based on detected system
+if(SERVICE_TYPE STREQUAL "systemd")
+    # Linux systemd
+    configure_file(../services/systemd/arguspp.service.in
         ${CMAKE_CURRENT_BINARY_DIR}/arguspp.service
         @ONLY
     )
@@ -242,23 +268,65 @@ if(SYSTEMD_FOUND)
         PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
     )
 
-    # Create a post-install script for systemd setup
-    install(CODE "
-        message(STATUS \"Installing systemd service...\")
-        execute_process(COMMAND systemctl daemon-reload
-            RESULT_VARIABLE DAEMON_RELOAD_RESULT
-            OUTPUT_QUIET ERROR_QUIET
-        )
-        if(DAEMON_RELOAD_RESULT EQUAL 0)
-            message(STATUS \"Systemd service installed successfully\")
-            message(STATUS \"To enable and start the service, run:\")
-            message(STATUS \"  sudo systemctl enable arguspp\")
-            message(STATUS \"  sudo systemctl start arguspp\")
-        else()
-            message(WARNING \"Failed to reload systemd daemon. You may need to run 'sudo systemctl daemon-reload' manually.\")
-        endif()
-    ")
+elseif(SERVICE_TYPE STREQUAL "sysv")
+    # Linux SysV init
+    configure_file(../services/sysv/arguspp.init.in
+        ${CMAKE_CURRENT_BINARY_DIR}/arguspp.init
+        @ONLY
+    )
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/arguspp.init
+        DESTINATION /etc/init.d
+        RENAME arguspp
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+    )
+
+elseif(SERVICE_TYPE STREQUAL "freebsd_rc")
+    # FreeBSD rc.d
+    configure_file(../services/freebsd/arguspp.rc.in
+        ${CMAKE_CURRENT_BINARY_DIR}/arguspp
+        @ONLY
+    )
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/arguspp
+        DESTINATION /usr/local/etc/rc.d
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+    )
+
+elseif(SERVICE_TYPE STREQUAL "bsd_rc")
+    # Other BSD systems
+    configure_file(../services/freebsd/arguspp.rc.in
+        ${CMAKE_CURRENT_BINARY_DIR}/arguspp.rc
+        @ONLY
+    )
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/arguspp.rc
+        DESTINATION /etc/rc.d
+        RENAME arguspp
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+    )
+
+elseif(SERVICE_TYPE STREQUAL "solaris_smf")
+    # Solaris SMF
+    configure_file(../services/solaris/arguspp.xml.in
+        ${CMAKE_CURRENT_BINARY_DIR}/arguspp.xml
+        @ONLY
+    )
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/arguspp.xml
+        DESTINATION /var/svc/manifest/network
+        PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
+    )
+
 endif()
+
+# Create installation directories with proper ownership
+install(CODE "
+    # Create necessary runtime directories
+    file(MAKE_DIRECTORY \"/var/log\")
+    file(MAKE_DIRECTORY \"/var/run\")
+
+    # Platform-specific directory creation
+    if(CMAKE_SYSTEM_NAME STREQUAL \"FreeBSD\")
+        file(MAKE_DIRECTORY \"/usr/local/etc\")
+    endif()
+")
 
 # Create necessary directories and set capabilities
 install(CODE "
@@ -339,6 +407,49 @@ install(CODE "
         message(WARNING \"  sudo sysctl -w net.ipv4.ping_group_range='0 65535'\")
     endif()
 
+    # Service-specific post-install commands and messaging
+    set(SERVICE_TYPE \"${SERVICE_TYPE}\")
+
+    if(SERVICE_TYPE STREQUAL \"systemd\")
+        execute_process(COMMAND systemctl daemon-reload
+            RESULT_VARIABLE DAEMON_RELOAD_RESULT
+            OUTPUT_QUIET ERROR_QUIET
+        )
+        if(DAEMON_RELOAD_RESULT EQUAL 0)
+            message(STATUS \"Systemd service installed successfully\")
+        else()
+            message(WARNING \"Failed to reload systemd daemon. Run: sudo systemctl daemon-reload\")
+        endif()
+
+    elseif(SERVICE_TYPE STREQUAL \"sysv\")
+        execute_process(COMMAND chkconfig --add arguspp
+            RESULT_VARIABLE CHKCONFIG_RESULT
+            OUTPUT_QUIET ERROR_QUIET
+        )
+        if(CHKCONFIG_RESULT EQUAL 0)
+            message(STATUS \"SysV init script installed successfully\")
+        else()
+            message(WARNING \"Failed to add service to chkconfig. Run: sudo chkconfig --add arguspp\")
+        endif()
+
+    elseif(SERVICE_TYPE STREQUAL \"freebsd_rc\")
+        message(STATUS \"FreeBSD rc.d script installed successfully\")
+
+    elseif(SERVICE_TYPE STREQUAL \"bsd_rc\")
+        message(STATUS \"BSD rc.d script installed successfully\")
+
+    elseif(SERVICE_TYPE STREQUAL \"solaris_smf\")
+        execute_process(COMMAND svccfg import /var/svc/manifest/network/arguspp.xml
+            RESULT_VARIABLE SMF_IMPORT_RESULT
+            OUTPUT_QUIET ERROR_QUIET
+        )
+        if(SMF_IMPORT_RESULT EQUAL 0)
+            message(STATUS \"Solaris SMF service imported successfully\")
+        else()
+            message(WARNING \"Failed to import SMF service. Run: sudo svccfg import /var/svc/manifest/network/arguspp.xml\")
+        endif()
+    endif()
+
     # Display installation summary
     message(STATUS \"\")
     message(STATUS \"=== Argus++ Installation Complete ===\")
@@ -346,11 +457,49 @@ install(CODE "
     message(STATUS \"Executable: \${CMAKE_INSTALL_PREFIX}/bin/arguspp\")
     message(STATUS \"Config file: \${CMAKE_INSTALL_PREFIX}/etc/config.json\")
     message(STATUS \"Templates: \${CMAKE_INSTALL_PREFIX}/share/templates/\")
+    message(STATUS \"Service management: ${SERVICE_TYPE}\")
     message(STATUS \"\")
-    message(STATUS \"To run: \${CMAKE_INSTALL_PREFIX}/bin/arguspp \${CMAKE_INSTALL_PREFIX}/etc/config.json\")
-    if(SYSTEMD_FOUND)
-        message(STATUS \"Or use systemd: sudo systemctl start arguspp\")
+
+    # Service-specific instructions
+    if(SERVICE_TYPE STREQUAL \"systemd\")
+        message(STATUS \"Service commands:\")
+        message(STATUS \"  Enable:  sudo systemctl enable arguspp\")
+        message(STATUS \"  Start:   sudo systemctl start arguspp\")
+        message(STATUS \"  Status:  sudo systemctl status arguspp\")
+        message(STATUS \"  Reload:  sudo systemctl reload arguspp\")
+
+    elseif(SERVICE_TYPE STREQUAL \"sysv\")
+        message(STATUS \"Service commands:\")
+        message(STATUS \"  Enable:  sudo chkconfig arguspp on\")
+        message(STATUS \"  Start:   sudo service arguspp start\")
+        message(STATUS \"  Status:  sudo service arguspp status\")
+        message(STATUS \"  Reload:  sudo service arguspp reload\")
+
+    elseif(SERVICE_TYPE STREQUAL \"freebsd_rc\")
+        message(STATUS \"Service commands:\")
+        message(STATUS \"  Enable:  sudo sysrc arguspp_enable=YES\")
+        message(STATUS \"  Start:   sudo service arguspp start\")
+        message(STATUS \"  Status:  sudo service arguspp status\")
+        message(STATUS \"  Reload:  sudo service arguspp reload\")
+
+    elseif(SERVICE_TYPE STREQUAL \"bsd_rc\")
+        message(STATUS \"Service commands:\")
+        message(STATUS \"  Enable:  Add 'arguspp=YES' to /etc/rc.conf\")
+        message(STATUS \"  Start:   sudo /etc/rc.d/arguspp start\")
+        message(STATUS \"  Status:  sudo /etc/rc.d/arguspp status\")
+        message(STATUS \"  Reload:  sudo /etc/rc.d/arguspp reload\")
+
+    elseif(SERVICE_TYPE STREQUAL \"solaris_smf\")
+        message(STATUS \"Service commands:\")
+        message(STATUS \"  Enable:  sudo svcadm enable arguspp\")
+        message(STATUS \"  Start:   sudo svcadm enable -t arguspp\")
+        message(STATUS \"  Status:  svcs arguspp\")
+        message(STATUS \"  Reload:  sudo svcadm refresh arguspp\")
+
+    else()
+        message(STATUS \"Manual start: \${CMAKE_INSTALL_PREFIX}/bin/arguspp \${CMAKE_INSTALL_PREFIX}/etc/config.json\")
     endif()
+
     message(STATUS \"\")
 ")
 
