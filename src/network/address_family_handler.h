@@ -6,8 +6,6 @@
 #include <string>
 #include <vector>
 
-#include "../core/types.h"
-
 // Platform-specific socket includes
 #ifdef __FreeBSD__
 #include <netinet/in.h>

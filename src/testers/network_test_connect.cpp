@@ -24,8 +24,8 @@ test_result network_test_connect::execute(const test_config& config, const int t
     }
 
     // Use factory pattern to create appropriate connection tester
-    auto tester = connection_tester_factory::create(config.get_protocol().value());
-    auto result = tester->test_connection(config.get_host().value(), config.get_port(), timeout_ms);
+    const auto tester = connection_tester_factory::create(config.get_protocol().value());
+    const auto result = tester->test_connection(config.get_host().value(), config.get_port(), timeout_ms);
     success = result.is_success();
 
   } catch (const std::exception& e) {

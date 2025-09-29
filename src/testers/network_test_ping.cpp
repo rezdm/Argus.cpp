@@ -37,7 +37,7 @@ test_result network_test_ping::execute(const test_config& config, const int time
 
   } catch (const std::exception& e) {
     error = e.what();
-    std::string host_str = config.get_host().value_or("unknown");
+    const std::string host_str = config.get_host().value_or("unknown");
     LOG_TEST_FAILURE("Ping", host_str, error);
   }
 

@@ -7,7 +7,9 @@ test_result::test_result(const bool success_val, const long duration_ms_val, con
   validate_parameters();
 }
 
-test_result test_result::create_success(const long duration_ms_val) { return test_result(true, duration_ms_val, std::chrono::system_clock::now()); }
+test_result test_result::create_success(const long duration_ms_val) {
+  return test_result(true, duration_ms_val, std::chrono::system_clock::now());
+}
 
 test_result test_result::create_failure(const std::string& error_msg, const long duration_ms_val) {
   return test_result(false, duration_ms_val, std::chrono::system_clock::now(), error_msg);

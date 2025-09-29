@@ -35,7 +35,7 @@ test_result http_client::perform_request(const std::string& host, const std::str
     client.set_write_timeout(timeout_ms / 1000, (timeout_ms % 1000) * 1000);
 
     // Set headers
-    httplib::Headers headers = {{"User-Agent", "Argus++/1.0 (Network Monitor)"}, {"Accept", "*/*"}, {"Connection", "close"}};
+    const httplib::Headers headers = {{"User-Agent", "Argus++/1.0 (Network Monitor)"}, {"Accept", "*/*"}, {"Connection", "close"}};
 
     // TODO: Implement proxy support if needed
     if (!proxy.empty()) {
@@ -101,7 +101,7 @@ test_result https_client::perform_request(const std::string& host, const std::st
     ssl_client.enable_server_certificate_verification(enable_cert_verification_);
 
     // Set headers
-    httplib::Headers headers = {{"User-Agent", "Argus++/1.0 (Network Monitor)"}, {"Accept", "*/*"}, {"Connection", "close"}};
+    const httplib::Headers headers = {{"User-Agent", "Argus++/1.0 (Network Monitor)"}, {"Accept", "*/*"}, {"Connection", "close"}};
 
     // TODO: Implement proxy support if needed
     if (!proxy.empty()) {

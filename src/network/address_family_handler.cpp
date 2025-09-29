@@ -4,7 +4,6 @@
 #include <netinet/in.h>
 #include <spdlog/spdlog.h>
 #include <sys/socket.h>
-#include <unistd.h>
 
 #include <cstring>
 
@@ -250,8 +249,7 @@ resolution_result ipv6_handler::resolve_addresses_detailed(const std::string& ho
   hints.ai_family = AF_INET6;  // IPv6 only
   hints.ai_socktype = socktype;
 
-  const int status = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &addr_result);
-  if (status != 0) {
+  if (const int status = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &addr_result); status != 0) {
     result.error_type = classify_getaddrinfo_error(status);
     result.error_message = format_resolution_error(result.error_type, host, gai_strerror(status));
     LOG_NETWORK_DEBUG("IPv6 DNS resolution", host, gai_strerror(status));
@@ -337,14 +335,14 @@ std::vector<resolved_address> address_resolver::resolve_optimized(const std::str
     std::vector<resolved_address> addresses;
 
     if (ip_type == ip_address_utils::ip_type::ipv4) {
-      auto handler = std::make_unique<ipv4_handler>();
+      const auto handler = std::make_unique<ipv4_handler>();
       addresses = handler->resolve_addresses(host, port, socktype);
       if (!addresses.empty()) {
         spdlog::debug("Directly resolved IPv4 address: {}", host);
         return addresses;
       }
     } else if (ip_type == ip_address_utils::ip_type::ipv6) {
-      auto handler = std::make_unique<ipv6_handler>();
+      const auto handler = std::make_unique<ipv6_handler>();
       addresses = handler->resolve_addresses(host, port, socktype);
       if (!addresses.empty()) {
         spdlog::debug("Directly resolved IPv6 address: {}", host);

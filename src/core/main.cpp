@@ -48,7 +48,7 @@ class main_application {
 
     try {
       current_config_ = monitor_config::load_config(config_path);
-      std::string config_name = current_config_.get_name();  // Store in variable to avoid warning
+      const std::string config_name = current_config_.get_name();  // Store in variable to avoid warning
       argus::logging::logger::log_config_loaded(config_name);
       log_memory_usage("Config loaded");
 
@@ -142,8 +142,8 @@ class main_application {
       argus::logging::logger::log_config_loaded(new_config.get_name());
 
       // Backup current instances before stopping (for rollback on failure)
-      auto backup_monitors = monitors_instance;
-      auto backup_server = server_instance;
+      const auto backup_monitors = monitors_instance;
+      const auto backup_server = server_instance;
 
       // Stop current monitoring gracefully
       if (monitors_instance) {
@@ -408,8 +408,7 @@ int main(const int argc, char* argv[]) {
 
   int arg_idx = 1;
   while (arg_idx < argc - 1) {
-    std::string flag = argv[arg_idx];
-    if (flag == "-d" || flag == "--daemon") {
+    if (std::string flag = argv[arg_idx]; flag == "-d" || flag == "--daemon") {
       daemon_mode = true;
       arg_idx++;
     } else if (flag == "-s" || flag == "--systemd") {
@@ -444,8 +443,7 @@ int main(const int argc, char* argv[]) {
     log_file_path = cmdline_log_file;
   } else {
     try {
-      const auto config = monitor_config::load_config(config_path);
-      if (config.get_log_file().has_value()) {
+      if (const auto config = monitor_config::load_config(config_path); config.get_log_file().has_value()) {
         log_file_path = config.get_log_file().value();
       }
     } catch (const std::exception& e) {
@@ -460,8 +458,7 @@ int main(const int argc, char* argv[]) {
     std::string absolute_log_path = log_file_path;
     std::string absolute_config_path = config_path;
 
-    char* cwd = getcwd(nullptr, 0);
-    if (cwd) {
+    if (char* cwd = getcwd(nullptr, 0)) {
       // Convert log file path if relative
       if (!log_file_path.empty() && log_file_path[0] != '/') {
         absolute_log_path = std::string(cwd) + "/" + log_file_path;

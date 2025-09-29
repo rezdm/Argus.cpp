@@ -49,8 +49,7 @@ void network_test_url::validate_config(const test_config& config) const {
   }
 
   // Basic URL validation - check if it starts with http:// or https://
-  const std::string& url = config.get_url().value();
-  if (url.find("http://") != 0 && url.find("https://") != 0) {
+  if (const std::string& url = config.get_url().value(); url.find("http://") != 0 && url.find("https://") != 0) {
     throw std::invalid_argument("Invalid URL format: " + url);
   }
 }
