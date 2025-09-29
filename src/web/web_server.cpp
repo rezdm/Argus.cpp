@@ -170,9 +170,16 @@ std::string web_server::generate_json_status() const {
     }
 
     // Sort groups and monitors
+    std::vector<std::pair<std::string, std::vector<std::shared_ptr<monitor_state>>>> sorted_groups(grouped_monitors.begin(), grouped_monitors.end());
 
-    for (std::vector<std::pair<std::string, std::vector<std::shared_ptr<monitor_state>>>> sorted_groups(grouped_monitors.begin(), grouped_monitors.end());
-         auto& [group_name, states] : sorted_groups) {
+    // Sort groups by group sort order
+    std::ranges::sort(sorted_groups, [](const auto& a, const auto& b) {
+      if (a.second.empty() || b.second.empty()) return false;
+      if (!a.second[0] || !b.second[0]) return false;
+      return a.second[0]->get_group().get_sort() < b.second[0]->get_group().get_sort();
+    });
+
+    for (auto& [group_name, states] : sorted_groups) {
       // Sort monitors within group by destination sort order
       std::ranges::sort(states, [](const auto& a, const auto& b) {
         if (!a || !b) return false;

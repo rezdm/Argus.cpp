@@ -4,6 +4,7 @@ build-release/
 *.log
 .idea
 Testing/
+prod/
 
 # Prerequisites
 *.d
