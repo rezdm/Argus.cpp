@@ -14,6 +14,10 @@
 #include <netinet/ip_icmp.h>
 #include <netinet/icmp6.h>
 #else
+// Solaris and other Unix systems - need proper include order
+#include <sys/types.h>
+#include <netinet/in_systm.h>  // Provides n_time definition
+#include <netinet/ip.h>        // Must come before ip_icmp.h
 #include <netinet/ip_icmp.h>
 #include <netinet/icmp6.h>
 #endif
@@ -294,20 +298,7 @@ bool raw_socket_ping_tester::initialize_socket(socket_family family, ping_contex
 bool raw_socket_ping_tester::send_icmp_packet(const ping_context& ctx, const sockaddr* dest_addr, socklen_t addr_len) {
     if (ctx.family == socket_family::ipv4) {
         // IPv4 ICMP packet
-#ifdef __FreeBSD__
-        icmp icmp_pkt{};
-        icmp_pkt.icmp_type = ICMP_ECHO;
-        icmp_pkt.icmp_code = 0;
-        icmp_pkt.icmp_hun.ih_idseq.icd_id = htons(ctx.identifier);
-        icmp_pkt.icmp_hun.ih_idseq.icd_seq = htons(ctx.sequence);
-        icmp_pkt.icmp_cksum = 0;
-
-        // Calculate checksum
-        icmp_pkt.icmp_cksum = calculate_checksum(&icmp_pkt, sizeof(icmp_pkt));
-
-        const ssize_t sent = sendto(ctx.socket_fd, &icmp_pkt, sizeof(icmp_pkt), 0, dest_addr, addr_len);
-        return sent > 0;
-#else
+#ifdef __linux__
         // Linux ICMP packet
         icmphdr icmp{};
         icmp.type = ICMP_ECHO;
@@ -320,6 +311,20 @@ bool raw_socket_ping_tester::send_icmp_packet(const ping_context& ctx, const soc
         icmp.checksum = calculate_checksum(&icmp, sizeof(icmp));
 
         const ssize_t sent = sendto(ctx.socket_fd, &icmp, sizeof(icmp), 0, dest_addr, addr_len);
+        return sent > 0;
+#else
+        // FreeBSD, Solaris, and other BSD-like systems use 'icmp' struct
+        icmp icmp_pkt{};
+        icmp_pkt.icmp_type = ICMP_ECHO;
+        icmp_pkt.icmp_code = 0;
+        icmp_pkt.icmp_hun.ih_idseq.icd_id = htons(ctx.identifier);
+        icmp_pkt.icmp_hun.ih_idseq.icd_seq = htons(ctx.sequence);
+        icmp_pkt.icmp_cksum = 0;
+
+        // Calculate checksum
+        icmp_pkt.icmp_cksum = calculate_checksum(&icmp_pkt, sizeof(icmp_pkt));
+
+        const ssize_t sent = sendto(ctx.socket_fd, &icmp_pkt, sizeof(icmp_pkt), 0, dest_addr, addr_len);
         return sent > 0;
 #endif
     } else {
