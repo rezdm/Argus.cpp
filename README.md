@@ -1,44 +1,49 @@
 # Argus++
+A simple network monitoring daemon that provides a quick overview of service availability via ICMP ping, TCP/UDP ports, or HTTP/HTTPS. 
 
-A high-performance C++ network monitoring daemon that provides real-time monitoring of network connectivity, services, and endpoints with a web-based dashboard.
+The original project was Java-based — [Argus](https://github.com/rezdm/Argus). I worked on it as a playground to explore Java 25 features, and at some point needed AI help, and then decided... why not translate it to C++, back to the roots, so to speak.
 
-Originally AI-translated from Java-based [Argus](https://github.com/rezdm/Argus), now developed as a standalone C++ project.
+I liked the result of the translation and decided to continue with the C++-based project.
+
+## Output
+The program exposes an endpoint and serves a static (configurable) HTML page:
+![argus-dashboard-screenshot.png](argus-dashboard-screenshot.png)
 
 ## Features
-
-- **Multi-Protocol Monitoring**: ICMP ping, TCP/UDP port connectivity, HTTP/HTTPS endpoints
-- **Configurable Ping Implementation**: Choose between system ping or unprivileged ICMP sockets
-- **Web Dashboard**: Real-time status monitoring via HTTP interface
-- **Flexible Deployment**: Run as foreground process, daemon, or systemd service
-- **Robust Logging**: Configurable logging to stdout, files, or systemd journal
-- **Security Hardened**: Input validation, shell injection protection
-- **OpenSSL Support**: HTTPS monitoring with full TLS support
+- **Multi-Protocol**: Ping (ICMP, raw sockets, and calling the ping utility; the homemade ping implementation is still suffering from some issues); TCP/UDP port connectivity (TCP connect, UDP by sending an empty packet), HTTP/HTTPS (sending GET requests; ignores certificates)
+- **IPv4/IPv6**: I tried to make it work with both v4 and v6, but I have somewhat limited networks to truly test this
+- **Web Dashboard**: Apart from the API endpoint, the program also serves HTML; the contents are configurable. Obviously, it's possible to place an HTML file with any contents on any other web server
+- **Deployment**: Foreground, background/daemonized, SysV, systemd, FreeBSD rc.d, Solaris SMF — I've done my best to support these
+- **Logging**: Uses spdlog library. Default is stdout/stderr and /var/log/arguspp.log
 
 ## Quick Start
-
 ### Build Requirements
-- C++23 compatible compiler
-- CMake 3.20+
-- OpenSSL development libraries
-- systemd development libraries (optional)
+- C++ compiler — I tried to use certain C++23 features, but compilers have different support for this standard, so in practice, C++20 should be enough for now 
+- CMake (no specific version requirements)
+- OpenSSL, systemd development libraries — detected and linked during the build
+- httplib, spdlog — downloaded and statically linked during the build process 
 
 ### Build
+There are a couple of tricks during the build process
+
+#### Just to build
 ```bash
-cmake -B build src
-make -C build
+cmake -S src -B build/ && cmake --build build/ -j$(nproc)
+```
+
+#### To run tests
+There is only one set of tests — detecting if an address is IPv4 vs IPv6
+```bash
+cmake --build build/ -j$(nproc) --target check
 ```
 
 ### Run
-```bash
-# Copy and edit sample configuration
-cp src/sample_config.json my_config.json
-
-# Run with default settings
-./build/bin/arguspp my_config.json
+Just run `./build/bin/arguspp` — the tool will print out the available command-line arguments. To try it out, the simplest way is to run something like:
+```
+./build/bin/arguspp config/example_config.json
 ```
 
 ## Command Line Arguments
-
 ```bash
 arguspp config.json                              # stdout logging
 arguspp -l /tmp/debug.log config.json            # file logging
@@ -48,38 +53,22 @@ arguspp -s config.json                           # systemd mode
 arguspp -s -l /custom/path.log config.json       # systemd mode + custom log file
 ```
 
-### Options
-- `-d, --daemon`: Run as daemon (detach from terminal)
-- `-s, --systemd`: Run in systemd mode (no fork, journal logging)
-- `-l, --log-file <path>`: Log to specified file (overrides config/systemd settings)
-
-## Configuration Hot-Reload
-
-Argus++ supports configuration hot-reload using the SIGHUP signal. This allows you to update the configuration without restarting the service:
-
+## Configuration
+### Configuration Hot-Reload
+Note: Argus++ supports configuration hot-reload using the SIGHUP signal:
 ```bash
-# Edit your configuration file
-vim my_config.json
-
 # Send SIGHUP signal to reload configuration
 kill -SIGHUP <pid>
 # or using systemctl for systemd services
 sudo systemctl reload arguspp
 ```
-
-### Hot-Reload Features
-- **Graceful reload**: Current monitoring stops gracefully before applying new config
-- **Rollback on failure**: If new configuration fails to load, automatically rolls back to previous config
-- **Zero downtime**: Web interface remains available during reload (brief interruption only)
-- **Comprehensive logging**: All reload steps are logged for troubleshooting
-
-### Configuration
+When processing SIGHUP, Argus++ reloads both the configuration and HTML dashboard. 
 
 ### Basic Configuration
 ```json
 {
   "name": "My Network Monitor",
-  "listen": "127.0.0.1:8080",  // IPv4: "host:port", IPv6: "[::1]:8080"
+  "listen": "127.0.0.1:8080",
   "log_file": "/var/log/arguspp.log",
   "cache_duration_seconds": 30,
   "thread_pool_size": 8,
@@ -109,7 +98,6 @@ sudo systemctl reload arguspp
 ```
 
 ### Configuration Options
-
 #### Global Settings
 - `name`: Display name for this monitor instance
 - `listen`: Web interface bind address (IP:port or just port)
@@ -133,7 +121,6 @@ sudo systemctl reload arguspp
 - `history`: Number of results to keep in memory
 
 #### Test Types
-
 **ICMP Ping**
 ```json
 {
@@ -160,93 +147,20 @@ sudo systemctl reload arguspp
 }
 ```
 
-**Requirements:** System configuration needed
+## Challenges
+Depending on the Linux/UNIX/BSD flavor, ping functionality might not work. ICMP or raw sockets require some sort of elevated rights:
 ```bash
 # Enable unprivileged ICMP sockets (requires root)
 sudo sysctl -w net.ipv4.ping_group_range="0 65535"
-
 # Make persistent across reboots
 echo 'net.ipv4.ping_group_range = 0 65535' | sudo tee -a /etc/sysctl.conf
-
 # Allow raw sockets for arguspp
 sudo setcap cap_net_raw+ep arguspp
 ```
 
-**Note:** If unprivileged ICMP fails to initialize, arguspp will log a warning and the ping tests will fail. Consider using `system_ping` for production deployments.
-
-## Deployment
-
-### Systemd Service
-
-1. **Install binary and config:**
+## Deployment/Installation
+I've tried to maintain installation guides in [SERVICES.md](SERVICES.md) and [HowToRun.md](HowToRun.md), but overall:
 ```bash
-sudo cp build/bin/arguspp /usr/local/bin/
-sudo mkdir -p /etc/arguspp
-sudo cp my_config.json /etc/arguspp/config.json
+cmake --install
 ```
-
-2. **Install service file:**
-```bash
-sudo cp arguspp.service /etc/systemd/system/
-sudo systemctl daemon-reload
-```
-
-3. **Create user and directories:**
-```bash
-sudo useradd -r -s /bin/false argus
-sudo mkdir -p /var/lib/arguspp /var/log
-sudo chown argus:argus /var/lib/arguspp
-```
-
-4. **Enable and start:**
-```bash
-sudo systemctl enable arguspp
-sudo systemctl start arguspp
-```
-
-5. **View logs:**
-```bash
-journalctl -u arguspp -f
-```
-
-## IPv6 Support
-
-Argus++ fully supports IPv6 addresses alongside IPv4. All network tests (Ping, Connect, URL) automatically work with both IPv4 and IPv6 addresses.
-
-### IPv6 Configuration Examples
-
-**Web Server Listening:**
-```json
-{
-  "listen": "[::1]:8080",           // IPv6 localhost
-  "listen": "[2001:db8::1]:8080",   // Specific IPv6 address
-  "listen": "[::]:8080"             // Listen on all IPv6 interfaces
-}
-```
-
-**Monitor Targets:**
-```json
-{
-  "test": {
-    "method": "Ping",
-    "host": "2606:4700:4700::1111"  // Cloudflare IPv6 DNS
-  }
-},
-{
-  "test": {
-    "method": "Connect",
-    "protocol": "TCP",
-    "host": "2001:db8::1",          // IPv6 address
-    "port": 443
-  }
-}
-```
-
-**Mixed IPv4/IPv6 Environment:**
-- Use hostnames (like `www.google.com`) for automatic dual-stack support
-- The system will try both IPv4 and IPv6 addresses when available
-- Monitoring succeeds if either IPv4 or IPv6 connectivity works
-
-### IPv6 Examples
-See `example_config_ipv6.json` for a complete IPv6 configuration example.
-
+should do the trick depending on your environment. My personal preference is to install it in `/opt/argus` and maintain `etc/` and `bin/` directories there. Since the tool statically links with httplib and spdlog, this works well for me.
