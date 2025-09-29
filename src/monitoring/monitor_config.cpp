@@ -133,6 +133,8 @@ std::string to_string(const protocol proto) {
 
 std::string to_string(const monitor_status status) {
   switch (status) {
+    case monitor_status::pending:
+      return "PENDING";
     case monitor_status::ok:
       return "OK";
     case monitor_status::warning:

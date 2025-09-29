@@ -39,7 +39,7 @@ class monitor_state {
   std::deque<test_result> history_;
   int consecutive_failures_ = 0;
   int consecutive_successes_ = 0;
-  monitor_status current_status_ = monitor_status::ok;
+  monitor_status current_status_ = monitor_status::pending;
   test_result last_result_;
   std::shared_ptr<network_test> test_implementation_;
   std::string test_description_;

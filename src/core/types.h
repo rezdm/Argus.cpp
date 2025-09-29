@@ -5,7 +5,7 @@ enum class test_method { ping, connect, url };
 
 enum class protocol { tcp, udp };
 
-enum class monitor_status { ok, warning, failure };
+enum class monitor_status { pending, ok, warning, failure };
 
 // Forward declarations for main classes
 class test_config;

@@ -277,6 +277,8 @@ void web_server::invalidate_json_cache() const {
 
 std::string web_server::get_status_class(const monitor_status status) {
   switch (status) {
+    case monitor_status::pending:
+      return "status-pending";
     case monitor_status::ok:
       return "status-ok";
     case monitor_status::warning:
@@ -284,7 +286,7 @@ std::string web_server::get_status_class(const monitor_status status) {
     case monitor_status::failure:
       return "status-error";
     default:
-      return "status-ok";
+      return "status-pending";
   }
 }
 

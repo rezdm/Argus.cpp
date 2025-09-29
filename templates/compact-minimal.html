@@ -92,9 +92,10 @@
         .monitor-table th:nth-child(6) { width: 10%; }
         .monitor-table td:nth-child(7),
         .monitor-table th:nth-child(7) { width: 24%; }
-        .status-ok { color: #00ff00; font-weight: bold; }
-        .status-warning { color: #ffff00; font-weight: bold; }
-        .status-error { color: #ff0000; font-weight: bold; }
+        .status-pending { color: #666666; font-weight: bold; text-shadow: none; }
+        .status-ok { color: #00ff00; font-weight: bold; text-shadow: none; }
+        .status-warning { color: #ffff00; font-weight: bold; text-shadow: none; }
+        .status-error { color: #ff0000; font-weight: bold; text-shadow: none; }
         .last-updated {
             text-align: center;
             margin-top: 15px;
@@ -155,10 +156,11 @@
     <script>
         function getStatusClass(status) {
             switch (status.toLowerCase()) {
+                case 'pending': return 'status-pending';
                 case 'ok': return 'status-ok';
                 case 'warning': return 'status-warning';
                 case 'failure': return 'status-error';
-                default: return 'status-ok';
+                default: return 'status-pending';
             }
         }
 
