@@ -195,10 +195,22 @@ bool icmp_ping_tester::wait_for_reply(const int socket, const int timeout_ms) {
   tv.tv_usec = (timeout_ms % 1000) * 1000;
 
   if (const int result = select(socket + 1, &read_fds, nullptr, nullptr, &tv); result > 0 && FD_ISSET(socket, &read_fds)) {
-    // Try to read the reply (we don't actually parse it for simplicity)
     char buffer[1024];
     const ssize_t received = recv(socket, buffer, sizeof(buffer), 0);
-    return received > 0;
+
+    if (received > 0) {
+      // For unprivileged ICMP sockets (SOCK_DGRAM), the kernel strips IP header
+      // so we can directly read the ICMP header
+#ifdef __linux__
+      const auto* icmp_hdr = reinterpret_cast<const struct icmphdr*>(buffer);
+      // Check if it's an Echo Reply (type 0)
+      return icmp_hdr->type == ICMP_ECHOREPLY;
+#else
+      const auto* icmp_hdr = reinterpret_cast<const struct icmp*>(buffer);
+      // Check if it's an Echo Reply (type 0)
+      return icmp_hdr->icmp_type == ICMP_ECHOREPLY;
+#endif
+    }
   }
 
   return false;  // Timeout or error
@@ -353,9 +365,47 @@ bool raw_socket_ping_tester::wait_for_reply(const ping_context& ctx, int timeout
     const ssize_t received = recv(ctx.socket_fd, buffer, sizeof(buffer), 0);
 
     if (received > 0) {
-      // Basic validation - for a more robust implementation,
-      // we'd parse the ICMP reply and verify it matches our request
-      return true;
+      // Raw sockets include IP header, need to skip it
+      if (ctx.family == socket_family::ipv4) {
+        // IPv4: Skip IP header to get to ICMP
+#ifdef __linux__
+        if (received < static_cast<ssize_t>(sizeof(struct ip) + sizeof(struct icmphdr))) {
+          return false;  // Packet too small
+        }
+        const auto* ip_hdr = reinterpret_cast<const struct ip*>(buffer);
+        const size_t ip_header_len = ip_hdr->ip_hl * 4;  // IP header length in bytes
+
+        if (received < static_cast<ssize_t>(ip_header_len + sizeof(struct icmphdr))) {
+          return false;  // Packet too small
+        }
+
+        const auto* icmp_hdr = reinterpret_cast<const struct icmphdr*>(buffer + ip_header_len);
+        // Check if it's an Echo Reply (type 0) with matching ID
+        return icmp_hdr->type == ICMP_ECHOREPLY && ntohs(icmp_hdr->un.echo.id) == ctx.identifier;
+#else
+        if (received < static_cast<ssize_t>(sizeof(struct ip) + sizeof(struct icmp))) {
+          return false;  // Packet too small
+        }
+        const auto* ip_hdr = reinterpret_cast<const struct ip*>(buffer);
+        const size_t ip_header_len = ip_hdr->ip_hl * 4;  // IP header length in bytes
+
+        if (received < static_cast<ssize_t>(ip_header_len + sizeof(struct icmp))) {
+          return false;  // Packet too small
+        }
+
+        const auto* icmp_hdr = reinterpret_cast<const struct icmp*>(buffer + ip_header_len);
+        // Check if it's an Echo Reply (type 0) with matching ID
+        return icmp_hdr->icmp_type == ICMP_ECHOREPLY && ntohs(icmp_hdr->icmp_hun.ih_idseq.icd_id) == ctx.identifier;
+#endif
+      } else {
+        // IPv6: ICMPv6 (kernel may or may not include IPv6 header depending on socket options)
+        if (received < static_cast<ssize_t>(sizeof(struct icmp6_hdr))) {
+          return false;  // Packet too small
+        }
+        const auto* icmp6 = reinterpret_cast<const struct icmp6_hdr*>(buffer);
+        // Check if it's an Echo Reply (type 129) with matching ID
+        return icmp6->icmp6_type == ICMP6_ECHO_REPLY && ntohs(icmp6->icmp6_id) == ctx.identifier;
+      }
     }
   }
 
