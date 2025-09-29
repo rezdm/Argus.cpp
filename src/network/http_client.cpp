@@ -1,5 +1,11 @@
 #include "http_client.h"
 #include "../utils/test_result.h"
+
+// Platform-specific exception handling for FreeBSD
+#ifdef __FreeBSD__
+#include <exception>
+#endif
+
 #include <httplib.h>
 #include <spdlog/spdlog.h>
 #include <chrono>

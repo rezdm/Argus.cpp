@@ -8,6 +8,15 @@
 #include <unistd.h>
 #include <cstring>
 
+// Platform-specific algorithm include
+#ifdef __FreeBSD__
+#include <algorithm>
+#elif defined(__linux__)
+#include <algorithm>
+#else
+#include <algorithm>
+#endif
+
 // Base class helper methods
 std::string address_family_handler_base::sockaddr_to_string(const sockaddr_storage& addr) {
     char buffer[INET6_ADDRSTRLEN];

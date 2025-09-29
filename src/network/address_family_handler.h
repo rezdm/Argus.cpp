@@ -6,6 +6,18 @@
 #include <vector>
 #include <netdb.h>
 
+// Platform-specific socket includes
+#ifdef __FreeBSD__
+#include <sys/socket.h>
+#include <netinet/in.h>
+#elif defined(__linux__)
+// Linux typically has these included transitively
+#else
+// Other platforms - include for safety
+#include <sys/socket.h>
+#include <netinet/in.h>
+#endif
+
 enum class address_family_preference {
     ipv4_only,
     ipv6_only,

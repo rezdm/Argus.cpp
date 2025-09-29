@@ -5,6 +5,25 @@
 #include <memory>
 #include <vector>
 
+// Platform-specific socket type includes
+#ifdef __FreeBSD__
+#define _DEFAULT_SOURCE
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+// Ensure socklen_t is available on FreeBSD
+#ifndef socklen_t
+typedef __socklen_t socklen_t;
+#endif
+#elif defined(__linux__)
+// Linux typically has socklen_t available
+#else
+// Other platforms
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#endif
+
 enum class ping_implementation {
     system_ping,
     unprivileged_icmp,

@@ -1,11 +1,23 @@
 #include "ping_tester.h"
-#include "test_result.h"
+#include "../utils/test_result.h"
 #include <spdlog/spdlog.h>
 #include <optional>
 #include <sys/socket.h>
 #include <netinet/in.h>
+
+// Platform-specific ICMP includes
+#ifdef __FreeBSD__
+#include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/icmp6.h>
+#elif defined(__linux__)
+#include <netinet/ip_icmp.h>
+#include <netinet/icmp6.h>
+#else
+#include <netinet/ip_icmp.h>
+#include <netinet/icmp6.h>
+#endif
+
 #include <netdb.h>
 #include <unistd.h>
 #include <chrono>
@@ -282,6 +294,21 @@ bool raw_socket_ping_tester::initialize_socket(socket_family family, ping_contex
 bool raw_socket_ping_tester::send_icmp_packet(const ping_context& ctx, const sockaddr* dest_addr, socklen_t addr_len) {
     if (ctx.family == socket_family::ipv4) {
         // IPv4 ICMP packet
+#ifdef __FreeBSD__
+        icmp icmp_pkt{};
+        icmp_pkt.icmp_type = ICMP_ECHO;
+        icmp_pkt.icmp_code = 0;
+        icmp_pkt.icmp_hun.ih_idseq.icd_id = htons(ctx.identifier);
+        icmp_pkt.icmp_hun.ih_idseq.icd_seq = htons(ctx.sequence);
+        icmp_pkt.icmp_cksum = 0;
+
+        // Calculate checksum
+        icmp_pkt.icmp_cksum = calculate_checksum(&icmp_pkt, sizeof(icmp_pkt));
+
+        const ssize_t sent = sendto(ctx.socket_fd, &icmp_pkt, sizeof(icmp_pkt), 0, dest_addr, addr_len);
+        return sent > 0;
+#else
+        // Linux ICMP packet
         icmphdr icmp{};
         icmp.type = ICMP_ECHO;
         icmp.code = 0;
@@ -294,6 +321,7 @@ bool raw_socket_ping_tester::send_icmp_packet(const ping_context& ctx, const soc
 
         const ssize_t sent = sendto(ctx.socket_fd, &icmp, sizeof(icmp), 0, dest_addr, addr_len);
         return sent > 0;
+#endif
     } else {
         // IPv6 ICMP packet
         icmp6_hdr icmp6{};

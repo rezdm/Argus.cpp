@@ -191,8 +191,12 @@ else()
             -Wall
             -Wextra
             -Wpedantic
-            -Wno-dangling-reference  # Suppress false positives in fmt library
     )
+
+    # Add GCC-specific warning suppression (not supported by Clang/FreeBSD)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        target_compile_options(arguspp PRIVATE -Wno-dangling-reference)
+    endif()
 endif()
 
 # Set executable output directory
