@@ -1,12 +1,15 @@
 #include "address_family_handler.h"
-#include "../core/constants.h"
-#include "../core/logging.h"
+
+#include <arpa/inet.h>
+#include <netinet/in.h>
 #include <spdlog/spdlog.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <unistd.h>
+
 #include <cstring>
+
+#include "../core/constants.h"
+#include "../core/logging.h"
 
 // Platform-specific algorithm include
 #ifdef __FreeBSD__
@@ -19,444 +22,425 @@
 
 // Base class helper methods
 std::string address_family_handler_base::sockaddr_to_string(const sockaddr_storage& addr) {
-    char buffer[INET6_ADDRSTRLEN];
+  char buffer[INET6_ADDRSTRLEN];
 
-    if (addr.ss_family == AF_INET) {
-        const auto* ipv4 = reinterpret_cast<const sockaddr_in*>(&addr);
-        if (inet_ntop(AF_INET, &ipv4->sin_addr, buffer, INET_ADDRSTRLEN) == nullptr) {
-            spdlog::debug("Failed to convert IPv4 address to string: {}", strerror(errno));
-            return "invalid_ipv4";
-        }
-    } else if (addr.ss_family == AF_INET6) {
-        const auto* ipv6 = reinterpret_cast<const sockaddr_in6*>(&addr);
-        if (inet_ntop(AF_INET6, &ipv6->sin6_addr, buffer, INET6_ADDRSTRLEN) == nullptr) {
-            spdlog::debug("Failed to convert IPv6 address to string: {}", strerror(errno));
-            return "invalid_ipv6";
-        }
-    } else {
-        spdlog::debug("Unknown address family: {}", addr.ss_family);
-        return "unknown_family";
+  if (addr.ss_family == AF_INET) {
+    const auto* ipv4 = reinterpret_cast<const sockaddr_in*>(&addr);
+    if (inet_ntop(AF_INET, &ipv4->sin_addr, buffer, INET_ADDRSTRLEN) == nullptr) {
+      spdlog::debug("Failed to convert IPv4 address to string: {}", strerror(errno));
+      return "invalid_ipv4";
     }
+  } else if (addr.ss_family == AF_INET6) {
+    const auto* ipv6 = reinterpret_cast<const sockaddr_in6*>(&addr);
+    if (inet_ntop(AF_INET6, &ipv6->sin6_addr, buffer, INET6_ADDRSTRLEN) == nullptr) {
+      spdlog::debug("Failed to convert IPv6 address to string: {}", strerror(errno));
+      return "invalid_ipv6";
+    }
+  } else {
+    spdlog::debug("Unknown address family: {}", addr.ss_family);
+    return "unknown_family";
+  }
 
-    return std::string(buffer);
+  return std::string(buffer);
 }
 
 bool address_family_handler_base::set_socket_timeouts(const int socket, const int timeout_ms) {
-    timeval tv{};
-    tv.tv_sec = timeout_ms / argus::constants::MILLISECONDS_PER_SECOND;
-    tv.tv_usec = (timeout_ms % argus::constants::MILLISECONDS_PER_SECOND) * argus::constants::MICROSECONDS_PER_MILLISECOND;
+  timeval tv{};
+  tv.tv_sec = timeout_ms / argus::constants::MILLISECONDS_PER_SECOND;
+  tv.tv_usec = (timeout_ms % argus::constants::MILLISECONDS_PER_SECOND) * argus::constants::MICROSECONDS_PER_MILLISECOND;
 
-    if (setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)) < 0) {
-        spdlog::debug("Failed to set send timeout: {}", strerror(errno));
-        return false;
-    }
+  if (setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv)) < 0) {
+    spdlog::debug("Failed to set send timeout: {}", strerror(errno));
+    return false;
+  }
 
-    if (setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
-        spdlog::debug("Failed to set receive timeout: {}", strerror(errno));
-        return false;
-    }
+  if (setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
+    spdlog::debug("Failed to set receive timeout: {}", strerror(errno));
+    return false;
+  }
 
-    return true;
+  return true;
 }
 
 resolution_error_type address_family_handler_base::classify_getaddrinfo_error(const int error_code) {
-    switch (error_code) {
-        case 0:
-            return resolution_error_type::success;
-        case EAI_NONAME:
-        case EAI_NODATA:
-            return resolution_error_type::dns_failure;
-        case EAI_FAMILY:
-            return resolution_error_type::unsupported_family;
-        case EAI_AGAIN:
-            return resolution_error_type::timeout;
-        case EAI_FAIL:
-            return resolution_error_type::network_unreachable;
-        default:
-            return resolution_error_type::dns_failure;
-    }
+  switch (error_code) {
+    case 0:
+      return resolution_error_type::success;
+    case EAI_NONAME:
+    case EAI_NODATA:
+      return resolution_error_type::dns_failure;
+    case EAI_FAMILY:
+      return resolution_error_type::unsupported_family;
+    case EAI_AGAIN:
+      return resolution_error_type::timeout;
+    case EAI_FAIL:
+      return resolution_error_type::network_unreachable;
+    default:
+      return resolution_error_type::dns_failure;
+  }
 }
 
 std::string address_family_handler_base::format_resolution_error(const resolution_error_type error_type, const std::string& host, const std::string& details) {
-    std::string base_msg;
-    switch (error_type) {
-        case resolution_error_type::dns_failure:
-            base_msg = "DNS resolution failed for " + host;
-            break;
-        case resolution_error_type::no_addresses_found:
-            base_msg = "No addresses found for " + host;
-            break;
-        case resolution_error_type::unsupported_family:
-            base_msg = "Unsupported address family for " + host;
-            break;
-        case resolution_error_type::network_unreachable:
-            base_msg = "Network unreachable for " + host;
-            break;
-        case resolution_error_type::timeout:
-            base_msg = "DNS resolution timeout for " + host;
-            break;
-        case resolution_error_type::invalid_hostname:
-            base_msg = "Invalid hostname: " + host;
-            break;
-        default:
-            base_msg = "Unknown error for " + host;
-            break;
-    }
+  std::string base_msg;
+  switch (error_type) {
+    case resolution_error_type::dns_failure:
+      base_msg = "DNS resolution failed for " + host;
+      break;
+    case resolution_error_type::no_addresses_found:
+      base_msg = "No addresses found for " + host;
+      break;
+    case resolution_error_type::unsupported_family:
+      base_msg = "Unsupported address family for " + host;
+      break;
+    case resolution_error_type::network_unreachable:
+      base_msg = "Network unreachable for " + host;
+      break;
+    case resolution_error_type::timeout:
+      base_msg = "DNS resolution timeout for " + host;
+      break;
+    case resolution_error_type::invalid_hostname:
+      base_msg = "Invalid hostname: " + host;
+      break;
+    default:
+      base_msg = "Unknown error for " + host;
+      break;
+  }
 
-    if (!details.empty()) {
-        base_msg += " (" + details + ")";
-    }
+  if (!details.empty()) {
+    base_msg += " (" + details + ")";
+  }
 
-    return base_msg;
+  return base_msg;
 }
 
 // IPv4 Handler Implementation
 std::vector<resolved_address> ipv4_handler::resolve_addresses(const std::string& host, const int port, const int socktype) {
+  std::vector<resolved_address> addresses;
 
-    std::vector<resolved_address> addresses;
+  addrinfo hints{}, *result;
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = AF_INET;  // IPv4 only
+  hints.ai_socktype = socktype;
 
-    addrinfo hints{}, *result;
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_INET;  // IPv4 only
-    hints.ai_socktype = socktype;
+  if (const int status = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &result); status != 0) {
+    LOG_NETWORK_DEBUG("IPv4 DNS resolution", host, gai_strerror(status));
+    return addresses;  // Return empty vector
+  }
 
-    if (const int status = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &result); status != 0) {
-        LOG_NETWORK_DEBUG("IPv4 DNS resolution", host, gai_strerror(status));
-        return addresses; // Return empty vector
-    }
+  for (const addrinfo* rp = result; rp != nullptr; rp = rp->ai_next) {
+    if (rp->ai_family != AF_INET) continue;  // Should not happen, but be safe
 
-    for (const addrinfo* rp = result; rp != nullptr; rp = rp->ai_next) {
-        if (rp->ai_family != AF_INET) continue; // Should not happen, but be safe
+    resolved_address addr{};
+    addr.family = rp->ai_family;
+    addr.socktype = rp->ai_socktype;
+    addr.protocol = rp->ai_protocol;
+    addr.addr_len = rp->ai_addrlen;
 
-        resolved_address addr{};
-        addr.family = rp->ai_family;
-        addr.socktype = rp->ai_socktype;
-        addr.protocol = rp->ai_protocol;
-        addr.addr_len = rp->ai_addrlen;
+    memcpy(&addr.addr, rp->ai_addr, rp->ai_addrlen);
+    addr.display_name = sockaddr_to_string(addr.addr);
 
-        memcpy(&addr.addr, rp->ai_addr, rp->ai_addrlen);
-        addr.display_name = sockaddr_to_string(addr.addr);
+    addresses.push_back(addr);
+    spdlog::trace("Resolved IPv4 address for {}: {}", host, addr.display_name);
+  }
 
-        addresses.push_back(addr);
-        spdlog::trace("Resolved IPv4 address for {}: {}", host, addr.display_name);
-    }
-
-    freeaddrinfo(result);
-    return addresses;
+  freeaddrinfo(result);
+  return addresses;
 }
 
 resolution_result ipv4_handler::resolve_addresses_detailed(const std::string& host, const int port, const int socktype) {
-    resolution_result result{};
+  resolution_result result{};
 
-    addrinfo hints{}, *addr_result;
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_INET;  // IPv4 only
-    hints.ai_socktype = socktype;
+  addrinfo hints{}, *addr_result;
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = AF_INET;  // IPv4 only
+  hints.ai_socktype = socktype;
 
-    const int status = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &addr_result);
-    if (status != 0) {
-        result.error_type = classify_getaddrinfo_error(status);
-        result.error_message = format_resolution_error(result.error_type, host, gai_strerror(status));
-        LOG_NETWORK_DEBUG("IPv4 DNS resolution", host, gai_strerror(status));
-        return result;
-    }
-
-    for (const addrinfo* rp = addr_result; rp != nullptr; rp = rp->ai_next) {
-        if (rp->ai_family != AF_INET) continue; // Should not happen, but be safe
-
-        resolved_address addr{};
-        addr.family = rp->ai_family;
-        addr.socktype = rp->ai_socktype;
-        addr.protocol = rp->ai_protocol;
-        addr.addr_len = rp->ai_addrlen;
-
-        memcpy(&addr.addr, rp->ai_addr, rp->ai_addrlen);
-        addr.display_name = sockaddr_to_string(addr.addr);
-
-        result.addresses.push_back(addr);
-        spdlog::trace("Resolved IPv4 address for {}: {}", host, addr.display_name);
-    }
-
-    freeaddrinfo(addr_result);
-
-    if (result.addresses.empty()) {
-        result.error_type = resolution_error_type::no_addresses_found;
-        result.error_message = format_resolution_error(result.error_type, host);
-    } else {
-        result.error_type = resolution_error_type::success;
-    }
-
+  const int status = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &addr_result);
+  if (status != 0) {
+    result.error_type = classify_getaddrinfo_error(status);
+    result.error_message = format_resolution_error(result.error_type, host, gai_strerror(status));
+    LOG_NETWORK_DEBUG("IPv4 DNS resolution", host, gai_strerror(status));
     return result;
+  }
+
+  for (const addrinfo* rp = addr_result; rp != nullptr; rp = rp->ai_next) {
+    if (rp->ai_family != AF_INET) continue;  // Should not happen, but be safe
+
+    resolved_address addr{};
+    addr.family = rp->ai_family;
+    addr.socktype = rp->ai_socktype;
+    addr.protocol = rp->ai_protocol;
+    addr.addr_len = rp->ai_addrlen;
+
+    memcpy(&addr.addr, rp->ai_addr, rp->ai_addrlen);
+    addr.display_name = sockaddr_to_string(addr.addr);
+
+    result.addresses.push_back(addr);
+    spdlog::trace("Resolved IPv4 address for {}: {}", host, addr.display_name);
+  }
+
+  freeaddrinfo(addr_result);
+
+  if (result.addresses.empty()) {
+    result.error_type = resolution_error_type::no_addresses_found;
+    result.error_message = format_resolution_error(result.error_type, host);
+  } else {
+    result.error_type = resolution_error_type::success;
+  }
+
+  return result;
 }
 
 int ipv4_handler::create_socket(const resolved_address& addr) {
-    const int sock = socket(addr.family, addr.socktype, addr.protocol);
-    if (sock < 0) {
-        spdlog::debug("Failed to create IPv4 socket: {}", strerror(errno));
-        return -1;
-    }
+  const int sock = socket(addr.family, addr.socktype, addr.protocol);
+  if (sock < 0) {
+    spdlog::debug("Failed to create IPv4 socket: {}", strerror(errno));
+    return -1;
+  }
 
-    // Set IPv4-specific socket options
-    constexpr int opt = argus::constants::SOCKET_OPTION_ENABLE;
-    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+  // Set IPv4-specific socket options
+  constexpr int opt = argus::constants::SOCKET_OPTION_ENABLE;
+  setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
-    return sock;
+  return sock;
 }
 
-bool ipv4_handler::configure_socket(const int socket, const int timeout_ms) {
-    return set_socket_timeouts(socket, timeout_ms);
-}
+bool ipv4_handler::configure_socket(const int socket, const int timeout_ms) { return set_socket_timeouts(socket, timeout_ms); }
 
 // IPv6 Handler Implementation
 std::vector<resolved_address> ipv6_handler::resolve_addresses(const std::string& host, const int port, const int socktype) {
+  std::vector<resolved_address> addresses;
 
-    std::vector<resolved_address> addresses;
+  addrinfo hints{}, *result;
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = AF_INET6;  // IPv6 only
+  hints.ai_socktype = socktype;
 
-    addrinfo hints{}, *result;
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_INET6;  // IPv6 only
-    hints.ai_socktype = socktype;
+  const int status = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &result);
+  if (status != 0) {
+    LOG_NETWORK_DEBUG("IPv6 DNS resolution", host, gai_strerror(status));
+    return addresses;  // Return empty vector
+  }
 
-    const int status = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &result);
-    if (status != 0) {
-        LOG_NETWORK_DEBUG("IPv6 DNS resolution", host, gai_strerror(status));
-        return addresses; // Return empty vector
-    }
+  for (const addrinfo* rp = result; rp != nullptr; rp = rp->ai_next) {
+    if (rp->ai_family != AF_INET6) continue;  // Should not happen, but be safe
 
-    for (const addrinfo* rp = result; rp != nullptr; rp = rp->ai_next) {
-        if (rp->ai_family != AF_INET6) continue; // Should not happen, but be safe
+    resolved_address addr{};
+    addr.family = rp->ai_family;
+    addr.socktype = rp->ai_socktype;
+    addr.protocol = rp->ai_protocol;
+    addr.addr_len = rp->ai_addrlen;
 
-        resolved_address addr{};
-        addr.family = rp->ai_family;
-        addr.socktype = rp->ai_socktype;
-        addr.protocol = rp->ai_protocol;
-        addr.addr_len = rp->ai_addrlen;
+    memcpy(&addr.addr, rp->ai_addr, rp->ai_addrlen);
+    addr.display_name = sockaddr_to_string(addr.addr);
 
-        memcpy(&addr.addr, rp->ai_addr, rp->ai_addrlen);
-        addr.display_name = sockaddr_to_string(addr.addr);
+    addresses.push_back(addr);
+    spdlog::trace("Resolved IPv6 address for {}: {}", host, addr.display_name);
+  }
 
-        addresses.push_back(addr);
-        spdlog::trace("Resolved IPv6 address for {}: {}", host, addr.display_name);
-    }
-
-    freeaddrinfo(result);
-    return addresses;
+  freeaddrinfo(result);
+  return addresses;
 }
 
 resolution_result ipv6_handler::resolve_addresses_detailed(const std::string& host, const int port, const int socktype) {
-    resolution_result result{};
+  resolution_result result{};
 
-    addrinfo hints{}, *addr_result;
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_INET6;  // IPv6 only
-    hints.ai_socktype = socktype;
+  addrinfo hints{}, *addr_result;
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = AF_INET6;  // IPv6 only
+  hints.ai_socktype = socktype;
 
-    const int status = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &addr_result);
-    if (status != 0) {
-        result.error_type = classify_getaddrinfo_error(status);
-        result.error_message = format_resolution_error(result.error_type, host, gai_strerror(status));
-        LOG_NETWORK_DEBUG("IPv6 DNS resolution", host, gai_strerror(status));
-        return result;
-    }
-
-    for (const addrinfo* rp = addr_result; rp != nullptr; rp = rp->ai_next) {
-        if (rp->ai_family != AF_INET6) continue; // Should not happen, but be safe
-
-        resolved_address addr{};
-        addr.family = rp->ai_family;
-        addr.socktype = rp->ai_socktype;
-        addr.protocol = rp->ai_protocol;
-        addr.addr_len = rp->ai_addrlen;
-
-        memcpy(&addr.addr, rp->ai_addr, rp->ai_addrlen);
-        addr.display_name = sockaddr_to_string(addr.addr);
-
-        result.addresses.push_back(addr);
-        spdlog::trace("Resolved IPv6 address for {}: {}", host, addr.display_name);
-    }
-
-    freeaddrinfo(addr_result);
-
-    if (result.addresses.empty()) {
-        result.error_type = resolution_error_type::no_addresses_found;
-        result.error_message = format_resolution_error(result.error_type, host);
-    } else {
-        result.error_type = resolution_error_type::success;
-    }
-
+  const int status = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &addr_result);
+  if (status != 0) {
+    result.error_type = classify_getaddrinfo_error(status);
+    result.error_message = format_resolution_error(result.error_type, host, gai_strerror(status));
+    LOG_NETWORK_DEBUG("IPv6 DNS resolution", host, gai_strerror(status));
     return result;
+  }
+
+  for (const addrinfo* rp = addr_result; rp != nullptr; rp = rp->ai_next) {
+    if (rp->ai_family != AF_INET6) continue;  // Should not happen, but be safe
+
+    resolved_address addr{};
+    addr.family = rp->ai_family;
+    addr.socktype = rp->ai_socktype;
+    addr.protocol = rp->ai_protocol;
+    addr.addr_len = rp->ai_addrlen;
+
+    memcpy(&addr.addr, rp->ai_addr, rp->ai_addrlen);
+    addr.display_name = sockaddr_to_string(addr.addr);
+
+    result.addresses.push_back(addr);
+    spdlog::trace("Resolved IPv6 address for {}: {}", host, addr.display_name);
+  }
+
+  freeaddrinfo(addr_result);
+
+  if (result.addresses.empty()) {
+    result.error_type = resolution_error_type::no_addresses_found;
+    result.error_message = format_resolution_error(result.error_type, host);
+  } else {
+    result.error_type = resolution_error_type::success;
+  }
+
+  return result;
 }
 
 int ipv6_handler::create_socket(const resolved_address& addr) {
-    const int sock = socket(addr.family, addr.socktype, addr.protocol);
-    if (sock < 0) {
-        spdlog::debug("Failed to create IPv6 socket: {}", strerror(errno));
-        return -1;
-    }
+  const int sock = socket(addr.family, addr.socktype, addr.protocol);
+  if (sock < 0) {
+    spdlog::debug("Failed to create IPv6 socket: {}", strerror(errno));
+    return -1;
+  }
 
-    // Set IPv6-specific socket options
-    constexpr int opt = argus::constants::SOCKET_OPTION_ENABLE;
-    setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+  // Set IPv6-specific socket options
+  constexpr int opt = argus::constants::SOCKET_OPTION_ENABLE;
+  setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
-    // Ensure IPv6-only (don't accept IPv4-mapped addresses)
-    setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, &opt, sizeof(opt));
+  // Ensure IPv6-only (don't accept IPv4-mapped addresses)
+  setsockopt(sock, IPPROTO_IPV6, IPV6_V6ONLY, &opt, sizeof(opt));
 
-    return sock;
+  return sock;
 }
 
-bool ipv6_handler::configure_socket(const int socket, const int timeout_ms) {
-    return set_socket_timeouts(socket, timeout_ms);
-}
+bool ipv6_handler::configure_socket(const int socket, const int timeout_ms) { return set_socket_timeouts(socket, timeout_ms); }
 
 // Address Resolver Implementation
-address_resolver::address_resolver(const address_family_preference preference)
-    : preference_(preference) {}
+address_resolver::address_resolver(const address_family_preference preference) : preference_(preference) {}
 
-std::vector<resolved_address> address_resolver::resolve_with_preference(
-    const std::string& host, const int port, const int socktype) {
+std::vector<resolved_address> address_resolver::resolve_with_preference(const std::string& host, const int port, const int socktype) {
+  std::vector<resolved_address> all_addresses;
 
-    std::vector<resolved_address> all_addresses;
+  for (const auto handlers = get_handlers_by_preference(); const auto& handler : handlers) {
+    auto addresses = handler->resolve_addresses(host, port, socktype);
+    spdlog::trace("Resolved {} {} addresses for {}", addresses.size(), handler->get_family_name(), host);
 
-    for (const auto handlers = get_handlers_by_preference();
-        const auto& handler : handlers) {
-        auto addresses = handler->resolve_addresses(host, port, socktype);
-        spdlog::trace("Resolved {} {} addresses for {}", addresses.size(), handler->get_family_name(), host);
+    // Add to result list
+    all_addresses.insert(all_addresses.end(), addresses.begin(), addresses.end());
 
-        // Add to result list
-        all_addresses.insert(all_addresses.end(), addresses.begin(), addresses.end());
-
-        // For non-dual-stack modes, stop after first successful resolution
-        if (!addresses.empty() && preference_ != address_family_preference::dual_stack) {
-            spdlog::debug("Using {} addresses for {} (preference: {})", handler->get_family_name(), host, static_cast<int>(preference_));
-            break;
-        }
+    // For non-dual-stack modes, stop after first successful resolution
+    if (!addresses.empty() && preference_ != address_family_preference::dual_stack) {
+      spdlog::debug("Using {} addresses for {} (preference: {})", handler->get_family_name(), host, static_cast<int>(preference_));
+      break;
     }
+  }
 
-    return all_addresses;
+  return all_addresses;
 }
 
 std::vector<resolved_address> address_resolver::resolve_optimized(const std::string& host, const int port, const int socktype) {
-    // Quick check if this is a numeric IP address
-    const auto ip_type = ip_address_utils::detect_ip_type(host);
+  // Quick check if this is a numeric IP address
+  const auto ip_type = ip_address_utils::detect_ip_type(host);
 
-    if (ip_type != ip_address_utils::ip_type::invalid) {
-        // It's a numeric IP, use the appropriate handler directly
-        std::vector<resolved_address> addresses;
+  if (ip_type != ip_address_utils::ip_type::invalid) {
+    // It's a numeric IP, use the appropriate handler directly
+    std::vector<resolved_address> addresses;
 
-        if (ip_type == ip_address_utils::ip_type::ipv4) {
-            auto handler = std::make_unique<ipv4_handler>();
-            addresses = handler->resolve_addresses(host, port, socktype);
-            if (!addresses.empty()) {
-                spdlog::debug("Directly resolved IPv4 address: {}", host);
-                return addresses;
-            }
-        } else if (ip_type == ip_address_utils::ip_type::ipv6) {
-            auto handler = std::make_unique<ipv6_handler>();
-            addresses = handler->resolve_addresses(host, port, socktype);
-            if (!addresses.empty()) {
-                spdlog::debug("Directly resolved IPv6 address: {}", host);
-                return addresses;
-            }
-        }
+    if (ip_type == ip_address_utils::ip_type::ipv4) {
+      auto handler = std::make_unique<ipv4_handler>();
+      addresses = handler->resolve_addresses(host, port, socktype);
+      if (!addresses.empty()) {
+        spdlog::debug("Directly resolved IPv4 address: {}", host);
+        return addresses;
+      }
+    } else if (ip_type == ip_address_utils::ip_type::ipv6) {
+      auto handler = std::make_unique<ipv6_handler>();
+      addresses = handler->resolve_addresses(host, port, socktype);
+      if (!addresses.empty()) {
+        spdlog::debug("Directly resolved IPv6 address: {}", host);
+        return addresses;
+      }
     }
+  }
 
-    // Fall back to normal DNS resolution with preference
-    return resolve_with_preference(host, port, socktype);
+  // Fall back to normal DNS resolution with preference
+  return resolve_with_preference(host, port, socktype);
 }
 
 std::vector<std::unique_ptr<address_family_handler_base>> address_resolver::get_handlers_by_preference() const {
-    std::vector<std::unique_ptr<address_family_handler_base>> handlers;
+  std::vector<std::unique_ptr<address_family_handler_base>> handlers;
 
-    switch (preference_) {
-        case address_family_preference::ipv4_only:
-            handlers.push_back(std::make_unique<ipv4_handler>());
-            break;
+  switch (preference_) {
+    case address_family_preference::ipv4_only:
+      handlers.push_back(std::make_unique<ipv4_handler>());
+      break;
 
-        case address_family_preference::ipv6_only:
-            handlers.push_back(std::make_unique<ipv6_handler>());
-            break;
+    case address_family_preference::ipv6_only:
+      handlers.push_back(std::make_unique<ipv6_handler>());
+      break;
 
-        case address_family_preference::ipv6_preferred:
-            handlers.push_back(std::make_unique<ipv6_handler>());
-            handlers.push_back(std::make_unique<ipv4_handler>());
-            break;
+    case address_family_preference::ipv6_preferred:
+      handlers.push_back(std::make_unique<ipv6_handler>());
+      handlers.push_back(std::make_unique<ipv4_handler>());
+      break;
 
-        case address_family_preference::ipv4_preferred:
-            handlers.push_back(std::make_unique<ipv4_handler>());
-            handlers.push_back(std::make_unique<ipv6_handler>());
-            break;
+    case address_family_preference::ipv4_preferred:
+      handlers.push_back(std::make_unique<ipv4_handler>());
+      handlers.push_back(std::make_unique<ipv6_handler>());
+      break;
 
-        case address_family_preference::dual_stack:
-            handlers.push_back(std::make_unique<ipv6_handler>());
-            handlers.push_back(std::make_unique<ipv4_handler>());
-            break;
-    }
+    case address_family_preference::dual_stack:
+      handlers.push_back(std::make_unique<ipv6_handler>());
+      handlers.push_back(std::make_unique<ipv4_handler>());
+      break;
+  }
 
-    return handlers;
+  return handlers;
 }
 
 // Factory Implementation
-std::unique_ptr<address_family_handler_base> address_family_factory::create_ipv4_handler() {
-    return std::make_unique<ipv4_handler>();
-}
+std::unique_ptr<address_family_handler_base> address_family_factory::create_ipv4_handler() { return std::make_unique<ipv4_handler>(); }
 
-std::unique_ptr<address_family_handler_base> address_family_factory::create_ipv6_handler() {
-    return std::make_unique<ipv6_handler>();
-}
+std::unique_ptr<address_family_handler_base> address_family_factory::create_ipv6_handler() { return std::make_unique<ipv6_handler>(); }
 
-std::unique_ptr<address_resolver> address_family_factory::create_resolver(address_family_preference pref) {
-    return std::make_unique<address_resolver>(pref);
-}
+std::unique_ptr<address_resolver> address_family_factory::create_resolver(address_family_preference pref) { return std::make_unique<address_resolver>(pref); }
 
 // IP Address Utilities Implementation
 ip_address_utils::ip_type ip_address_utils::detect_ip_type(const std::string& address) {
-    if (is_valid_ipv4(address)) {
-        return ip_type::ipv4;
-    }
-    if (is_valid_ipv6(address)) {
-        return ip_type::ipv6;
-    }
-    return ip_type::invalid;
+  if (is_valid_ipv4(address)) {
+    return ip_type::ipv4;
+  }
+  if (is_valid_ipv6(address)) {
+    return ip_type::ipv6;
+  }
+  return ip_type::invalid;
 }
 
 bool ip_address_utils::is_valid_ipv4(const std::string& address) {
-    sockaddr_in sa4{};
-    return inet_pton(AF_INET, address.c_str(), &sa4.sin_addr) == 1;
+  sockaddr_in sa4{};
+  return inet_pton(AF_INET, address.c_str(), &sa4.sin_addr) == 1;
 }
 
 bool ip_address_utils::is_valid_ipv6(const std::string& address) {
-    sockaddr_in6 sa6{};
-    return inet_pton(AF_INET6, address.c_str(), &sa6.sin6_addr) == 1;
+  sockaddr_in6 sa6{};
+  return inet_pton(AF_INET6, address.c_str(), &sa6.sin6_addr) == 1;
 }
 
-bool ip_address_utils::is_numeric_ip(const std::string& address) {
-    return detect_ip_type(address) != ip_type::invalid;
-}
+bool ip_address_utils::is_numeric_ip(const std::string& address) { return detect_ip_type(address) != ip_type::invalid; }
 
 std::string ip_address_utils::normalize_ipv6(const std::string& address) {
-    sockaddr_in6 sa6{};
-    if (inet_pton(AF_INET6, address.c_str(), &sa6.sin6_addr) != 1) {
-        return address; // Return original if invalid
-    }
+  sockaddr_in6 sa6{};
+  if (inet_pton(AF_INET6, address.c_str(), &sa6.sin6_addr) != 1) {
+    return address;  // Return original if invalid
+  }
 
-    char buffer[INET6_ADDRSTRLEN];
-    if (inet_ntop(AF_INET6, &sa6.sin6_addr, buffer, INET6_ADDRSTRLEN) != nullptr) {
-        return std::string(buffer);
-    }
+  char buffer[INET6_ADDRSTRLEN];
+  if (inet_ntop(AF_INET6, &sa6.sin6_addr, buffer, INET6_ADDRSTRLEN) != nullptr) {
+    return std::string(buffer);
+  }
 
-    return address; // Return original if conversion fails
+  return address;  // Return original if conversion fails
 }
 
 bool ip_address_utils::is_ipv4_mapped_ipv6(const std::string& address) {
-    if (!is_valid_ipv6(address)) {
-        return false;
-    }
+  if (!is_valid_ipv6(address)) {
+    return false;
+  }
 
-    sockaddr_in6 sa6{};
-    inet_pton(AF_INET6, address.c_str(), &sa6.sin6_addr);
+  sockaddr_in6 sa6{};
+  inet_pton(AF_INET6, address.c_str(), &sa6.sin6_addr);
 
-    // Check for IPv4-mapped IPv6 address (::ffff:0:0/96)
-    const auto* addr_bytes = reinterpret_cast<const uint8_t*>(&sa6.sin6_addr);
-    return (addr_bytes[10] == 0xff && addr_bytes[11] == 0xff &&
-            std::all_of(addr_bytes, addr_bytes + 10, [](uint8_t b) { return b == 0; }));
+  // Check for IPv4-mapped IPv6 address (::ffff:0:0/96)
+  const auto* addr_bytes = reinterpret_cast<const uint8_t*>(&sa6.sin6_addr);
+  return (addr_bytes[10] == 0xff && addr_bytes[11] == 0xff && std::all_of(addr_bytes, addr_bytes + 10, [](uint8_t b) { return b == 0; }));
 }

@@ -3,9 +3,8 @@
 #include "network_test.h"
 
 class network_test_ping final : public network_test {
-public:
-    [[nodiscard]] test_result execute(const test_config& config, int timeout_ms) const override;
-    [[nodiscard]] std::string get_description(const test_config& config) const override;
-    void validate_config(const test_config& config) const override;
-
+ public:
+  [[nodiscard]] test_result execute(const test_config& config, int timeout_ms) const override;
+  [[nodiscard]] std::string get_description(const test_config& config) const override;
+  void validate_config(const test_config& config) const override;
 };

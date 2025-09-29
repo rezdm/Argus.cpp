@@ -1,22 +1,11 @@
 #pragma once
 
 // Core enums used across the system
-enum class test_method {
-    ping,
-    connect,
-    url
-};
+enum class test_method { ping, connect, url };
 
-enum class protocol {
-    tcp,
-    udp
-};
+enum class protocol { tcp, udp };
 
-enum class monitor_status {
-    ok,
-    warning,
-    failure
-};
+enum class monitor_status { ok, warning, failure };
 
 // Forward declarations for main classes
 class test_config;
