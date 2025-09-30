@@ -17,6 +17,7 @@ TimeoutStopSec=30
 User=argus
 Group=argus
 NoNewPrivileges=yes
+AmbientCapabilities=CAP_NET_RAW
 PrivateTmp=yes
 ProtectSystem=strict
 ProtectHome=yes
