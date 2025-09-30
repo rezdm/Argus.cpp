@@ -357,14 +357,14 @@ void setup_logging(const bool daemon_mode, const bool systemd_mode, const std::s
     std::string log_path = log_file_path.empty() ? argus::constants::DEFAULT_LOG_PATH : log_file_path;
     const auto file_logger = spdlog::basic_logger_mt("argus", log_path);
 
-    // Enable immediate flush for daemon mode to see logs in real-time
-    if (daemon_mode) {
+    // Enable immediate flush for daemon/systemd mode to see logs in real-time
+    if (daemon_mode || systemd_mode) {
       file_logger->flush_on(spdlog::level::info);                       // Flush on every log message
       file_logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%l] %v");  // Ensure timestamps
     }
 
     spdlog::set_default_logger(file_logger);
-    if (!daemon_mode) {
+    if (!daemon_mode && !systemd_mode) {
       spdlog::info("Logging to file: {}", log_path);
     }
   } else {
