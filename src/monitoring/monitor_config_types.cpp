@@ -8,6 +8,7 @@ monitor_config::monitor_config(const std::string& name_val, const std::string& l
     : name_(name_val),
       listen_(listen_val),
       cache_duration_seconds_(argus::constants::DEFAULT_CACHE_DURATION_SECONDS),
+      base_url_(argus::constants::DEFAULT_BASE_URL),
       thread_pool_size_(argus::constants::DEFAULT_THREAD_POOL_SIZE) {
   validate_parameters();
 }
@@ -40,6 +41,8 @@ void monitor_config::set_cache_duration_seconds(int duration) {
 void monitor_config::set_html_template(const std::string& template_val) { html_template_ = template_val; }
 
 void monitor_config::clear_html_template() { html_template_.reset(); }
+
+void monitor_config::set_base_url(const std::string& base_url_val) { base_url_ = base_url_val; }
 
 void monitor_config::set_thread_pool_size(size_t size) { thread_pool_size_ = size; }
 

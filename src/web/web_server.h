@@ -30,6 +30,7 @@ class web_server {
   mutable bool json_status_cached_;
   mutable std::chrono::steady_clock::time_point last_cache_time_;
   std::string cached_config_name_;
+  std::string base_url_;
 
   // Static HTML content (generated once)
   std::string static_html_page_;

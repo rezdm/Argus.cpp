@@ -5,6 +5,7 @@ namespace argus::constants {
 // Default configuration values
 constexpr int DEFAULT_CACHE_DURATION_SECONDS = 30;
 constexpr int DEFAULT_THREAD_POOL_SIZE = 0;  // Auto-calculate
+constexpr const char* DEFAULT_BASE_URL = "/argus";
 constexpr int MAX_HISTORY_RECORDS = 1000;
 
 // Timeout limits and defaults (milliseconds)

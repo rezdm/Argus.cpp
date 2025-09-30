@@ -158,7 +158,7 @@
         }
 
         function updateMonitorData() {
-            fetch('/api/status')
+            fetch('/argus/status')
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Network response was not ok');

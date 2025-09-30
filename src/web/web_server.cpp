@@ -17,7 +17,8 @@ web_server::web_server(monitor_config config, const std::map<std::string, std::s
       monitors_(monitors),
       thread_pool_(std::move(pool)),
       json_status_cached_(false),
-      cache_duration_(std::chrono::seconds(config_.get_cache_duration_seconds())) {
+      cache_duration_(std::chrono::seconds(config_.get_cache_duration_seconds())),
+      base_url_(config_.get_base_url()) {
   // Initialize cached config name with fallback
   try {
     cached_config_name_ = config_.get_name().empty() ? "Argus++ Monitor" : config_.get_name();
@@ -40,9 +41,9 @@ web_server::web_server(monitor_config config, const std::map<std::string, std::s
   }
 
   // Set up route handlers
-  server_->Get("/", [this](const httplib::Request& req, httplib::Response& res) { handle_status_request(req, res); });
+  server_->Get(base_url_ + "/web", [this](const httplib::Request& req, httplib::Response& res) { handle_status_request(req, res); });
 
-  server_->Get("/api/status", [this](const httplib::Request& req, httplib::Response& res) { handle_api_status_request(req, res); });
+  server_->Get(base_url_ + "/status", [this](const httplib::Request& req, httplib::Response& res) { handle_api_status_request(req, res); });
 
   // Parse listen address (support IPv4, IPv6, and hostnames)
   std::string host;

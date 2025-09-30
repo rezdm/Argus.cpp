@@ -36,6 +36,10 @@ monitor_config monitor_config_loader::load_config(const std::string& config_path
     config.set_html_template(root["html_template"].get<std::string>());
   }
 
+  if (root.contains("base_url")) {
+    config.set_base_url(root["base_url"].get<std::string>());
+  }
+
   if (root.contains("thread_pool_size")) {
     config.set_thread_pool_size(root["thread_pool_size"].get<size_t>());
     if (config.get_thread_pool_size() > 1000) {
