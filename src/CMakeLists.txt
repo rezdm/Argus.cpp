@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(ArgusPlus VERSION 1.0.0 LANGUAGES CXX)
+project(Argus VERSION 1.0.0 LANGUAGES CXX)
 
 # C++ Standard
 set(CMAKE_CXX_STANDARD 23)
@@ -82,7 +82,7 @@ else()
 endif()
 
 # Define source files
-set(ARGUSPP_SOURCES
+set(ARGUS_SOURCES
     core/main.cpp
     core/logging.cpp
     monitoring/monitor_config.cpp
@@ -108,10 +108,10 @@ set(ARGUSPP_SOURCES
 )
 
 # Create executable
-add_executable(arguspp ${ARGUSPP_SOURCES})
+add_executable(argus ${ARGUS_SOURCES})
 
 # Link required libraries
-target_link_libraries(arguspp
+target_link_libraries(argus
     PRIVATE
         nlohmann_json::nlohmann_json
         spdlog::spdlog
@@ -122,7 +122,7 @@ target_link_libraries(arguspp
 )
 
 # Configure httplib compile definitions
-target_compile_definitions(arguspp
+target_compile_definitions(argus
     PRIVATE
         HTTPLIB_REQUIRE_OPENSSL=ON
         HTTPLIB_USE_OPENSSL_IF_AVAILABLE=ON
@@ -130,9 +130,9 @@ target_compile_definitions(arguspp
 
 # Configure systemd support (optional)
 if(SYSTEMD_FOUND)
-    target_link_libraries(arguspp PRIVATE ${SYSTEMD_LIBRARIES})
-    target_include_directories(arguspp PRIVATE ${SYSTEMD_INCLUDE_DIRS})
-    target_compile_definitions(arguspp PRIVATE HAVE_SYSTEMD)
+    target_link_libraries(argus PRIVATE ${SYSTEMD_LIBRARIES})
+    target_include_directories(argus PRIVATE ${SYSTEMD_INCLUDE_DIRS})
+    target_compile_definitions(argus PRIVATE HAVE_SYSTEMD)
     message(STATUS "Found systemd: ${SYSTEMD_VERSION}")
 else()
     message(STATUS "systemd not found - journal logging disabled")
@@ -178,15 +178,15 @@ if(RUN_TESTS_ON_BUILD)
         COMMENT "Running tests automatically before building main target"
         VERBATIM
     )
-    add_dependencies(arguspp run_tests_auto)
+    add_dependencies(argus run_tests_auto)
     message(STATUS "Tests will run automatically when building main target")
 endif()
 
 # Configure compiler warnings and options
 if(MSVC)
-    target_compile_options(arguspp PRIVATE /W4)
+    target_compile_options(argus PRIVATE /W4)
 else()
-    target_compile_options(arguspp
+    target_compile_options(argus
         PRIVATE
             -Wall
             -Wextra
@@ -195,21 +195,21 @@ else()
 
     # Add GCC-specific warning suppression (not supported by Clang/FreeBSD)
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-        target_compile_options(arguspp PRIVATE -Wno-dangling-reference)
+        target_compile_options(argus PRIVATE -Wno-dangling-reference)
     endif()
 endif()
 
 # Set executable output directory
-set_target_properties(arguspp
+set_target_properties(argus
     PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
 
 # Installation configuration
-set(CMAKE_INSTALL_PREFIX "/opt/arguspp" CACHE PATH "Installation directory")
+set(CMAKE_INSTALL_PREFIX "/opt/argus" CACHE PATH "Installation directory")
 
 # Install executable
-install(TARGETS arguspp
+install(TARGETS argus
     RUNTIME DESTINATION bin
     PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
@@ -259,57 +259,57 @@ message(STATUS "Detected service management: ${SERVICE_TYPE}")
 # Install appropriate service files based on detected system
 if(SERVICE_TYPE STREQUAL "systemd")
     # Linux systemd
-    configure_file(../services/systemd/arguspp.service.in
-        ${CMAKE_CURRENT_BINARY_DIR}/arguspp.service
+    configure_file(../services/systemd/argus.service.in
+        ${CMAKE_CURRENT_BINARY_DIR}/argus.service
         @ONLY
     )
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/arguspp.service
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/argus.service
         DESTINATION /etc/systemd/system
         PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
     )
 
 elseif(SERVICE_TYPE STREQUAL "sysv")
     # Linux SysV init
-    configure_file(../services/sysv/arguspp.init.in
-        ${CMAKE_CURRENT_BINARY_DIR}/arguspp.init
+    configure_file(../services/sysv/argus.init.in
+        ${CMAKE_CURRENT_BINARY_DIR}/argus.init
         @ONLY
     )
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/arguspp.init
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/argus.init
         DESTINATION /etc/init.d
-        RENAME arguspp
+        RENAME argus
         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
     )
 
 elseif(SERVICE_TYPE STREQUAL "freebsd_rc")
     # FreeBSD rc.d
-    configure_file(../services/freebsd/arguspp.rc.in
-        ${CMAKE_CURRENT_BINARY_DIR}/arguspp
+    configure_file(../services/freebsd/argus.rc.in
+        ${CMAKE_CURRENT_BINARY_DIR}/argus
         @ONLY
     )
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/arguspp
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/argus
         DESTINATION /usr/local/etc/rc.d
         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
     )
 
 elseif(SERVICE_TYPE STREQUAL "bsd_rc")
     # Other BSD systems
-    configure_file(../services/freebsd/arguspp.rc.in
-        ${CMAKE_CURRENT_BINARY_DIR}/arguspp.rc
+    configure_file(../services/freebsd/argus.rc.in
+        ${CMAKE_CURRENT_BINARY_DIR}/argus.rc
         @ONLY
     )
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/arguspp.rc
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/argus.rc
         DESTINATION /etc/rc.d
-        RENAME arguspp
+        RENAME argus
         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
     )
 
 elseif(SERVICE_TYPE STREQUAL "solaris_smf")
     # Solaris SMF
-    configure_file(../services/solaris/arguspp.xml.in
-        ${CMAKE_CURRENT_BINARY_DIR}/arguspp.xml
+    configure_file(../services/solaris/argus.xml.in
+        ${CMAKE_CURRENT_BINARY_DIR}/argus.xml
         @ONLY
     )
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/arguspp.xml
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/argus.xml
         DESTINATION /var/svc/manifest/network
         PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
     )
@@ -340,7 +340,7 @@ install(CODE "
 
     if(NOT USER_EXISTS EQUAL 0)
         execute_process(
-            COMMAND useradd -r -s /bin/false -d /var/lib/arguspp argus
+            COMMAND useradd -r -s /bin/false -d /var/lib/argus argus
             RESULT_VARIABLE CREATE_USER_RESULT
             OUTPUT_QUIET ERROR_QUIET
         )
@@ -349,21 +349,21 @@ install(CODE "
             message(STATUS \"Created argus system user\")
         else()
             message(WARNING \"Failed to create argus user. You may need to create it manually:\")
-            message(WARNING \"  sudo useradd -r -s /bin/false -d /var/lib/arguspp argus\")
+            message(WARNING \"  sudo useradd -r -s /bin/false -d /var/lib/argus argus\")
         endif()
     else()
         message(STATUS \"User 'argus' already exists\")
     endif()
 
     # Create log directory
-    file(MAKE_DIRECTORY \"/var/log/arguspp\")
+    file(MAKE_DIRECTORY \"/var/log/argus\")
 
     # Create runtime directory
-    file(MAKE_DIRECTORY \"/var/lib/arguspp\")
+    file(MAKE_DIRECTORY \"/var/lib/argus\")
 
     # Set ownership of all installed files and directories to argus user
     execute_process(
-        COMMAND chown -R argus:argus \${CMAKE_INSTALL_PREFIX} /var/log/arguspp /var/lib/arguspp
+        COMMAND chown -R argus:argus \${CMAKE_INSTALL_PREFIX} /var/log/argus /var/lib/argus
         RESULT_VARIABLE CHOWN_RESULT
         OUTPUT_QUIET ERROR_QUIET
     )
@@ -372,7 +372,7 @@ install(CODE "
         message(STATUS \"Set ownership of installation and system directories to argus user\")
     else()
         message(WARNING \"Failed to set ownership. You may need to run:\")
-        message(WARNING \"  sudo chown -R argus:argus \${CMAKE_INSTALL_PREFIX} /var/log/arguspp /var/lib/arguspp\")
+        message(WARNING \"  sudo chown -R argus:argus \${CMAKE_INSTALL_PREFIX} /var/log/argus /var/lib/argus\")
     endif()
 
     # Ensure parent directories are accessible by argus user
@@ -393,7 +393,7 @@ install(CODE "
     # Set capabilities for ping functionality
     message(STATUS \"Setting capabilities for ping functionality...\")
     execute_process(
-        COMMAND setcap cap_net_raw+ep \${CMAKE_INSTALL_PREFIX}/bin/arguspp
+        COMMAND setcap cap_net_raw+ep \${CMAKE_INSTALL_PREFIX}/bin/argus
         RESULT_VARIABLE SETCAP_RESULT
         OUTPUT_QUIET ERROR_QUIET
     )
@@ -402,7 +402,7 @@ install(CODE "
         message(STATUS \"Capabilities set successfully\")
     else()
         message(WARNING \"Failed to set capabilities. To enable ping functionality, run:\")
-        message(WARNING \"  sudo setcap cap_net_raw+ep \${CMAKE_INSTALL_PREFIX}/bin/arguspp\")
+        message(WARNING \"  sudo setcap cap_net_raw+ep \${CMAKE_INSTALL_PREFIX}/bin/argus\")
         message(WARNING \"Or enable unprivileged ICMP sockets:\")
         message(WARNING \"  sudo sysctl -w net.ipv4.ping_group_range='0 65535'\")
     endif()
@@ -422,14 +422,14 @@ install(CODE "
         endif()
 
     elseif(SERVICE_TYPE STREQUAL \"sysv\")
-        execute_process(COMMAND chkconfig --add arguspp
+        execute_process(COMMAND chkconfig --add argus
             RESULT_VARIABLE CHKCONFIG_RESULT
             OUTPUT_QUIET ERROR_QUIET
         )
         if(CHKCONFIG_RESULT EQUAL 0)
             message(STATUS \"SysV init script installed successfully\")
         else()
-            message(WARNING \"Failed to add service to chkconfig. Run: sudo chkconfig --add arguspp\")
+            message(WARNING \"Failed to add service to chkconfig. Run: sudo chkconfig --add argus\")
         endif()
 
     elseif(SERVICE_TYPE STREQUAL \"freebsd_rc\")
@@ -439,22 +439,22 @@ install(CODE "
         message(STATUS \"BSD rc.d script installed successfully\")
 
     elseif(SERVICE_TYPE STREQUAL \"solaris_smf\")
-        execute_process(COMMAND svccfg import /var/svc/manifest/network/arguspp.xml
+        execute_process(COMMAND svccfg import /var/svc/manifest/network/argus.xml
             RESULT_VARIABLE SMF_IMPORT_RESULT
             OUTPUT_QUIET ERROR_QUIET
         )
         if(SMF_IMPORT_RESULT EQUAL 0)
             message(STATUS \"Solaris SMF service imported successfully\")
         else()
-            message(WARNING \"Failed to import SMF service. Run: sudo svccfg import /var/svc/manifest/network/arguspp.xml\")
+            message(WARNING \"Failed to import SMF service. Run: sudo svccfg import /var/svc/manifest/network/argus.xml\")
         endif()
     endif()
 
     # Display installation summary
     message(STATUS \"\")
-    message(STATUS \"=== Argus++ Installation Complete ===\")
+    message(STATUS \"=== Argus Installation Complete ===\")
     message(STATUS \"Installation directory: \${CMAKE_INSTALL_PREFIX}\")
-    message(STATUS \"Executable: \${CMAKE_INSTALL_PREFIX}/bin/arguspp\")
+    message(STATUS \"Executable: \${CMAKE_INSTALL_PREFIX}/bin/argus\")
     message(STATUS \"Config file: \${CMAKE_INSTALL_PREFIX}/etc/config.json\")
     message(STATUS \"Templates: \${CMAKE_INSTALL_PREFIX}/share/templates/\")
     message(STATUS \"Service management: ${SERVICE_TYPE}\")
@@ -463,41 +463,41 @@ install(CODE "
     # Service-specific instructions
     if(SERVICE_TYPE STREQUAL \"systemd\")
         message(STATUS \"Service commands:\")
-        message(STATUS \"  Enable:  sudo systemctl enable arguspp\")
-        message(STATUS \"  Start:   sudo systemctl start arguspp\")
-        message(STATUS \"  Status:  sudo systemctl status arguspp\")
-        message(STATUS \"  Reload:  sudo systemctl reload arguspp\")
+        message(STATUS \"  Enable:  sudo systemctl enable argus\")
+        message(STATUS \"  Start:   sudo systemctl start argus\")
+        message(STATUS \"  Status:  sudo systemctl status argus\")
+        message(STATUS \"  Reload:  sudo systemctl reload argus\")
 
     elseif(SERVICE_TYPE STREQUAL \"sysv\")
         message(STATUS \"Service commands:\")
-        message(STATUS \"  Enable:  sudo chkconfig arguspp on\")
-        message(STATUS \"  Start:   sudo service arguspp start\")
-        message(STATUS \"  Status:  sudo service arguspp status\")
-        message(STATUS \"  Reload:  sudo service arguspp reload\")
+        message(STATUS \"  Enable:  sudo chkconfig argus on\")
+        message(STATUS \"  Start:   sudo service argus start\")
+        message(STATUS \"  Status:  sudo service argus status\")
+        message(STATUS \"  Reload:  sudo service argus reload\")
 
     elseif(SERVICE_TYPE STREQUAL \"freebsd_rc\")
         message(STATUS \"Service commands:\")
-        message(STATUS \"  Enable:  sudo sysrc arguspp_enable=YES\")
-        message(STATUS \"  Start:   sudo service arguspp start\")
-        message(STATUS \"  Status:  sudo service arguspp status\")
-        message(STATUS \"  Reload:  sudo service arguspp reload\")
+        message(STATUS \"  Enable:  sudo sysrc argus_enable=YES\")
+        message(STATUS \"  Start:   sudo service argus start\")
+        message(STATUS \"  Status:  sudo service argus status\")
+        message(STATUS \"  Reload:  sudo service argus reload\")
 
     elseif(SERVICE_TYPE STREQUAL \"bsd_rc\")
         message(STATUS \"Service commands:\")
-        message(STATUS \"  Enable:  Add 'arguspp=YES' to /etc/rc.conf\")
-        message(STATUS \"  Start:   sudo /etc/rc.d/arguspp start\")
-        message(STATUS \"  Status:  sudo /etc/rc.d/arguspp status\")
-        message(STATUS \"  Reload:  sudo /etc/rc.d/arguspp reload\")
+        message(STATUS \"  Enable:  Add 'argus=YES' to /etc/rc.conf\")
+        message(STATUS \"  Start:   sudo /etc/rc.d/argus start\")
+        message(STATUS \"  Status:  sudo /etc/rc.d/argus status\")
+        message(STATUS \"  Reload:  sudo /etc/rc.d/argus reload\")
 
     elseif(SERVICE_TYPE STREQUAL \"solaris_smf\")
         message(STATUS \"Service commands:\")
-        message(STATUS \"  Enable:  sudo svcadm enable arguspp\")
-        message(STATUS \"  Start:   sudo svcadm enable -t arguspp\")
-        message(STATUS \"  Status:  svcs arguspp\")
-        message(STATUS \"  Reload:  sudo svcadm refresh arguspp\")
+        message(STATUS \"  Enable:  sudo svcadm enable argus\")
+        message(STATUS \"  Start:   sudo svcadm enable -t argus\")
+        message(STATUS \"  Status:  svcs argus\")
+        message(STATUS \"  Reload:  sudo svcadm refresh argus\")
 
     else()
-        message(STATUS \"Manual start: \${CMAKE_INSTALL_PREFIX}/bin/arguspp \${CMAKE_INSTALL_PREFIX}/etc/config.json\")
+        message(STATUS \"Manual start: \${CMAKE_INSTALL_PREFIX}/bin/argus \${CMAKE_INSTALL_PREFIX}/etc/config.json\")
     endif()
 
     message(STATUS \"\")
@@ -512,6 +512,6 @@ configure_file(
 
 add_custom_target(uninstall
     COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
-    COMMENT "Uninstalling Argus++ and cleaning up system files..."
+    COMMENT "Uninstalling Argus and cleaning up system files..."
 )
 

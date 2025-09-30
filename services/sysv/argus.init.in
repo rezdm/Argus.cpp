@@ -1,20 +1,20 @@
 #!/bin/bash
 #
-# arguspp        Argus++ Network Monitor
+# argus        Argus Network Monitor
 #
 # chkconfig: 35 99 99
 # description: High-performance network monitoring daemon
 #
 ### BEGIN INIT INFO
-# Provides: arguspp
+# Provides: argus
 # Required-Start: $local_fs $remote_fs $network $named
 # Required-Stop: $local_fs $remote_fs $network
 # Should-Start: $network-online
 # Should-Stop: $network-online
 # Default-Start: 2 3 4 5
 # Default-Stop: 0 1 6
-# Short-Description: Start and stop arguspp
-# Description: Argus++ Network Monitor daemon
+# Short-Description: Start and stop argus
+# Description: Argus Network Monitor daemon
 ### END INIT INFO
 
 # Source function library
@@ -27,7 +27,7 @@ elif [ -f /lib/lsb/init-functions ]; then
 fi
 
 USER="argus"
-DAEMON="arguspp"
+DAEMON="argus"
 ROOT_DIR="@CMAKE_INSTALL_PREFIX@"
 DAEMON_PATH="$ROOT_DIR/bin/$DAEMON"
 CONFIG_FILE="$ROOT_DIR/etc/config.json"
@@ -36,8 +36,8 @@ PID_FILE="/var/run/$DAEMON.pid"
 LOG_FILE="/var/log/$DAEMON.log"
 
 # Override with system-specific paths if they exist
-[ -f /etc/sysconfig/arguspp ] && . /etc/sysconfig/arguspp
-[ -f /etc/default/arguspp ] && . /etc/default/arguspp
+[ -f /etc/sysconfig/argus ] && . /etc/sysconfig/argus
+[ -f /etc/default/argus ] && . /etc/default/argus
 
 start() {
     if [ -f $PID_FILE ] && kill -0 $(cat $PID_FILE) 2>/dev/null; then

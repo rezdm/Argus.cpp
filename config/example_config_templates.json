@@ -1,7 +1,7 @@
 {
-  "name": "Argus++ Template Demo",
+  "name": "Argus Template Demo",
   "listen": "localhost:8080",
-  "log_file": "/var/log/arguspp.log",
+  "log_file": "/var/log/argus.log",
   "cache_duration_seconds": 30,
   "html_template": "templates/modern-dark.html",
   "monitors": [

@@ -1,16 +1,16 @@
 # Multi-Platform Service Management Guide
 
-Argus++ supports multiple init systems and service managers across different Unix-like operating systems, with full support for custom installation paths.
+Argus supports multiple init systems and service managers across different Unix-like operating systems, with full support for custom installation paths.
 
 ## Supported Service Management Systems
 
 | Platform | Service System | Configuration |
 |----------|----------------|---------------|
-| Linux (modern) | systemd | | `/etc/systemd/system/arguspp.service` |
-| Linux (legacy) | SysV Init | `/etc/init.d/arguspp` |
-| FreeBSD | rc.d | `/usr/local/etc/rc.d/arguspp` |
-| OpenBSD/NetBSD | rc.d | `/etc/rc.d/arguspp` |
-| Solaris | SMF | `/var/svc/manifest/network/arguspp.xml` |
+| Linux (modern) | systemd | | `/etc/systemd/system/argus.service` |
+| Linux (legacy) | SysV Init | `/etc/init.d/argus` |
+| FreeBSD | rc.d | `/usr/local/etc/rc.d/argus` |
+| OpenBSD/NetBSD | rc.d | `/etc/rc.d/argus` |
+| Solaris | SMF | `/var/svc/manifest/network/argus.xml` |
 
 ## Installation
 
@@ -27,7 +27,7 @@ make install
 All service files support custom installation paths:
 
 ```bash
-cmake -DCMAKE_INSTALL_PREFIX=/opt/arguspp ../src
+cmake -DCMAKE_INSTALL_PREFIX=/opt/argus ../src
 make install
 ```
 
@@ -37,226 +37,226 @@ make install
 
 **Installation:**
 ```bash
-# Service file: /etc/systemd/system/arguspp.service
+# Service file: /etc/systemd/system/argus.service
 sudo systemctl daemon-reload
 ```
 
 **Service Management:**
 ```bash
 # Enable auto-start
-sudo systemctl enable arguspp
+sudo systemctl enable argus
 
 # Start service
-sudo systemctl start arguspp
+sudo systemctl start argus
 
 # Check status
-sudo systemctl status arguspp
+sudo systemctl status argus
 
 # View logs
-journalctl -u arguspp -f
+journalctl -u argus -f
 
 # Reload configuration
-sudo systemctl reload arguspp
+sudo systemctl reload argus
 
 # Stop service
-sudo systemctl stop arguspp
+sudo systemctl stop argus
 ```
 
 ### Linux with SysV Init
 
 **Installation:**
 ```bash
-# Service file: /etc/init.d/arguspp
-sudo chkconfig --add arguspp
+# Service file: /etc/init.d/argus
+sudo chkconfig --add argus
 ```
 
 **Service Management:**
 ```bash
 # Enable auto-start
-sudo chkconfig arguspp on
+sudo chkconfig argus on
 
 # Start service
-sudo service arguspp start
+sudo service argus start
 
 # Check status
-sudo service arguspp status
+sudo service argus status
 
 # Reload configuration
-sudo service arguspp reload
+sudo service argus reload
 
 # Stop service
-sudo service arguspp stop
+sudo service argus stop
 ```
 
 ### FreeBSD
 
 **Installation:**
 ```bash
-# Service file: /usr/local/etc/rc.d/arguspp
+# Service file: /usr/local/etc/rc.d/argus
 # Automatically configured during installation
 ```
 
 **Service Management:**
 ```bash
 # Enable auto-start
-sudo sysrc arguspp_enable="YES"
+sudo sysrc argus_enable="YES"
 
 # Optional: Set custom config file
-sudo sysrc arguspp_config="/usr/local/etc/arguspp/custom.json"
+sudo sysrc argus_config="/usr/local/etc/argus/custom.json"
 
 # Optional: Set custom log file
-sudo sysrc arguspp_logfile="/var/log/arguspp/custom.log"
+sudo sysrc argus_logfile="/var/log/argus/custom.log"
 
 # Start service
-sudo service arguspp start
+sudo service argus start
 
 # Check status
-sudo service arguspp status
+sudo service argus status
 
 # Reload configuration
-sudo service arguspp reload
+sudo service argus reload
 
 # Stop service
-sudo service arguspp stop
+sudo service argus stop
 ```
 
 **Advanced FreeBSD Configuration:**
 Add to `/etc/rc.conf`:
 ```bash
-arguspp_enable="YES"
-arguspp_user="argus"
-arguspp_group="argus"
-arguspp_config="/usr/local/etc/arguspp/config.json"
-arguspp_logfile="/var/log/arguspp.log"
-arguspp_flags=""  # Additional command line flags
+argus_enable="YES"
+argus_user="argus"
+argus_group="argus"
+argus_config="/usr/local/etc/argus/config.json"
+argus_logfile="/var/log/argus.log"
+argus_flags=""  # Additional command line flags
 ```
 
 ### OpenBSD/NetBSD
 
 **Installation:**
 ```bash
-# Service file: /etc/rc.d/arguspp
+# Service file: /etc/rc.d/argus
 # Automatically configured during installation
 ```
 
 **Service Management:**
 ```bash
 # Enable auto-start (add to /etc/rc.conf)
-echo "arguspp=YES" | sudo tee -a /etc/rc.conf
+echo "argus=YES" | sudo tee -a /etc/rc.conf
 
 # Start service
-sudo /etc/rc.d/arguspp start
+sudo /etc/rc.d/argus start
 
 # Check status
-sudo /etc/rc.d/arguspp status
+sudo /etc/rc.d/argus status
 
 # Reload configuration
-sudo /etc/rc.d/arguspp reload
+sudo /etc/rc.d/argus reload
 
 # Stop service
-sudo /etc/rc.d/arguspp stop
+sudo /etc/rc.d/argus stop
 ```
 
 ### Solaris (SMF)
 
 **Installation:**
 ```bash
-# Service manifest: /var/svc/manifest/network/arguspp.xml
-sudo svccfg import /var/svc/manifest/network/arguspp.xml
+# Service manifest: /var/svc/manifest/network/argus.xml
+sudo svccfg import /var/svc/manifest/network/argus.xml
 ```
 
 **Service Management:**
 ```bash
 # Enable auto-start
-sudo svcadm enable arguspp
+sudo svcadm enable argus
 
 # Start service immediately (temporary)
-sudo svcadm enable -t arguspp
+sudo svcadm enable -t argus
 
 # Check status
-svcs arguspp
+svcs argus
 
 # View detailed status
-svcs -p arguspp
+svcs -p argus
 
 # View service logs
-svcs -L arguspp
+svcs -L argus
 
 # Reload configuration
-sudo svcadm refresh arguspp
+sudo svcadm refresh argus
 
 # Restart service
-sudo svcadm restart arguspp
+sudo svcadm restart argus
 
 # Disable service
-sudo svcadm disable arguspp
+sudo svcadm disable argus
 ```
 
 **Advanced Solaris Configuration:**
 ```bash
 # Modify service properties
-sudo svccfg -s arguspp setprop argus/config_file = astring: "/opt/arguspp/etc/custom.json"
-sudo svccfg -s arguspp setprop argus/log_file = astring: "/var/log/arguspp/custom.log"
-sudo svccfg -s arguspp setprop argus/daemon_args = astring: "-d -v"
+sudo svccfg -s argus setprop argus/config_file = astring: "/opt/argus/etc/custom.json"
+sudo svccfg -s argus setprop argus/log_file = astring: "/var/log/argus/custom.log"
+sudo svccfg -s argus setprop argus/daemon_args = astring: "-d -v"
 
 # Apply changes
-sudo svcadm refresh arguspp
-sudo svcadm restart arguspp
+sudo svcadm refresh argus
+sudo svcadm restart argus
 ```
 
 ## Custom Installation Paths
 
 ### Standard Paths
 ```bash
-Installation Prefix: /usr/local          (Linux/BSD) or /opt/arguspp (Solaris)
-Executable: ${PREFIX}/bin/arguspp
+Installation Prefix: /usr/local          (Linux/BSD) or /opt/argus (Solaris)
+Executable: ${PREFIX}/bin/argus
 Config: ${PREFIX}/etc/config.json
 Templates: ${PREFIX}/share/templates/
-Logs: /var/log/arguspp.log
-Runtime: /var/run/arguspp.pid
+Logs: /var/log/argus.log
+Runtime: /var/run/argus.pid
 ```
 
 ### Custom Paths Example
 ```bash
-# Install to /opt/monitoring/arguspp
-cmake -DCMAKE_INSTALL_PREFIX=/opt/monitoring/arguspp ../src
+# Install to /opt/monitoring/argus
+cmake -DCMAKE_INSTALL_PREFIX=/opt/monitoring/argus ../src
 make install
 
 # All service files automatically use custom paths:
-# - /opt/monitoring/arguspp/bin/arguspp
-# - /opt/monitoring/arguspp/etc/config.json
-# - /opt/monitoring/arguspp/share/templates/
+# - /opt/monitoring/argus/bin/argus
+# - /opt/monitoring/argus/etc/config.json
+# - /opt/monitoring/argus/share/templates/
 ```
 
 ### Configuration Override
 Each service system supports configuration file override:
 
 **Environment Variables:**
-- `ARGUSPP_CONFIG`: Override config file path
-- `ARGUSPP_LOG`: Override log file path
-- `ARGUSPP_USER`: Override service user
+- `ARGUS_CONFIG`: Override config file path
+- `ARGUS_LOG`: Override log file path
+- `ARGUS_USER`: Override service user
 
 **systemd:**
 ```bash
-sudo systemctl edit arguspp
+sudo systemctl edit argus
 # Add:
 # [Service]
 # ExecStart=
-# ExecStart=/custom/path/bin/arguspp /custom/config.json
+# ExecStart=/custom/path/bin/argus /custom/config.json
 ```
 
 **SysV Init:**
 ```bash
-# Edit /etc/sysconfig/arguspp (RHEL/CentOS)
-# or /etc/default/arguspp (Debian/Ubuntu)
-ARGUSPP_CONFIG="/custom/path/config.json"
-ARGUSPP_LOG="/custom/path/arguspp.log"
+# Edit /etc/sysconfig/argus (RHEL/CentOS)
+# or /etc/default/argus (Debian/Ubuntu)
+ARGUS_CONFIG="/custom/path/config.json"
+ARGUS_LOG="/custom/path/argus.log"
 ```
 
 ## Security Considerations
 
 ### User Permissions
-All service files run Argus++ as the `argus` user for security:
+All service files run Argus as the `argus` user for security:
 - Creates dedicated system user during installation
 - Minimal privileges (no shell, locked account)
 - Proper file ownership and permissions
@@ -299,11 +299,11 @@ echo 'net.inet.icmp.icmplim_output=0' >> /etc/sysctl.conf
 ```bash
 # Fix ownership
 sudo chown -R argus:argus /path/to/installation
-sudo chown -R argus:argus /var/log/arguspp
-sudo chown -R argus:argus /var/lib/arguspp
+sudo chown -R argus:argus /var/log/argus
+sudo chown -R argus:argus /var/lib/argus
 
 # Fix permissions
-sudo chmod 755 /path/to/installation/bin/arguspp
+sudo chmod 755 /path/to/installation/bin/argus
 sudo chmod 644 /path/to/installation/etc/config.json
 ```
 
@@ -319,7 +319,7 @@ cmake -DSYSTEMD_FOUND=OFF ../src
 
 ## Migration Between Systems
 
-When moving between different init systems, the configuration and data remain compatible. Only the service management commands change. The core Argus++ daemon and its configuration files work identically across all platforms.
+When moving between different init systems, the configuration and data remain compatible. Only the service management commands change. The core Argus daemon and its configuration files work identically across all platforms.
 
 ## Custom Service Integration
 
@@ -327,7 +327,7 @@ For systems not covered by the standard service files, you can create custom int
 
 ```bash
 # Manual start with custom paths
-/custom/path/bin/arguspp -d -l /custom/log/path.log /custom/config/path.json
+/custom/path/bin/argus -d -l /custom/log/path.log /custom/config/path.json
 ```
 
 All service files are templates and can be customized for specific deployment requirements.

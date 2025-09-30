@@ -27,14 +27,14 @@ echo 'net.ipv4.ping_group_range = 0 65535' | sudo tee -a /etc/sysctl.conf
 
 # Run
 ```
-sudo systemctl enable arguspp
-sudo systemctl start arguspp
+sudo systemctl enable argus
+sudo systemctl start argus
 ```
 
 #Monitor and restart
 ```
-sudo journalctl -fu arguspp # follow logs
-kill -SIGHUP $(pidof arguspp) - Hot-reload config
+sudo journalctl -fu argus # follow logs
+kill -SIGHUP $(pidof argus) - Hot-reload config
 ```
 
 # Uninstall

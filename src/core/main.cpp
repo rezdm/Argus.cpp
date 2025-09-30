@@ -86,7 +86,7 @@ class main_application {
         }
       }
 
-      spdlog::info("Argus++ Monitor initialization complete (graceful degradation applied where needed)");
+      spdlog::info("Argus Monitor initialization complete (graceful degradation applied where needed)");
       log_memory_usage("Fully started");
 
       // Notify systemd that we're ready
@@ -113,7 +113,7 @@ class main_application {
       monitors_instance->stop_monitoring();
     }
 
-    spdlog::info("Argus++ Monitor shutdown complete");
+    spdlog::info("Argus Monitor shutdown complete");
   }
 
   static void signal_handler(int signal) {
@@ -343,19 +343,19 @@ void setup_logging(const bool daemon_mode, const bool systemd_mode, const std::s
   if (systemd_mode && log_file_path.empty()) {
     // For systemd mode without explicit log file, use systemd journal if available
 #ifdef HAVE_SYSTEMD
-    const auto systemd_logger = spdlog::systemd_logger_mt("arguspp");
+    const auto systemd_logger = spdlog::systemd_logger_mt("argus");
     spdlog::set_default_logger(systemd_logger);
     spdlog::info("Logging to systemd journal");
 #else
     spdlog::warn("systemd not available at compile time, using file logging");
     std::string log_path = argus::constants::DEFAULT_LOG_PATH;
-    auto file_logger = spdlog::basic_logger_mt("arguspp", log_path);
+    auto file_logger = spdlog::basic_logger_mt("argus", log_path);
     spdlog::set_default_logger(file_logger);
 #endif
   } else if (daemon_mode || !log_file_path.empty()) {
     // For daemon mode or when log file is specified, log to file
     std::string log_path = log_file_path.empty() ? argus::constants::DEFAULT_LOG_PATH : log_file_path;
-    const auto file_logger = spdlog::basic_logger_mt("arguspp", log_path);
+    const auto file_logger = spdlog::basic_logger_mt("argus", log_path);
 
     // Enable immediate flush for daemon mode to see logs in real-time
     if (daemon_mode) {
@@ -369,7 +369,7 @@ void setup_logging(const bool daemon_mode, const bool systemd_mode, const std::s
     }
   } else {
     // For normal mode, log to stdout
-    const auto logger = spdlog::stdout_color_mt("arguspp");
+    const auto logger = spdlog::stdout_color_mt("argus");
     spdlog::set_default_logger(logger);
   }
   spdlog::set_level(spdlog::level::info);
@@ -503,7 +503,7 @@ int main(const int argc, char* argv[]) {
     spdlog::info("Creating main application...");
     auto app = std::make_unique<main_application>(config_path, daemon_mode, systemd_mode);
 
-    spdlog::info("Argus++ Monitor started successfully. Press Ctrl+C to stop.");
+    spdlog::info("Argus Monitor started successfully. Press Ctrl+C to stop.");
 
     // Now that we've successfully started, redirect stderr for daemon mode
     if (daemon_mode && !systemd_mode) {
@@ -515,7 +515,7 @@ int main(const int argc, char* argv[]) {
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
   } catch (const std::exception& e) {
-    spdlog::error("Error starting Argus++ Monitor: {}", e.what());
+    spdlog::error("Error starting Argus Monitor: {}", e.what());
     return 1;
   }
 

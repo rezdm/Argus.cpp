@@ -1,56 +1,56 @@
 #!/bin/sh
 
-# PROVIDE: arguspp
+# PROVIDE: argus
 # REQUIRE: DAEMON NETWORKING
 # BEFORE: LOGIN
 # KEYWORD: shutdown
 
 . /etc/rc.subr
 
-name=arguspp
-rcvar=arguspp_enable
+name=argus
+rcvar=argus_enable
 
 load_rc_config $name
 
-: ${arguspp_enable:="NO"}
-: ${arguspp_user:="argus"}
-: ${arguspp_group:="argus"}
-: ${arguspp_config:="@CMAKE_INSTALL_PREFIX@/etc/config.json"}
-: ${arguspp_pidfile:="/var/run/arguspp.pid"}
-: ${arguspp_logfile:="/var/log/arguspp.log"}
-: ${arguspp_flags:=""}
+: ${argus_enable:="NO"}
+: ${argus_user:="argus"}
+: ${argus_group:="argus"}
+: ${argus_config:="@CMAKE_INSTALL_PREFIX@/etc/config.json"}
+: ${argus_pidfile:="/var/run/argus.pid"}
+: ${argus_logfile:="/var/log/argus.log"}
+: ${argus_flags:=""}
 
 # Additional runtime directories
-: ${arguspp_rundir:="/var/run"}
-: ${arguspp_logdir:="/var/log"}
+: ${argus_rundir:="/var/run"}
+: ${argus_logdir:="/var/log"}
 
-pidfile="${arguspp_pidfile}"
-command="@CMAKE_INSTALL_PREFIX@/bin/arguspp"
-command_args="-d -l ${arguspp_logfile} ${arguspp_config} ${arguspp_flags}"
+pidfile="${argus_pidfile}"
+command="@CMAKE_INSTALL_PREFIX@/bin/argus"
+command_args="-d -l ${argus_logfile} ${argus_config} ${argus_flags}"
 command_interpreter=""
 
-start_precmd="arguspp_prestart"
-stop_postcmd="arguspp_poststop"
-reload_cmd="arguspp_reload"
-status_cmd="arguspp_status"
+start_precmd="argus_prestart"
+stop_postcmd="argus_poststop"
+reload_cmd="argus_reload"
+status_cmd="argus_status"
 extra_commands="reload"
 
-arguspp_prestart() {
+argus_prestart() {
     # Create necessary directories
-    if [ ! -d "${arguspp_rundir}" ]; then
-        install -d -o ${arguspp_user} -g ${arguspp_group} -m 755 "${arguspp_rundir}"
+    if [ ! -d "${argus_rundir}" ]; then
+        install -d -o ${argus_user} -g ${argus_group} -m 755 "${argus_rundir}"
     fi
 
-    if [ ! -d "${arguspp_logdir}" ]; then
-        install -d -o ${arguspp_user} -g ${arguspp_group} -m 755 "${arguspp_logdir}"
+    if [ ! -d "${argus_logdir}" ]; then
+        install -d -o ${argus_user} -g ${argus_group} -m 755 "${argus_logdir}"
     fi
 
     # Ensure PID directory is writable
-    install -d -o ${arguspp_user} -g ${arguspp_group} -m 755 $(dirname "${pidfile}")
+    install -d -o ${argus_user} -g ${argus_group} -m 755 $(dirname "${pidfile}")
 
     # Check configuration file
-    if [ ! -f "${arguspp_config}" ]; then
-        err 1 "Configuration file ${arguspp_config} does not exist"
+    if [ ! -f "${argus_config}" ]; then
+        err 1 "Configuration file ${argus_config} does not exist"
     fi
 
     # Check daemon executable
@@ -70,7 +70,7 @@ arguspp_prestart() {
     fi
 }
 
-arguspp_poststop() {
+argus_poststop() {
     # Clean up PID file
     if [ -f "${pidfile}" ]; then
         rm -f "${pidfile}"
@@ -82,7 +82,7 @@ arguspp_poststop() {
     fi
 }
 
-arguspp_reload() {
+argus_reload() {
     if [ -f "${pidfile}" ]; then
         PID=$(cat "${pidfile}")
         if kill -0 $PID >/dev/null 2>&1; then
@@ -99,7 +99,7 @@ arguspp_reload() {
     fi
 }
 
-arguspp_status() {
+argus_status() {
     if [ -f "${pidfile}" ]; then
         PID=$(cat "${pidfile}")
         if kill -0 $PID >/dev/null 2>&1; then
@@ -116,11 +116,11 @@ arguspp_status() {
 }
 
 # Set process user/group
-command_user="${arguspp_user}:${arguspp_group}"
+command_user="${argus_user}:${argus_group}"
 
 # FreeBSD-specific daemon options
-if [ -n "$arguspp_facility" ]; then
-    command_args="$command_args --syslog-facility=$arguspp_facility"
+if [ -n "$argus_facility" ]; then
+    command_args="$command_args --syslog-facility=$argus_facility"
 fi
 
 # Handle custom installation prefix in PATH

@@ -25,10 +25,10 @@ constexpr int LOG_FLUSH_INTERVAL_MS = 100;
 constexpr double PERCENTAGE_MULTIPLIER = 100.0;
 
 // File paths
-constexpr const char* DEFAULT_LOG_PATH = "/var/log/arguspp.log";
+constexpr const char* DEFAULT_LOG_PATH = "/var/log/argus.log";
 
 // Version information
 constexpr const char* VERSION = "1.0.0";
-constexpr const char* APPLICATION_NAME = "Argus++";
+constexpr const char* APPLICATION_NAME = "argus";
 
 }  // namespace argus::constants

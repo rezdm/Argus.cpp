@@ -1,5 +1,5 @@
 {
-  "name": "Argus++ Stress Test Monitor",
+  "name": "Argus Stress Test Monitor",
   "listen": "127.0.0.1:8080",
   "html_template": "templates/ultra-dense-table.html",
   "monitors": [

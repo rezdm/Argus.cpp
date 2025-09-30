@@ -1,5 +1,5 @@
 {
-  "name": "Argus++ Network Monitor",
+  "name": "Argus Network Monitor",
   "listen": "127.0.0.1:8080",
   "cache_duration_seconds": 30,
   "html_template": "@CMAKE_INSTALL_PREFIX@/share/templates/dense-status.html",

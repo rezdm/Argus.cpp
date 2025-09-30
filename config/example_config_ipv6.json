@@ -1,5 +1,5 @@
 {
-  "name": "Argus++ Network Monitor (IPv6 Example)",
+  "name": "Argus Network Monitor (IPv6 Example)",
   "listen": "[::1]:8080",
   "cache_duration_seconds": 30,
   "monitors": [

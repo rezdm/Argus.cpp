@@ -17,13 +17,13 @@ web_server::web_server(monitor_config config, const std::map<std::string, std::s
       monitors_(monitors),
       thread_pool_(std::move(pool)),
       json_status_cached_(false),
-      cache_duration_(std::chrono::seconds(config_.get_cache_duration_seconds())),
-      base_url_(config_.get_base_url()) {
+      base_url_(config_.get_base_url()),
+      cache_duration_(std::chrono::seconds(config_.get_cache_duration_seconds())) {
   // Initialize cached config name with fallback
   try {
-    cached_config_name_ = config_.get_name().empty() ? "Argus++ Monitor" : config_.get_name();
+    cached_config_name_ = config_.get_name().empty() ? "Argus Monitor" : config_.get_name();
   } catch (...) {
-    cached_config_name_ = "Argus++ Monitor";
+    cached_config_name_ = "Argus Monitor";
     spdlog::warn("Failed to access config name, using default");
   }
 
@@ -82,7 +82,7 @@ web_server::web_server(monitor_config config, const std::map<std::string, std::s
 
   // Start server in a separate thread
   server_thread_ = std::thread([this, host, port]() {
-    spdlog::info("Argus++ web server starting on {}:{}", host, port);
+    spdlog::info("Argus web server starting on {}:{}", host, port);
     if (!server_->listen(host, port)) {
       spdlog::error("Failed to start web server on {}:{}", host, port);
     }
@@ -90,7 +90,7 @@ web_server::web_server(monitor_config config, const std::map<std::string, std::s
 
   // Give the server a moment to start
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  spdlog::info("Argus++ web server started on {}", config_.get_listen());
+  spdlog::info("Argus web server started on {}", config_.get_listen());
 }
 
 web_server::~web_server() { stop(); }

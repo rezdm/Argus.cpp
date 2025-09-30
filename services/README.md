@@ -7,13 +7,13 @@ This directory contains service/init script templates for different Unix-like op
 ```
 services/
 ├── systemd/           # Linux systemd
-│   └── arguspp.service.in
+│   └── argus.service.in
 ├── sysv/              # Linux SysV init
-│   └── arguspp.init.in
+│   └── argus.init.in
 ├── freebsd/           # FreeBSD rc.d (also works for OpenBSD/NetBSD)
-│   └── arguspp.rc.in
+│   └── argus.rc.in
 ├── solaris/           # Solaris Service Management Facility (SMF)
-│   └── arguspp.xml.in
+│   └── argus.xml.in
 └── README.md          # This file
 ```
 
@@ -21,8 +21,8 @@ services/
 
 All service files use CMake template variables that are automatically substituted during the build process:
 
-- `@CMAKE_INSTALL_PREFIX@` - Installation directory (e.g., `/usr/local`, `/opt/arguspp`)
-- `@CMAKE_INSTALL_PREFIX@/bin/arguspp` - Executable path
+- `@CMAKE_INSTALL_PREFIX@` - Installation directory (e.g., `/usr/local`, `/opt/argus`)
+- `@CMAKE_INSTALL_PREFIX@/bin/argus` - Executable path
 - `@CMAKE_INSTALL_PREFIX@/etc/config.json` - Default configuration file path
 - `@CMAKE_INSTALL_PREFIX@/share/templates/` - Web templates directory
 
@@ -52,12 +52,12 @@ All service files support custom installation paths:
 
 ```bash
 # Install to custom location
-cmake -DCMAKE_INSTALL_PREFIX=/opt/monitoring/arguspp ../src
+cmake -DCMAKE_INSTALL_PREFIX=/opt/monitoring/argus ../src
 make install
 
 # Service files automatically use custom paths:
-# /opt/monitoring/arguspp/bin/arguspp
-# /opt/monitoring/arguspp/etc/config.json
+# /opt/monitoring/argus/bin/argus
+# /opt/monitoring/argus/etc/config.json
 ```
 
 ## Service File Destinations
@@ -66,15 +66,15 @@ During installation, service files are copied to platform-specific locations:
 
 | Platform | Service System | Destination |
 |----------|----------------|-------------|
-| Linux | systemd | `/etc/systemd/system/arguspp.service` |
-| Linux | SysV | `/etc/init.d/arguspp` |
-| FreeBSD | rc.d | `/usr/local/etc/rc.d/arguspp` |
-| OpenBSD/NetBSD | rc.d | `/etc/rc.d/arguspp` |
-| Solaris | SMF | `/var/svc/manifest/network/arguspp.xml` |
+| Linux | systemd | `/etc/systemd/system/argus.service` |
+| Linux | SysV | `/etc/init.d/argus` |
+| FreeBSD | rc.d | `/usr/local/etc/rc.d/argus` |
+| OpenBSD/NetBSD | rc.d | `/etc/rc.d/argus` |
+| Solaris | SMF | `/var/svc/manifest/network/argus.xml` |
 
 ## Service User
 
-All service files run Argus++ as the `argus` system user, which is automatically created during installation with:
+All service files run Argus as the `argus` system user, which is automatically created during installation with:
 
 - No login shell (`/bin/false`)
 - System user (no home directory login)

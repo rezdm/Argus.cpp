@@ -1,19 +1,19 @@
 cmake_minimum_required(VERSION 3.20)
 
-# Uninstall script for Argus++
-message(STATUS "=== Argus++ Uninstall Script ===")
+# Uninstall script for Argus
+message(STATUS "=== Argus Uninstall Script ===")
 
 # Stop and disable systemd service if it exists
-if(EXISTS "/etc/systemd/system/arguspp.service")
-    message(STATUS "Stopping and disabling arguspp service...")
+if(EXISTS "/etc/systemd/system/argus.service")
+    message(STATUS "Stopping and disabling argus service...")
     execute_process(
-        COMMAND systemctl stop arguspp
+        COMMAND systemctl stop argus
         RESULT_VARIABLE STOP_RESULT
         OUTPUT_QUIET ERROR_QUIET
     )
 
     execute_process(
-        COMMAND systemctl disable arguspp
+        COMMAND systemctl disable argus
         RESULT_VARIABLE DISABLE_RESULT
         OUTPUT_QUIET ERROR_QUIET
     )
@@ -26,7 +26,7 @@ if(EXISTS "/etc/systemd/system/arguspp.service")
 
     # Remove systemd service file
     message(STATUS "Removing systemd service file...")
-    file(REMOVE "/etc/systemd/system/arguspp.service")
+    file(REMOVE "/etc/systemd/system/argus.service")
 
     # Reload systemd daemon
     execute_process(
@@ -71,14 +71,14 @@ endif()
 
 # Remove log and runtime directories
 message(STATUS "Removing log and runtime directories...")
-if(EXISTS "/var/log/arguspp")
-    file(REMOVE_RECURSE "/var/log/arguspp")
-    message(STATUS "Removed: /var/log/arguspp")
+if(EXISTS "/var/log/argus")
+    file(REMOVE_RECURSE "/var/log/argus")
+    message(STATUS "Removed: /var/log/argus")
 endif()
 
-if(EXISTS "/var/lib/arguspp")
-    file(REMOVE_RECURSE "/var/lib/arguspp")
-    message(STATUS "Removed: /var/lib/arguspp")
+if(EXISTS "/var/lib/argus")
+    file(REMOVE_RECURSE "/var/lib/argus")
+    message(STATUS "Removed: /var/lib/argus")
 endif()
 
 # Check if argus user exists and offer to remove it
@@ -99,20 +99,20 @@ endif()
 
 message(STATUS "")
 message(STATUS "=== Uninstall Complete ===")
-message(STATUS "Argus++ has been removed from the system")
+message(STATUS "Argus has been removed from the system")
 
 # Check for any remaining processes
 execute_process(
-    COMMAND pgrep arguspp
+    COMMAND pgrep argus
     RESULT_VARIABLE PROC_RUNNING
     OUTPUT_QUIET ERROR_QUIET
 )
 
 if(PROC_RUNNING EQUAL 0)
     message(STATUS "")
-    message(WARNING "arguspp processes may still be running. Check with:")
-    message(WARNING "  ps aux | grep arguspp")
-    message(WARNING "  sudo pkill arguspp  # to terminate if needed")
+    message(WARNING "argus processes may still be running. Check with:")
+    message(WARNING "  ps aux | grep argus")
+    message(WARNING "  sudo pkill argus  # to terminate if needed")
 endif()
 
 message(STATUS "")

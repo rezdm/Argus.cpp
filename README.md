@@ -1,4 +1,4 @@
-# Argus++
+# Argus
 A simple network monitoring daemon that provides a quick overview of service availability via ICMP ping, TCP/UDP ports, or HTTP/HTTPS. 
 
 The original project was Java-based — [Argus](https://github.com/rezdm/Argus). I worked on it as a playground to explore Java 25 features, and at some point needed AI help, and then decided... why not translate it to C++, back to the roots, so to speak.
@@ -14,7 +14,7 @@ The program exposes an endpoint and serves a static (configurable) HTML page:
 - **IPv4/IPv6**: I tried to make it work with both v4 and v6, but I have somewhat limited networks to truly test this
 - **Web Dashboard**: Apart from the API endpoint, the program also serves HTML; the contents are configurable. Obviously, it's possible to place an HTML file with any contents on any other web server
 - **Deployment**: Foreground, background/daemonized, SysV, systemd, FreeBSD rc.d, Solaris SMF — I've done my best to support these
-- **Logging**: Uses spdlog library. Default is stdout/stderr and /var/log/arguspp.log
+- **Logging**: Uses spdlog library. Default is stdout/stderr and /var/log/argus.log
 
 ## Quick Start
 ### Build Requirements
@@ -38,38 +38,38 @@ cmake --build build/ -j$(nproc) --target check
 ```
 
 ### Run
-Just run `./build/bin/arguspp` — the tool will print out the available command-line arguments. To try it out, the simplest way is to run something like:
+Just run `./build/bin/argus` — the tool will print out the available command-line arguments. To try it out, the simplest way is to run something like:
 ```
-./build/bin/arguspp config/example_config.json
+./build/bin/argus config/example_config.json
 ```
 
 ## Command Line Arguments
 ```bash
-arguspp config.json                              # stdout logging
-arguspp -l /tmp/debug.log config.json            # file logging
-arguspp -d config.json                           # daemon + default log file
-arguspp -d -l /custom/path.log config.json       # daemon + custom log file
-arguspp -s config.json                           # systemd mode
-arguspp -s -l /custom/path.log config.json       # systemd mode + custom log file
+argus config.json                              # stdout logging
+argus -l /tmp/debug.log config.json            # file logging
+argus -d config.json                           # daemon + default log file
+argus -d -l /custom/path.log config.json       # daemon + custom log file
+argus -s config.json                           # systemd mode
+argus -s -l /custom/path.log config.json       # systemd mode + custom log file
 ```
 
 ## Configuration
 ### Configuration Hot-Reload
-Note: Argus++ supports configuration hot-reload using the SIGHUP signal:
+Note: Argus supports configuration hot-reload using the SIGHUP signal:
 ```bash
 # Send SIGHUP signal to reload configuration
 kill -SIGHUP <pid>
 # or using systemctl for systemd services
-sudo systemctl reload arguspp
+sudo systemctl reload argus
 ```
-When processing SIGHUP, Argus++ reloads both the configuration and HTML dashboard. 
+When processing SIGHUP, Argus reloads both the configuration and HTML dashboard. 
 
 ### Basic Configuration
 ```json
 {
   "name": "My Network Monitor",
   "listen": "127.0.0.1:8080",
-  "log_file": "/var/log/arguspp.log",
+  "log_file": "/var/log/argus.log",
   "cache_duration_seconds": 30,
   "thread_pool_size": 8,
   "monitors": [
@@ -154,8 +154,8 @@ Depending on the Linux/UNIX/BSD flavor, ping functionality might not work. ICMP 
 sudo sysctl -w net.ipv4.ping_group_range="0 65535"
 # Make persistent across reboots
 echo 'net.ipv4.ping_group_range = 0 65535' | sudo tee -a /etc/sysctl.conf
-# Allow raw sockets for arguspp
-sudo setcap cap_net_raw+ep arguspp
+# Allow raw sockets for argus
+sudo setcap cap_net_raw+ep argus
 ```
 
 ## Deployment/Installation

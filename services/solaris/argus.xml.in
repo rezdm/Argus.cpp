@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <!DOCTYPE service_bundle SYSTEM "/usr/share/lib/xml/dtd/service_bundle.dtd.1">
 
-<service_bundle type='manifest' name='arguspp'>
-    <service name='network/arguspp' type='service' version='1'>
+<service_bundle type='manifest' name='argus'>
+    <service name='network/argus' type='service' version='1'>
 
         <create_default_instance enabled='false' />
         <single_instance />
@@ -22,7 +22,7 @@
 
         <!-- Methods -->
         <exec_method type='method' name='start'
-                     exec='@CMAKE_INSTALL_PREFIX@/bin/arguspp -d @CMAKE_INSTALL_PREFIX@/etc/config.json'
+                     exec='@CMAKE_INSTALL_PREFIX@/bin/argus -d @CMAKE_INSTALL_PREFIX@/etc/config.json'
                      timeout_seconds='30'>
             <method_credential user='argus' group='argus' />
             <method_environment>
@@ -54,7 +54,7 @@
         <property_group name='application' type='application'>
             <propval name='auto_enable' type='boolean' value='false' />
             <propval name='config_file' type='astring' value='@CMAKE_INSTALL_PREFIX@/etc/config.json' />
-            <propval name='log_file' type='astring' value='/var/log/arguspp.log' />
+            <propval name='log_file' type='astring' value='/var/log/argus.log' />
         </property_group>
 
         <!-- Custom argus properties -->
@@ -66,15 +66,15 @@
 
         <!-- Service info and authorization -->
         <property_group name='general' type='framework'>
-            <propval name='action_authorization' type='astring' value='solaris.smf.manage.arguspp' />
-            <propval name='value_authorization' type='astring' value='solaris.smf.value.arguspp' />
+            <propval name='action_authorization' type='astring' value='solaris.smf.manage.argus' />
+            <propval name='value_authorization' type='astring' value='solaris.smf.value.argus' />
         </property_group>
 
         <stability value='Evolving' />
 
         <template>
             <common_name>
-                <loctext xml:lang='C'>Argus++ Network Monitor</loctext>
+                <loctext xml:lang='C'>Argus Network Monitor</loctext>
             </common_name>
 
             <description>
@@ -85,9 +85,9 @@
             </description>
 
             <documentation>
-                <manpage title='arguspp' section='8' />
+                <manpage title='argus' section='8' />
                 <doc_link name='GitHub Repository' uri='https://github.com/rezdm/Argus.cpp' />
-                <doc_link name='Installation Guide' uri='file://@CMAKE_INSTALL_PREFIX@/share/doc/arguspp/README.md' />
+                <doc_link name='Installation Guide' uri='file://@CMAKE_INSTALL_PREFIX@/share/doc/argus/README.md' />
             </documentation>
         </template>
 
