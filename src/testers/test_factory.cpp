@@ -25,7 +25,7 @@ std::shared_ptr<network_test> test_factory::get_test(const test_method method) {
   initialize_default_tests();
 
   const auto it = test_implementations_.find(method);
-  if (it == test_implementations_.end()) {
+  if (test_implementations_.end() == it) {
     throw std::invalid_argument("Unsupported test method: " + to_string(method));
   }
 

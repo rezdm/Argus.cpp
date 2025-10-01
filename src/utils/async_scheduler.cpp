@@ -70,7 +70,7 @@ bool async_scheduler::cancel_task(size_t task_id) {
     auto task = task_queue_.top();
     task_queue_.pop();
 
-    if (task.id == task_id) {
+    if (task_id == task.id) {
       found = true;
       spdlog::trace("Canceled task {}", task_id);
     } else {

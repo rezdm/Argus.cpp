@@ -24,15 +24,15 @@
 std::string address_family_handler_base::sockaddr_to_string(const sockaddr_storage& addr) {
   char buffer[INET6_ADDRSTRLEN];
 
-  if (addr.ss_family == AF_INET) {
+  if (AF_INET == addr.ss_family) {
     const auto* ipv4 = reinterpret_cast<const sockaddr_in*>(&addr);
-    if (inet_ntop(AF_INET, &ipv4->sin_addr, buffer, INET_ADDRSTRLEN) == nullptr) {
+    if (nullptr == inet_ntop(AF_INET, &ipv4->sin_addr, buffer, INET_ADDRSTRLEN)) {
       spdlog::debug("Failed to convert IPv4 address to string: {}", strerror(errno));
       return "invalid_ipv4";
     }
-  } else if (addr.ss_family == AF_INET6) {
+  } else if (AF_INET6 == addr.ss_family) {
     const auto* ipv6 = reinterpret_cast<const sockaddr_in6*>(&addr);
-    if (inet_ntop(AF_INET6, &ipv6->sin6_addr, buffer, INET6_ADDRSTRLEN) == nullptr) {
+    if (nullptr == inet_ntop(AF_INET6, &ipv6->sin6_addr, buffer, INET6_ADDRSTRLEN)) {
       spdlog::debug("Failed to convert IPv6 address to string: {}", strerror(errno));
       return "invalid_ipv6";
     }
@@ -95,10 +95,10 @@ std::string resolution_error_formatter::get_base_message(const resolution_error_
     {resolution_error_type::invalid_hostname, "Invalid hostname: {host}"}
   };
 
-  if (const auto it = error_templates.find(error_type); it != error_templates.end()) {
+  if (const auto it = error_templates.find(error_type); error_templates.end() != it) {
     std::string message = it->second;
     const size_t pos = message.find("{host}");
-    if (pos != std::string::npos) {
+    if (std::string::npos != pos) {
       message.replace(pos, 6, host);
     }
     return message;
@@ -126,13 +126,13 @@ std::vector<resolved_address> ipv4_handler::resolve_addresses(const std::string&
   hints.ai_family = AF_INET;  // IPv4 only
   hints.ai_socktype = socktype;
 
-  if (const int status = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &result); status != 0) {
+  if (const int status = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &result); 0 != status) {
     LOG_NETWORK_DEBUG("IPv4 DNS resolution", host, gai_strerror(status));
     return addresses;  // Return empty vector
   }
 
-  for (const addrinfo* rp = result; rp != nullptr; rp = rp->ai_next) {
-    if (rp->ai_family != AF_INET) continue;  // Should not happen, but be safe
+  for (const addrinfo* rp = result; nullptr != rp; rp = rp->ai_next) {
+    if (AF_INET != rp->ai_family) continue;  // Should not happen, but be safe
 
     resolved_address addr{};
     addr.family = rp->ai_family;
@@ -160,15 +160,15 @@ resolution_result ipv4_handler::resolve_addresses_detailed(const std::string& ho
   hints.ai_socktype = socktype;
 
   const int status = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &addr_result);
-  if (status != 0) {
+  if (0 != status) {
     result.error_type = classify_getaddrinfo_error(status);
     result.error_message = format_resolution_error(result.error_type, host, gai_strerror(status));
     LOG_NETWORK_DEBUG("IPv4 DNS resolution", host, gai_strerror(status));
     return result;
   }
 
-  for (const addrinfo* rp = addr_result; rp != nullptr; rp = rp->ai_next) {
-    if (rp->ai_family != AF_INET) continue;  // Should not happen, but be safe
+  for (const addrinfo* rp = addr_result; nullptr != rp; rp = rp->ai_next) {
+    if (AF_INET != rp->ai_family) continue;  // Should not happen, but be safe
 
     resolved_address addr{};
     addr.family = rp->ai_family;
@@ -221,13 +221,13 @@ std::vector<resolved_address> ipv6_handler::resolve_addresses(const std::string&
   hints.ai_socktype = socktype;
 
   const int status = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &result);
-  if (status != 0) {
+  if (0 != status) {
     LOG_NETWORK_DEBUG("IPv6 DNS resolution", host, gai_strerror(status));
     return addresses;  // Return empty vector
   }
 
-  for (const addrinfo* rp = result; rp != nullptr; rp = rp->ai_next) {
-    if (rp->ai_family != AF_INET6) continue;  // Should not happen, but be safe
+  for (const addrinfo* rp = result; nullptr != rp; rp = rp->ai_next) {
+    if (AF_INET6 != rp->ai_family) continue;  // Should not happen, but be safe
 
     resolved_address addr{};
     addr.family = rp->ai_family;
@@ -254,15 +254,15 @@ resolution_result ipv6_handler::resolve_addresses_detailed(const std::string& ho
   hints.ai_family = AF_INET6;  // IPv6 only
   hints.ai_socktype = socktype;
 
-  if (const int status = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &addr_result); status != 0) {
+  if (const int status = getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &addr_result); 0 != status) {
     result.error_type = classify_getaddrinfo_error(status);
     result.error_message = format_resolution_error(result.error_type, host, gai_strerror(status));
     LOG_NETWORK_DEBUG("IPv6 DNS resolution", host, gai_strerror(status));
     return result;
   }
 
-  for (const addrinfo* rp = addr_result; rp != nullptr; rp = rp->ai_next) {
-    if (rp->ai_family != AF_INET6) continue;  // Should not happen, but be safe
+  for (const addrinfo* rp = addr_result; nullptr != rp; rp = rp->ai_next) {
+    if (AF_INET6 != rp->ai_family) continue;  // Should not happen, but be safe
 
     resolved_address addr{};
     addr.family = rp->ai_family;
@@ -373,18 +373,18 @@ std::vector<resolved_address> address_resolver::resolve_optimized(const std::str
   // Quick check if this is a numeric IP address
   const auto ip_type = ip_address_utils::detect_ip_type(host);
 
-  if (ip_type != ip_address_utils::ip_type::invalid) {
+  if (ip_address_utils::ip_type::invalid != ip_type) {
     // It's a numeric IP, use the appropriate handler directly
     std::vector<resolved_address> addresses;
 
-    if (ip_type == ip_address_utils::ip_type::ipv4) {
+    if (ip_address_utils::ip_type::ipv4 == ip_type) {
       const auto handler = std::make_unique<ipv4_handler>();
       addresses = handler->resolve_addresses(host, port, socktype);
       if (!addresses.empty()) {
         spdlog::debug("Directly resolved IPv4 address: {}", host);
         return addresses;
       }
-    } else if (ip_type == ip_address_utils::ip_type::ipv6) {
+    } else if (ip_address_utils::ip_type::ipv6 == ip_type) {
       const auto handler = std::make_unique<ipv6_handler>();
       addresses = handler->resolve_addresses(host, port, socktype);
       if (!addresses.empty()) {
@@ -450,24 +450,24 @@ ip_address_utils::ip_type ip_address_utils::detect_ip_type(const std::string& ad
 
 bool ip_address_utils::is_valid_ipv4(const std::string& address) {
   sockaddr_in sa4{};
-  return inet_pton(AF_INET, address.c_str(), &sa4.sin_addr) == 1;
+  return 1 == inet_pton(AF_INET, address.c_str(), &sa4.sin_addr);
 }
 
 bool ip_address_utils::is_valid_ipv6(const std::string& address) {
   sockaddr_in6 sa6{};
-  return inet_pton(AF_INET6, address.c_str(), &sa6.sin6_addr) == 1;
+  return 1 == inet_pton(AF_INET6, address.c_str(), &sa6.sin6_addr);
 }
 
-bool ip_address_utils::is_numeric_ip(const std::string& address) { return detect_ip_type(address) != ip_type::invalid; }
+bool ip_address_utils::is_numeric_ip(const std::string& address) { return ip_type::invalid != detect_ip_type(address); }
 
 std::string ip_address_utils::normalize_ipv6(const std::string& address) {
   sockaddr_in6 sa6{};
-  if (inet_pton(AF_INET6, address.c_str(), &sa6.sin6_addr) != 1) {
+  if (1 != inet_pton(AF_INET6, address.c_str(), &sa6.sin6_addr)) {
     return address;  // Return original if invalid
   }
 
   char buffer[INET6_ADDRSTRLEN];
-  if (inet_ntop(AF_INET6, &sa6.sin6_addr, buffer, INET6_ADDRSTRLEN) != nullptr) {
+  if (nullptr != inet_ntop(AF_INET6, &sa6.sin6_addr, buffer, INET6_ADDRSTRLEN)) {
     return std::string(buffer);
   }
 
@@ -484,5 +484,5 @@ bool ip_address_utils::is_ipv4_mapped_ipv6(const std::string& address) {
 
   // Check for IPv4-mapped IPv6 address (::ffff:0:0/96)
   const auto* addr_bytes = reinterpret_cast<const uint8_t*>(&sa6.sin6_addr);
-  return (addr_bytes[10] == 0xff && addr_bytes[11] == 0xff && std::all_of(addr_bytes, addr_bytes + 10, [](const uint8_t b) { return b == 0; }));
+  return (0xff == addr_bytes[10] && 0xff == addr_bytes[11] && std::all_of(addr_bytes, addr_bytes + 10, [](const uint8_t b) { return 0 == b; }));
 }

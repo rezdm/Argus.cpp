@@ -45,7 +45,7 @@ static uint16_t calculate_icmp_checksum(const void* data, size_t len) {
     len -= 2;
   }
 
-  if (len == 1) {
+  if (1 == len) {
     sum += *reinterpret_cast<const uint8_t*>(buf) << 8;
   }
 
@@ -75,7 +75,7 @@ std::vector<uint8_t> linux_ipv4_icmp_handler::build_echo_request(const uint16_t 
 bool linux_ipv4_icmp_handler::is_echo_reply_unprivileged(const void* data, const size_t len) const {
   if (len < sizeof(icmphdr)) return false;
   const auto* icmp_hdr = static_cast<const icmphdr*>(data);
-  return icmp_hdr->type == ICMP_ECHOREPLY;
+  return ICMP_ECHOREPLY == icmp_hdr->type;
 }
 
 bool linux_ipv4_icmp_handler::is_echo_reply_raw(const void* data, const size_t len, const uint16_t expected_id) const {
@@ -87,7 +87,7 @@ bool linux_ipv4_icmp_handler::is_echo_reply_raw(const void* data, const size_t l
   if (len < ip_header_len + sizeof(icmphdr)) return false;
 
   const auto* icmp_hdr = reinterpret_cast<const icmphdr*>(static_cast<const uint8_t*>(data) + ip_header_len);
-  return icmp_hdr->type == ICMP_ECHOREPLY && ntohs(icmp_hdr->un.echo.id) == expected_id;
+  return ICMP_ECHOREPLY == icmp_hdr->type && expected_id == ntohs(icmp_hdr->un.echo.id);
 }
 #endif
 
@@ -110,7 +110,7 @@ std::vector<uint8_t> bsd_ipv4_icmp_handler::build_echo_request(const uint16_t id
 bool bsd_ipv4_icmp_handler::is_echo_reply_unprivileged(const void* data, const size_t len) const {
   if (len < sizeof(icmp)) return false;
   const auto* icmp_hdr = static_cast<const icmp*>(data);
-  return icmp_hdr->icmp_type == ICMP_ECHOREPLY;
+  return ICMP_ECHOREPLY == icmp_hdr->icmp_type;
 }
 
 bool bsd_ipv4_icmp_handler::is_echo_reply_raw(const void* data, const size_t len, const uint16_t expected_id) const {
@@ -122,7 +122,7 @@ bool bsd_ipv4_icmp_handler::is_echo_reply_raw(const void* data, const size_t len
   if (len < ip_header_len + sizeof(icmp)) return false;
 
   const auto* icmp_hdr = reinterpret_cast<const icmp*>(static_cast<const uint8_t*>(data) + ip_header_len);
-  return icmp_hdr->icmp_type == ICMP_ECHOREPLY && ntohs(icmp_hdr->icmp_hun.ih_idseq.icd_id) == expected_id;
+  return ICMP_ECHOREPLY == icmp_hdr->icmp_type && expected_id == ntohs(icmp_hdr->icmp_hun.ih_idseq.icd_id);
 }
 #endif
 
@@ -142,18 +142,18 @@ std::vector<uint8_t> ipv6_icmp_handler::build_echo_request(const uint16_t identi
 bool ipv6_icmp_handler::is_echo_reply_unprivileged(const void* data, const size_t len) const {
   if (len < sizeof(icmp6_hdr)) return false;
   const auto* icmp6 = static_cast<const icmp6_hdr*>(data);
-  return icmp6->icmp6_type == ICMP6_ECHO_REPLY;
+  return ICMP6_ECHO_REPLY == icmp6->icmp6_type;
 }
 
 bool ipv6_icmp_handler::is_echo_reply_raw(const void* data, const size_t len, const uint16_t expected_id) const {
   if (len < sizeof(icmp6_hdr)) return false;
   const auto* icmp6 = static_cast<const icmp6_hdr*>(data);
-  return icmp6->icmp6_type == ICMP6_ECHO_REPLY && ntohs(icmp6->icmp6_id) == expected_id;
+  return ICMP6_ECHO_REPLY == icmp6->icmp6_type && expected_id == ntohs(icmp6->icmp6_id);
 }
 
 // Factory Implementation
 std::unique_ptr<icmp_packet_handler> icmp_handler_factory::create(const socket_family family) {
-  if (family == socket_family::ipv6) {
+  if (socket_family::ipv6 == family) {
     return std::make_unique<ipv6_icmp_handler>();
   } else {
 #ifdef __linux__
@@ -194,7 +194,7 @@ test_result system_ping_tester::ping_host(const std::string& host, const int tim
     const auto end_time = std::chrono::steady_clock::now();
     const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
 
-    if (result_code == 0 && parse_ping_output(output)) {
+    if (0 == result_code && parse_ping_output(output)) {
       return create_success_result(duration);
     } else {
       return create_error_result("Ping failed or host unreachable", duration);
@@ -214,7 +214,7 @@ std::string system_ping_tester::build_ping_command(const std::string& host, cons
   cmd << "ping -c 1 -W " << (timeout_ms / 1000 + 1) << " ";
 
   // Add host (with basic validation to prevent injection)
-  if (host.find_first_of(";&|`$(){}[]<>") != std::string::npos) {
+  if (std::string::npos != host.find_first_of(";&|`$(){}[]<>")) {
     throw std::invalid_argument("Invalid characters in hostname");
   }
 
@@ -264,7 +264,7 @@ test_result icmp_ping_tester::ping_host(const std::string& host, const int timeo
     hints.ai_family = AF_INET;  // IPv4 for now
     hints.ai_socktype = SOCK_RAW;
 
-    if (const int status = getaddrinfo(host.c_str(), nullptr, &hints, &result); status != 0) {
+    if (const int status = getaddrinfo(host.c_str(), nullptr, &hints, &result); 0 != status) {
       return create_error_result("DNS resolution failed");
     }
 
@@ -482,13 +482,13 @@ raw_socket_ping_tester::socket_family raw_socket_ping_tester::determine_address_
   hints.ai_family = AF_UNSPEC;  // Allow both IPv4 and IPv6
   hints.ai_socktype = SOCK_RAW;
 
-  if (const int status = getaddrinfo(host.c_str(), nullptr, &hints, &result); status != 0) {
+  if (const int status = getaddrinfo(host.c_str(), nullptr, &hints, &result); 0 != status) {
     // Default to IPv4 if resolution fails
     return socket_family::ipv4;
   }
 
   auto family = socket_family::ipv4;  // Default
-  if (result->ai_family == AF_INET6) {
+  if (AF_INET6 == result->ai_family) {
     family = socket_family::ipv6;
   }
 
@@ -499,10 +499,10 @@ raw_socket_ping_tester::socket_family raw_socket_ping_tester::determine_address_
 bool raw_socket_ping_tester::resolve_hostname(const std::string& host, const socket_family family, sockaddr_storage& addr, socklen_t& addr_len) {
   addrinfo hints{}, *result;
   memset(&hints, 0, sizeof(hints));
-  hints.ai_family = (family == socket_family::ipv4) ? AF_INET : AF_INET6;
+  hints.ai_family = (socket_family::ipv4 == family) ? AF_INET : AF_INET6;
   hints.ai_socktype = SOCK_RAW;
 
-  if (const int status = getaddrinfo(host.c_str(), nullptr, &hints, &result); status != 0) {
+  if (const int status = getaddrinfo(host.c_str(), nullptr, &hints, &result); 0 != status) {
     return false;
   }
 

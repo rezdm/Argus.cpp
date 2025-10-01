@@ -116,7 +116,7 @@ class main_application {
   }
 
   static void signal_handler(int signal) {
-    if (signal == SIGHUP) {
+    if (SIGHUP == signal) {
       spdlog::info("Received SIGHUP signal: reloading configuration");
       if (instance_) {
         instance_->reload_config();
@@ -242,7 +242,7 @@ class main_application {
 main_application* main_application::instance_ = nullptr;
 
 // Check if running under systemd
-bool is_systemd_service() { return std::getenv("NOTIFY_SOCKET") != nullptr; }
+bool is_systemd_service() { return nullptr != std::getenv("NOTIFY_SOCKET"); }
 
 // Notify systemd of readiness
 void notify_systemd_ready() {
@@ -407,14 +407,14 @@ int main(const int argc, char* argv[]) {
 
   int arg_idx = 1;
   while (arg_idx < argc - 1) {
-    if (std::string flag = argv[arg_idx]; flag == "-d" || flag == "--daemon") {
+    if (std::string flag = argv[arg_idx]; "-d" == flag || "--daemon" == flag) {
       daemon_mode = true;
       arg_idx++;
-    } else if (flag == "-s" || flag == "--systemd") {
+    } else if ("-s" == flag || "--systemd" == flag) {
       systemd_mode = true;
       daemon_mode = false;  // systemd mode overrides daemon mode
       arg_idx++;
-    } else if (flag == "-l" || flag == "--log-file") {
+    } else if ("-l" == flag || "--log-file" == flag) {
       if (arg_idx + 1 >= argc - 1) {
         std::cerr << "Error: --log-file requires a file path\n";
         print_usage(argv[0]);
@@ -429,7 +429,7 @@ int main(const int argc, char* argv[]) {
     }
   }
 
-  if (arg_idx != argc - 1) {
+  if (argc - 1 != arg_idx) {
     std::cerr << "Error: Config file path is required\n";
     print_usage(argv[0]);
     return 1;
@@ -459,11 +459,11 @@ int main(const int argc, char* argv[]) {
 
     if (char* cwd = getcwd(nullptr, 0)) {
       // Convert log file path if relative
-      if (!log_file_path.empty() && log_file_path[0] != '/') {
+      if (!log_file_path.empty() && '/' != log_file_path[0]) {
         absolute_log_path = std::string(cwd) + "/" + log_file_path;
       }
       // Convert config file path if relative
-      if (config_path[0] != '/') {
+      if ('/' != config_path[0]) {
         absolute_config_path = std::string(cwd) + "/" + config_path;
       }
       free(cwd);

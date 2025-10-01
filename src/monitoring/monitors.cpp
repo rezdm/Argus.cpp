@@ -135,14 +135,14 @@ void monitors::perform_test_async(const std::shared_ptr<monitor_state>& state) c
 
         test_result result{false, 0, std::chrono::system_clock::now(), "Unknown error"};
 
-        if (status == std::future_status::ready) {
+        if (std::future_status::ready == status) {
           try {
             result = future.get();
           } catch (const std::exception& e) {
             spdlog::debug("Test execution failed for {}: {}", state->get_destination().get_name(), e.what());
             result = test_result{false, static_cast<long>(timeout.count()), std::chrono::system_clock::now(), e.what()};
           }
-        } else if (status == std::future_status::timeout) {
+        } else if (std::future_status::timeout == status) {
           spdlog::warn("Test timeout exceeded for {} ({}ms + 5s buffer)", state->get_destination().get_name(), state->get_destination().get_timeout());
           result = test_result{false, static_cast<long>(timeout.count()), std::chrono::system_clock::now(), "Test timeout exceeded"};
         } else {
@@ -153,10 +153,10 @@ void monitors::perform_test_async(const std::shared_ptr<monitor_state>& state) c
         state->add_result(result);
 
         // Log significant status changes
-        if (!result.is_success() && state->get_current_status() != monitor_status::ok) {
+        if (!result.is_success() && monitor_status::ok != state->get_current_status()) {
           spdlog::warn("Monitor {} status: {} (consecutive failures: {})", state->get_destination().get_name(), to_string(state->get_current_status()),
                        state->get_consecutive_failures());
-        } else if (result.is_success() && state->get_current_status() == monitor_status::ok && state->get_consecutive_successes() == state->get_destination().get_reset()) {
+        } else if (result.is_success() && monitor_status::ok == state->get_current_status() && state->get_destination().get_reset() == state->get_consecutive_successes()) {
           spdlog::info("Monitor {} recovered to OK status", state->get_destination().get_name());
         }
       } catch (const std::exception& e) {
@@ -220,7 +220,7 @@ void monitors::restart_failed_monitors() {
     try {
       // Check if monitor has been failing for extended period
       const auto& dest = state->get_destination();
-      if (state->get_current_status() == monitor_status::failure && state->get_consecutive_failures() > dest.get_failure() * 3) {
+      if (monitor_status::failure == state->get_current_status() && state->get_consecutive_failures() > dest.get_failure() * 3) {
         spdlog::warn("Restarting severely failed monitor: {}", dest.get_name());
 
         // Reset the monitor state

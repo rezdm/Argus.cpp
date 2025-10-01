@@ -154,9 +154,9 @@ test_method parse_test_method(const std::string& str) {
   std::string lower_str = str;
   std::ranges::transform(lower_str, lower_str.begin(), ::tolower);
 
-  if (lower_str == "ping") return test_method::ping;
-  if (lower_str == "connect") return test_method::connect;
-  if (lower_str == "url") return test_method::url;
+  if ("ping" == lower_str) return test_method::ping;
+  if ("connect" == lower_str) return test_method::connect;
+  if ("url" == lower_str) return test_method::url;
 
   throw std::invalid_argument("Unknown test method: " + str);
 }
@@ -165,8 +165,8 @@ protocol parse_protocol(const std::string& str) {
   std::string lower_str = str;
   std::ranges::transform(lower_str, lower_str.begin(), ::tolower);
 
-  if (lower_str == "tcp") return protocol::tcp;
-  if (lower_str == "udp") return protocol::udp;
+  if ("tcp" == lower_str) return protocol::tcp;
+  if ("udp" == lower_str) return protocol::udp;
 
   throw std::invalid_argument("Unknown protocol: " + str);
 }

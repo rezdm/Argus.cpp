@@ -50,11 +50,11 @@ web_server::web_server(monitor_config config, const std::map<std::string, std::s
   int port;
 
   // Handle IPv6 address format [::1]:8080 or plain port number
-  if (config_.get_listen().front() == '[') {
+  if ('[' == config_.get_listen().front()) {
     // IPv6 address in brackets format: [::1]:8080
-    if (const size_t close_bracket = config_.get_listen().find(']'); close_bracket != std::string::npos) {
+    if (const size_t close_bracket = config_.get_listen().find(']'); std::string::npos != close_bracket) {
       host = config_.get_listen().substr(1, close_bracket - 1);  // Extract address without brackets
-      if (const size_t colon_pos = config_.get_listen().find(':', close_bracket); colon_pos != std::string::npos) {
+      if (const size_t colon_pos = config_.get_listen().find(':', close_bracket); std::string::npos != colon_pos) {
         port = std::stoi(config_.get_listen().substr(colon_pos + 1));
       } else {
         throw std::invalid_argument("Invalid IPv6 listen format: " + config_.get_listen());
@@ -62,14 +62,14 @@ web_server::web_server(monitor_config config, const std::map<std::string, std::s
     } else {
       throw std::invalid_argument("Invalid IPv6 listen format: " + config_.get_listen());
     }
-  } else if (const size_t last_colon = config_.get_listen().rfind(':'); last_colon != std::string::npos) {
+  } else if (const size_t last_colon = config_.get_listen().rfind(':'); std::string::npos != last_colon) {
     // IPv4 address or hostname format: 127.0.0.1:8080 or hostname:8080
     // Use rfind to get the last colon (for IPv4 or hostname with port)
     host = config_.get_listen().substr(0, last_colon);
     port = std::stoi(config_.get_listen().substr(last_colon + 1));
 
     // Check if this might be a bare IPv6 address without brackets and port
-    if (host.find(':') != std::string::npos && config_.get_listen().find("::") != std::string::npos) {
+    if (std::string::npos != host.find(':') && std::string::npos != config_.get_listen().find("::")) {
       // This looks like a bare IPv6 address, treat the whole string as host
       host = config_.get_listen();
       port = 8080;  // Default port for IPv6 without explicit port
@@ -257,7 +257,7 @@ std::string web_server::load_html_template_from_file(const std::string& template
 
 bool web_server::is_json_cache_valid() const {
   // If caching is disabled (duration = 0), always return false
-  if (cache_duration_.count() == 0) {
+  if (0 == cache_duration_.count()) {
     return false;
   }
 

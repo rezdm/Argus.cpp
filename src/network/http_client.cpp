@@ -69,7 +69,7 @@ test_result http_client::perform_request(const std::string& host, const std::str
 
 int http_client::extract_port_from_host(std::string& host, const int default_port) {
   const size_t port_pos = host.find(':');
-  if (port_pos != std::string::npos) {
+  if (std::string::npos != port_pos) {
     const int port = std::stoi(host.substr(port_pos + 1));
     host = host.substr(0, port_pos);
     return port;
@@ -135,7 +135,7 @@ test_result https_client::perform_request(const std::string& host, const std::st
 
 int https_client::extract_port_from_host(std::string& host, const int default_port) {
   const size_t port_pos = host.find(':');
-  if (port_pos != std::string::npos) {
+  if (std::string::npos != port_pos) {
     const int port = std::stoi(host.substr(port_pos + 1));
     host = host.substr(0, port_pos);
     return port;
@@ -145,9 +145,9 @@ int https_client::extract_port_from_host(std::string& host, const int default_po
 
 // Factory Implementation
 std::unique_ptr<http_client_base> http_client_factory::create(const std::string& scheme) {
-  if (scheme == "https") {
+  if ("https" == scheme) {
     return std::make_unique<https_client>();
-  } else if (scheme == "http") {
+  } else if ("http" == scheme) {
     return std::make_unique<http_client>();
   }
   throw std::invalid_argument("Unsupported HTTP scheme: " + scheme);

@@ -84,12 +84,12 @@ bool tcp_connection_tester::test_single_address(const resolved_address& addr, co
       // Attempt connection
       const auto* sock_addr = reinterpret_cast<const sockaddr*>(&addr.addr);
 
-      if (int connect_result = connect(sock, sock_addr, addr.addr_len); connect_result == 0) {
+      if (int connect_result = connect(sock, sock_addr, addr.addr_len); 0 == connect_result) {
         // Connection succeeded immediately
         spdlog::trace("Immediate {} TCP connection to {}", handler->get_family_name(), addr.display_name);
         close(sock);
         return true;
-      } else if (errno == EINPROGRESS) {
+      } else if (EINPROGRESS == errno) {
         // Connection in progress, wait for completion
         fd_set write_fds, error_fds;
         FD_ZERO(&write_fds);
@@ -112,13 +112,13 @@ bool tcp_connection_tester::test_single_address(const resolved_address& addr, co
             // Check if connection was successful
             int error = 0;
             socklen_t len = sizeof(error);
-            if (getsockopt(sock, SOL_SOCKET, SO_ERROR, &error, &len) == 0 && error == 0) {
+            if (0 == getsockopt(sock, SOL_SOCKET, SO_ERROR, &error, &len) && 0 == error) {
               spdlog::trace("{} TCP connection succeeded to {}", handler->get_family_name(), addr.display_name);
               close(sock);
               return true;
             }
           }
-        } else if (connect_result == 0) {
+        } else if (0 == connect_result) {
           spdlog::trace("{} TCP connection timeout to {}", handler->get_family_name(), addr.display_name);
         } else {
           spdlog::trace("{} TCP connection select error to {}: {}", handler->get_family_name(), addr.display_name, strerror(errno));

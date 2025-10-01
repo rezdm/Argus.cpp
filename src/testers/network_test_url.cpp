@@ -49,7 +49,7 @@ void network_test_url::validate_config(const test_config& config) const {
   }
 
   // Basic URL validation - check if it starts with http:// or https://
-  if (const std::string& url = config.get_url().value(); url.find("http://") != 0 && url.find("https://") != 0) {
+  if (const std::string& url = config.get_url().value(); 0 != url.find("http://") && 0 != url.find("https://")) {
     throw std::invalid_argument("Invalid URL format: " + url);
   }
 }
@@ -60,14 +60,14 @@ bool network_test_url::perform_http_request(const std::string& url, const std::s
     std::string host, path;
 
     const size_t scheme_end = url.find("://");
-    if (scheme_end == std::string::npos) {
+    if (std::string::npos == scheme_end) {
       return false;
     }
 
     const std::string scheme = url.substr(0, scheme_end);
     const size_t host_start = scheme_end + 3;
 
-    if (const size_t path_start = url.find('/', host_start); path_start == std::string::npos) {
+    if (const size_t path_start = url.find('/', host_start); std::string::npos == path_start) {
       host = url.substr(host_start);
       path = "/";
     } else {
