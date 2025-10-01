@@ -28,6 +28,13 @@ enum class address_family_preference {
 
 enum class resolution_error_type { success, dns_failure, no_addresses_found, unsupported_family, network_unreachable, timeout, invalid_hostname };
 
+class resolution_error_formatter {
+ public:
+  static std::string format_error(resolution_error_type error_type, const std::string& host, const std::string& details = "");
+ private:
+  static std::string get_base_message(resolution_error_type error_type, const std::string& host);
+};
+
 struct resolved_address {
   int family;                // AF_INET or AF_INET6
   int socktype;              // SOCK_STREAM, SOCK_DGRAM, etc.
@@ -95,21 +102,61 @@ class ipv6_handler final : public address_family_handler_base {
   [[nodiscard]] int get_family_constant() const override { return AF_INET6; }
 };
 
+// Strategy interface for address family preference
+class address_preference_strategy {
+ public:
+  virtual ~address_preference_strategy() = default;
+  [[nodiscard]] virtual std::vector<std::unique_ptr<address_family_handler_base>> get_handlers() const = 0;
+  [[nodiscard]] virtual bool is_dual_stack() const = 0;
+};
+
+// Concrete strategy implementations
+class ipv4_only_strategy final : public address_preference_strategy {
+ public:
+  [[nodiscard]] std::vector<std::unique_ptr<address_family_handler_base>> get_handlers() const override;
+  [[nodiscard]] bool is_dual_stack() const override { return false; }
+};
+
+class ipv6_only_strategy final : public address_preference_strategy {
+ public:
+  [[nodiscard]] std::vector<std::unique_ptr<address_family_handler_base>> get_handlers() const override;
+  [[nodiscard]] bool is_dual_stack() const override { return false; }
+};
+
+class ipv6_preferred_strategy final : public address_preference_strategy {
+ public:
+  [[nodiscard]] std::vector<std::unique_ptr<address_family_handler_base>> get_handlers() const override;
+  [[nodiscard]] bool is_dual_stack() const override { return false; }
+};
+
+class ipv4_preferred_strategy final : public address_preference_strategy {
+ public:
+  [[nodiscard]] std::vector<std::unique_ptr<address_family_handler_base>> get_handlers() const override;
+  [[nodiscard]] bool is_dual_stack() const override { return false; }
+};
+
+class dual_stack_strategy final : public address_preference_strategy {
+ public:
+  [[nodiscard]] std::vector<std::unique_ptr<address_family_handler_base>> get_handlers() const override;
+  [[nodiscard]] bool is_dual_stack() const override { return true; }
+};
+
 class address_resolver {
  public:
   explicit address_resolver(address_family_preference preference = address_family_preference::ipv6_preferred);
+  explicit address_resolver(std::unique_ptr<address_preference_strategy> strategy);
 
   // Resolve addresses according to the configured preference strategy
-  std::vector<resolved_address> resolve_with_preference(const std::string& host, int port, int socktype);
+  std::vector<resolved_address> resolve_with_preference(const std::string& host, int port, int socktype) const;
 
   // Resolve with optimization for numeric IP addresses
-  std::vector<resolved_address> resolve_optimized(const std::string& host, int port, int socktype);
+  std::vector<resolved_address> resolve_optimized(const std::string& host, int port, int socktype) const;
 
   // Get handlers in preference order
   [[nodiscard]] std::vector<std::unique_ptr<address_family_handler_base>> get_handlers_by_preference() const;
 
  private:
-  address_family_preference preference_;
+  std::unique_ptr<address_preference_strategy> strategy_;
 };
 
 class ip_address_utils {
@@ -131,5 +178,7 @@ class address_family_factory {
  public:
   static std::unique_ptr<address_family_handler_base> create_ipv4_handler();
   static std::unique_ptr<address_family_handler_base> create_ipv6_handler();
+  static std::unique_ptr<address_family_handler_base> create_handler_for_family(int family);
+  static std::unique_ptr<address_preference_strategy> create_strategy(address_family_preference pref);
   static std::unique_ptr<address_resolver> create_resolver(address_family_preference pref);
 };

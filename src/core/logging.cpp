@@ -44,7 +44,7 @@ void logger::log_warning_with_context(const std::string& operation, const std::s
   spdlog::warn("{} warning for {}: {}", operation, context, message);
 }
 
-void logger::log_systemd_operation(const std::string& operation, bool success) {
+void logger::log_systemd_operation(const std::string& operation, const bool success) {
   if (success) {
     spdlog::info("Notified systemd of {}", operation);
   } else {
@@ -52,7 +52,7 @@ void logger::log_systemd_operation(const std::string& operation, bool success) {
   }
 }
 
-void logger::log_daemon_operation(const std::string& operation, bool success) {
+void logger::log_daemon_operation(const std::string& operation, const bool success) {
   if (success) {
     spdlog::info("Daemon {}: successful", operation);
   } else {

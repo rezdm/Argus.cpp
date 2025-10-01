@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 
 #include <cstring>
+#include <unordered_map>
 
 #include "../core/constants.h"
 #include "../core/logging.h"
@@ -80,30 +81,34 @@ resolution_error_type address_family_handler_base::classify_getaddrinfo_error(co
 }
 
 std::string address_family_handler_base::format_resolution_error(const resolution_error_type error_type, const std::string& host, const std::string& details) {
-  std::string base_msg;
-  switch (error_type) {
-    case resolution_error_type::dns_failure:
-      base_msg = "DNS resolution failed for " + host;
-      break;
-    case resolution_error_type::no_addresses_found:
-      base_msg = "No addresses found for " + host;
-      break;
-    case resolution_error_type::unsupported_family:
-      base_msg = "Unsupported address family for " + host;
-      break;
-    case resolution_error_type::network_unreachable:
-      base_msg = "Network unreachable for " + host;
-      break;
-    case resolution_error_type::timeout:
-      base_msg = "DNS resolution timeout for " + host;
-      break;
-    case resolution_error_type::invalid_hostname:
-      base_msg = "Invalid hostname: " + host;
-      break;
-    default:
-      base_msg = "Unknown error for " + host;
-      break;
+  return resolution_error_formatter::format_error(error_type, host, details);
+}
+
+// Resolution Error Formatter Implementation
+std::string resolution_error_formatter::get_base_message(const resolution_error_type error_type, const std::string& host) {
+  static const std::unordered_map<resolution_error_type, std::string> error_templates = {
+    {resolution_error_type::dns_failure, "DNS resolution failed for {host}"},
+    {resolution_error_type::no_addresses_found, "No addresses found for {host}"},
+    {resolution_error_type::unsupported_family, "Unsupported address family for {host}"},
+    {resolution_error_type::network_unreachable, "Network unreachable for {host}"},
+    {resolution_error_type::timeout, "DNS resolution timeout for {host}"},
+    {resolution_error_type::invalid_hostname, "Invalid hostname: {host}"}
+  };
+
+  if (const auto it = error_templates.find(error_type); it != error_templates.end()) {
+    std::string message = it->second;
+    const size_t pos = message.find("{host}");
+    if (pos != std::string::npos) {
+      message.replace(pos, 6, host);
+    }
+    return message;
   }
+
+  return "Unknown error for " + host;
+}
+
+std::string resolution_error_formatter::format_error(const resolution_error_type error_type, const std::string& host, const std::string& details) {
+  std::string base_msg = get_base_message(error_type, host);
 
   if (!details.empty()) {
     base_msg += " (" + details + ")";
@@ -303,13 +308,51 @@ int ipv6_handler::create_socket(const resolved_address& addr) {
 
 bool ipv6_handler::configure_socket(const int socket, const int timeout_ms) { return set_socket_timeouts(socket, timeout_ms); }
 
-// Address Resolver Implementation
-address_resolver::address_resolver(const address_family_preference preference) : preference_(preference) {}
+// Strategy Implementations
+std::vector<std::unique_ptr<address_family_handler_base>> ipv4_only_strategy::get_handlers() const {
+  std::vector<std::unique_ptr<address_family_handler_base>> handlers;
+  handlers.push_back(std::make_unique<ipv4_handler>());
+  return handlers;
+}
 
-std::vector<resolved_address> address_resolver::resolve_with_preference(const std::string& host, const int port, const int socktype) {
+std::vector<std::unique_ptr<address_family_handler_base>> ipv6_only_strategy::get_handlers() const {
+  std::vector<std::unique_ptr<address_family_handler_base>> handlers;
+  handlers.push_back(std::make_unique<ipv6_handler>());
+  return handlers;
+}
+
+std::vector<std::unique_ptr<address_family_handler_base>> ipv6_preferred_strategy::get_handlers() const {
+  std::vector<std::unique_ptr<address_family_handler_base>> handlers;
+  handlers.push_back(std::make_unique<ipv6_handler>());
+  handlers.push_back(std::make_unique<ipv4_handler>());
+  return handlers;
+}
+
+std::vector<std::unique_ptr<address_family_handler_base>> ipv4_preferred_strategy::get_handlers() const {
+  std::vector<std::unique_ptr<address_family_handler_base>> handlers;
+  handlers.push_back(std::make_unique<ipv4_handler>());
+  handlers.push_back(std::make_unique<ipv6_handler>());
+  return handlers;
+}
+
+std::vector<std::unique_ptr<address_family_handler_base>> dual_stack_strategy::get_handlers() const {
+  std::vector<std::unique_ptr<address_family_handler_base>> handlers;
+  handlers.push_back(std::make_unique<ipv6_handler>());
+  handlers.push_back(std::make_unique<ipv4_handler>());
+  return handlers;
+}
+
+// Address Resolver Implementation
+address_resolver::address_resolver(const address_family_preference preference)
+  : strategy_(address_family_factory::create_strategy(preference)) {}
+
+address_resolver::address_resolver(std::unique_ptr<address_preference_strategy> strategy)
+  : strategy_(std::move(strategy)) {}
+
+std::vector<resolved_address> address_resolver::resolve_with_preference(const std::string& host, const int port, const int socktype) const {
   std::vector<resolved_address> all_addresses;
 
-  for (const auto handlers = get_handlers_by_preference(); const auto& handler : handlers) {
+  for (const auto handlers = strategy_->get_handlers(); const auto& handler : handlers) {
     auto addresses = handler->resolve_addresses(host, port, socktype);
     spdlog::trace("Resolved {} {} addresses for {}", addresses.size(), handler->get_family_name(), host);
 
@@ -317,8 +360,8 @@ std::vector<resolved_address> address_resolver::resolve_with_preference(const st
     all_addresses.insert(all_addresses.end(), addresses.begin(), addresses.end());
 
     // For non-dual-stack modes, stop after first successful resolution
-    if (!addresses.empty() && preference_ != address_family_preference::dual_stack) {
-      spdlog::debug("Using {} addresses for {} (preference: {})", handler->get_family_name(), host, static_cast<int>(preference_));
+    if (!addresses.empty() && !strategy_->is_dual_stack()) {
+      spdlog::debug("Using {} addresses for {}", handler->get_family_name(), host);
       break;
     }
   }
@@ -326,7 +369,7 @@ std::vector<resolved_address> address_resolver::resolve_with_preference(const st
   return all_addresses;
 }
 
-std::vector<resolved_address> address_resolver::resolve_optimized(const std::string& host, const int port, const int socktype) {
+std::vector<resolved_address> address_resolver::resolve_optimized(const std::string& host, const int port, const int socktype) const {
   // Quick check if this is a numeric IP address
   const auto ip_type = ip_address_utils::detect_ip_type(host);
 
@@ -356,40 +399,41 @@ std::vector<resolved_address> address_resolver::resolve_optimized(const std::str
 }
 
 std::vector<std::unique_ptr<address_family_handler_base>> address_resolver::get_handlers_by_preference() const {
-  std::vector<std::unique_ptr<address_family_handler_base>> handlers;
-
-  switch (preference_) {
-    case address_family_preference::ipv4_only:
-      handlers.push_back(std::make_unique<ipv4_handler>());
-      break;
-
-    case address_family_preference::ipv6_only:
-      handlers.push_back(std::make_unique<ipv6_handler>());
-      break;
-
-    case address_family_preference::ipv6_preferred:
-      handlers.push_back(std::make_unique<ipv6_handler>());
-      handlers.push_back(std::make_unique<ipv4_handler>());
-      break;
-
-    case address_family_preference::ipv4_preferred:
-      handlers.push_back(std::make_unique<ipv4_handler>());
-      handlers.push_back(std::make_unique<ipv6_handler>());
-      break;
-
-    case address_family_preference::dual_stack:
-      handlers.push_back(std::make_unique<ipv6_handler>());
-      handlers.push_back(std::make_unique<ipv4_handler>());
-      break;
-  }
-
-  return handlers;
+  return strategy_->get_handlers();
 }
 
 // Factory Implementation
 std::unique_ptr<address_family_handler_base> address_family_factory::create_ipv4_handler() { return std::make_unique<ipv4_handler>(); }
 
 std::unique_ptr<address_family_handler_base> address_family_factory::create_ipv6_handler() { return std::make_unique<ipv6_handler>(); }
+
+std::unique_ptr<address_family_handler_base> address_family_factory::create_handler_for_family(const int family) {
+  switch (family) {
+    case AF_INET:
+      return create_ipv4_handler();
+    case AF_INET6:
+      return create_ipv6_handler();
+    default:
+      throw std::invalid_argument("Unsupported address family: " + std::to_string(family));
+  }
+}
+
+std::unique_ptr<address_preference_strategy> address_family_factory::create_strategy(const address_family_preference pref) {
+  switch (pref) {
+    case address_family_preference::ipv4_only:
+      return std::make_unique<ipv4_only_strategy>();
+    case address_family_preference::ipv6_only:
+      return std::make_unique<ipv6_only_strategy>();
+    case address_family_preference::ipv6_preferred:
+      return std::make_unique<ipv6_preferred_strategy>();
+    case address_family_preference::ipv4_preferred:
+      return std::make_unique<ipv4_preferred_strategy>();
+    case address_family_preference::dual_stack:
+      return std::make_unique<dual_stack_strategy>();
+    default:
+      throw std::invalid_argument("Unknown address family preference");
+  }
+}
 
 std::unique_ptr<address_resolver> address_family_factory::create_resolver(address_family_preference pref) { return std::make_unique<address_resolver>(pref); }
 
@@ -440,5 +484,5 @@ bool ip_address_utils::is_ipv4_mapped_ipv6(const std::string& address) {
 
   // Check for IPv4-mapped IPv6 address (::ffff:0:0/96)
   const auto* addr_bytes = reinterpret_cast<const uint8_t*>(&sa6.sin6_addr);
-  return (addr_bytes[10] == 0xff && addr_bytes[11] == 0xff && std::all_of(addr_bytes, addr_bytes + 10, [](uint8_t b) { return b == 0; }));
+  return (addr_bytes[10] == 0xff && addr_bytes[11] == 0xff && std::all_of(addr_bytes, addr_bytes + 10, [](const uint8_t b) { return b == 0; }));
 }

@@ -57,18 +57,10 @@ test_result tcp_connection_tester::test_connection(const std::string& host, cons
   }
 }
 
-bool tcp_connection_tester::test_single_address(const resolved_address& addr, int timeout_ms) {
+bool tcp_connection_tester::test_single_address(const resolved_address& addr, const int timeout_ms) {
   try {
     // Get the appropriate address family handler
-    std::unique_ptr<address_family_handler_base> handler;
-    if (addr.family == AF_INET) {
-      handler = address_family_factory::create_ipv4_handler();
-    } else if (addr.family == AF_INET6) {
-      handler = address_family_factory::create_ipv6_handler();
-    } else {
-      spdlog::debug("Unsupported address family: {}", addr.family);
-      return false;
-    }
+    auto handler = address_family_factory::create_handler_for_family(addr.family);
 
     // Create socket using the handler
     const int sock = handler->create_socket(addr);
@@ -188,18 +180,10 @@ test_result udp_connection_tester::test_connection(const std::string& host, cons
   }
 }
 
-bool udp_connection_tester::test_single_address(const resolved_address& addr, int timeout_ms) {
+bool udp_connection_tester::test_single_address(const resolved_address& addr, const int timeout_ms) {
   try {
     // Get the appropriate address family handler
-    std::unique_ptr<address_family_handler_base> handler;
-    if (addr.family == AF_INET) {
-      handler = address_family_factory::create_ipv4_handler();
-    } else if (addr.family == AF_INET6) {
-      handler = address_family_factory::create_ipv6_handler();
-    } else {
-      spdlog::debug("Unsupported address family for UDP: {}", addr.family);
-      return false;
-    }
+    auto handler = address_family_factory::create_handler_for_family(addr.family);
 
     // Create socket using the handler
     const int sock = handler->create_socket(addr);

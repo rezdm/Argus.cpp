@@ -27,6 +27,53 @@ typedef __socklen_t socklen_t;
 
 enum class ping_implementation { system_ping, unprivileged_icmp, raw_socket };
 
+// ICMP Packet Handler Strategy - abstracts platform-specific ICMP operations
+class icmp_packet_handler {
+ public:
+  virtual ~icmp_packet_handler() = default;
+
+  // Build an ICMP echo request packet
+  virtual std::vector<uint8_t> build_echo_request(uint16_t identifier, uint16_t sequence) const = 0;
+
+  // Check if received data is an ICMP echo reply for unprivileged sockets (SOCK_DGRAM)
+  virtual bool is_echo_reply_unprivileged(const void* data, size_t len) const = 0;
+
+  // Check if received data is an ICMP echo reply for raw sockets (SOCK_RAW)
+  // Returns true if it's a reply with matching identifier
+  virtual bool is_echo_reply_raw(const void* data, size_t len, uint16_t expected_id) const = 0;
+};
+
+// Linux IPv4 ICMP handler
+class linux_ipv4_icmp_handler final : public icmp_packet_handler {
+ public:
+  std::vector<uint8_t> build_echo_request(uint16_t identifier, uint16_t sequence) const override;
+  bool is_echo_reply_unprivileged(const void* data, size_t len) const override;
+  bool is_echo_reply_raw(const void* data, size_t len, uint16_t expected_id) const override;
+};
+
+// BSD-like (FreeBSD, Solaris) IPv4 ICMP handler
+class bsd_ipv4_icmp_handler final : public icmp_packet_handler {
+ public:
+  std::vector<uint8_t> build_echo_request(uint16_t identifier, uint16_t sequence) const override;
+  bool is_echo_reply_unprivileged(const void* data, size_t len) const override;
+  bool is_echo_reply_raw(const void* data, size_t len, uint16_t expected_id) const override;
+};
+
+// IPv6 ICMP handler (same across platforms)
+class ipv6_icmp_handler final : public icmp_packet_handler {
+ public:
+  std::vector<uint8_t> build_echo_request(uint16_t identifier, uint16_t sequence) const override;
+  bool is_echo_reply_unprivileged(const void* data, size_t len) const override;
+  bool is_echo_reply_raw(const void* data, size_t len, uint16_t expected_id) const override;
+};
+
+// Factory for creating ICMP handlers
+class icmp_handler_factory {
+ public:
+  enum class socket_family { ipv4, ipv6 };
+  static std::unique_ptr<icmp_packet_handler> create(socket_family family);
+};
+
 class ping_tester_base {
  public:
   virtual ~ping_tester_base() = default;
@@ -97,7 +144,6 @@ class raw_socket_ping_tester final : public ping_tester_base {
   static void cleanup_socket(ping_context& ctx);
 
   static socket_family determine_address_family(const std::string& host);
-  static uint16_t calculate_checksum(const void* data, size_t len);
   static bool resolve_hostname(const std::string& host, socket_family family, struct sockaddr_storage& addr, socklen_t& addr_len);
 
   ping_context ipv4_ctx_;

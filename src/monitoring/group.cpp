@@ -2,12 +2,12 @@
 
 #include <stdexcept>
 
-group::group(int sort_val, const std::string& group_name_val, std::vector<destination> destinations_val)
+group::group(const int sort_val, const std::string& group_name_val, std::vector<destination> destinations_val)
     : sort_(sort_val), group_name_(group_name_val), destinations_(std::move(destinations_val)) {
   validate_parameters();
 }
 
-void group::set_sort(int sort_val) { sort_ = sort_val; }
+void group::set_sort(const int sort_val) { sort_ = sort_val; }
 
 void group::set_group_name(const std::string& group_name_val) {
   if (group_name_val.empty()) {

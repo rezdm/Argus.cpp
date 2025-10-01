@@ -34,15 +34,14 @@ class main_application {
   std::shared_ptr<monitors> monitors_instance;
   std::shared_ptr<web_server> server_instance;
   static main_application* instance_;
-  bool daemon_mode_;
   bool systemd_mode_;
   std::string config_path_;
   monitor_config current_config_;
   mutable std::mutex reload_mutex_;
 
  public:
-  explicit main_application(const std::string& config_path, const bool daemon_mode = false, const bool systemd_mode = false)
-      : daemon_mode_(daemon_mode), systemd_mode_(systemd_mode), config_path_(config_path) {
+  explicit main_application(const std::string& config_path, const bool systemd_mode = false)
+      : systemd_mode_(systemd_mode), config_path_(config_path) {
     LOG_STARTUP(config_path);
     log_memory_usage("Startup");
 
@@ -501,7 +500,7 @@ int main(const int argc, char* argv[]) {
     std::signal(SIGHUP, main_application::signal_handler);
 
     spdlog::info("Creating main application...");
-    auto app = std::make_unique<main_application>(config_path, daemon_mode, systemd_mode);
+    auto app = std::make_unique<main_application>(config_path, systemd_mode);
 
     spdlog::info("Argus Monitor started successfully. Press Ctrl+C to stop.");
 

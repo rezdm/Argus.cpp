@@ -37,33 +37,67 @@ void test_config::set_host(const std::string& host_val) {
 
 void test_config::clear_host() { host_.reset(); }
 
+std::unique_ptr<test_config_validator> test_config::get_validator() const {
+  return test_config_validator_factory::create(test_method_type_);
+}
+
 bool test_config::is_valid() const {
-  switch (test_method_type_) {
-    case test_method::ping:
-      return host_.has_value();
-    case test_method::connect:
-      return host_.has_value() && port_ > 0 && protocol_type_.has_value();
-    case test_method::url:
-      return url_.has_value();
-  }
-  return false;
+  const auto validator = get_validator();
+  return validator->is_valid(*this);
 }
 
 std::string test_config::get_validation_error() const {
-  if (is_valid()) return "";
+  const auto validator = get_validator();
+  return validator->get_validation_error(*this);
+}
 
-  switch (test_method_type_) {
-    case test_method::ping:
-      if (!host_.has_value()) return "Ping test requires a host";
-      break;
-    case test_method::connect:
-      if (!host_.has_value()) return "Connect test requires a host";
-      if (port_ <= 0) return "Connect test requires a valid port (1-65535)";
-      if (!protocol_type_.has_value()) return "Connect test requires a protocol";
-      break;
-    case test_method::url:
-      if (!url_.has_value()) return "URL test requires a URL";
-      break;
-  }
+// Ping Test Validator Implementation
+bool ping_test_validator::is_valid(const test_config& config) const {
+  return config.get_host().has_value();
+}
+
+std::string ping_test_validator::get_validation_error(const test_config& config) const {
+  if (is_valid(config)) return "";
+  if (!config.get_host().has_value()) return "Ping test requires a host";
   return "Unknown validation error";
+}
+
+// Connect Test Validator Implementation
+bool connect_test_validator::is_valid(const test_config& config) const {
+  return config.get_host().has_value() &&
+         config.get_port() > 0 &&
+         config.get_protocol().has_value();
+}
+
+std::string connect_test_validator::get_validation_error(const test_config& config) const {
+  if (is_valid(config)) return "";
+  if (!config.get_host().has_value()) return "Connect test requires a host";
+  if (config.get_port() <= 0) return "Connect test requires a valid port (1-65535)";
+  if (!config.get_protocol().has_value()) return "Connect test requires a protocol";
+  return "Unknown validation error";
+}
+
+// URL Test Validator Implementation
+bool url_test_validator::is_valid(const test_config& config) const {
+  return config.get_url().has_value();
+}
+
+std::string url_test_validator::get_validation_error(const test_config& config) const {
+  if (is_valid(config)) return "";
+  if (!config.get_url().has_value()) return "URL test requires a URL";
+  return "Unknown validation error";
+}
+
+// Factory Implementation
+std::unique_ptr<test_config_validator> test_config_validator_factory::create(const test_method method) {
+  switch (method) {
+    case test_method::ping:
+      return std::make_unique<ping_test_validator>();
+    case test_method::connect:
+      return std::make_unique<connect_test_validator>();
+    case test_method::url:
+      return std::make_unique<url_test_validator>();
+    default:
+      throw std::invalid_argument("Unknown test method");
+  }
 }

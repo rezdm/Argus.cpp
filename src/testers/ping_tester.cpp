@@ -35,6 +35,135 @@
 #include <regex>
 #include <sstream>
 
+// Helper function for checksum calculation
+static uint16_t calculate_icmp_checksum(const void* data, size_t len) {
+  const auto* buf = static_cast<const uint16_t*>(data);
+  uint32_t sum = 0;
+
+  while (len > 1) {
+    sum += *buf++;
+    len -= 2;
+  }
+
+  if (len == 1) {
+    sum += *reinterpret_cast<const uint8_t*>(buf) << 8;
+  }
+
+  sum = (sum >> 16) + (sum & 0xFFFF);
+  sum += (sum >> 16);
+  return static_cast<uint16_t>(~sum);
+}
+
+// ICMP Handler Implementations
+
+// Linux IPv4 ICMP Handler
+#ifdef __linux__
+std::vector<uint8_t> linux_ipv4_icmp_handler::build_echo_request(const uint16_t identifier, const uint16_t sequence) const {
+  icmphdr icmp{};
+  icmp.type = ICMP_ECHO;
+  icmp.code = 0;
+  icmp.un.echo.id = htons(identifier);
+  icmp.un.echo.sequence = htons(sequence);
+  icmp.checksum = 0;
+  icmp.checksum = calculate_icmp_checksum(&icmp, sizeof(icmp));
+
+  std::vector<uint8_t> packet(sizeof(icmp));
+  memcpy(packet.data(), &icmp, sizeof(icmp));
+  return packet;
+}
+
+bool linux_ipv4_icmp_handler::is_echo_reply_unprivileged(const void* data, const size_t len) const {
+  if (len < sizeof(icmphdr)) return false;
+  const auto* icmp_hdr = static_cast<const icmphdr*>(data);
+  return icmp_hdr->type == ICMP_ECHOREPLY;
+}
+
+bool linux_ipv4_icmp_handler::is_echo_reply_raw(const void* data, const size_t len, const uint16_t expected_id) const {
+  if (len < sizeof(struct ip) + sizeof(icmphdr)) return false;
+
+  const auto* ip_hdr = static_cast<const struct ip*>(data);
+  const size_t ip_header_len = ip_hdr->ip_hl * 4;
+
+  if (len < ip_header_len + sizeof(icmphdr)) return false;
+
+  const auto* icmp_hdr = reinterpret_cast<const icmphdr*>(static_cast<const uint8_t*>(data) + ip_header_len);
+  return icmp_hdr->type == ICMP_ECHOREPLY && ntohs(icmp_hdr->un.echo.id) == expected_id;
+}
+#endif
+
+// BSD IPv4 ICMP Handler
+#ifndef __linux__
+std::vector<uint8_t> bsd_ipv4_icmp_handler::build_echo_request(const uint16_t identifier, const uint16_t sequence) const {
+  icmp icmp_pkt{};
+  icmp_pkt.icmp_type = ICMP_ECHO;
+  icmp_pkt.icmp_code = 0;
+  icmp_pkt.icmp_hun.ih_idseq.icd_id = htons(identifier);
+  icmp_pkt.icmp_hun.ih_idseq.icd_seq = htons(sequence);
+  icmp_pkt.icmp_cksum = 0;
+  icmp_pkt.icmp_cksum = calculate_icmp_checksum(&icmp_pkt, sizeof(icmp_pkt));
+
+  std::vector<uint8_t> packet(sizeof(icmp_pkt));
+  memcpy(packet.data(), &icmp_pkt, sizeof(icmp_pkt));
+  return packet;
+}
+
+bool bsd_ipv4_icmp_handler::is_echo_reply_unprivileged(const void* data, const size_t len) const {
+  if (len < sizeof(icmp)) return false;
+  const auto* icmp_hdr = static_cast<const icmp*>(data);
+  return icmp_hdr->icmp_type == ICMP_ECHOREPLY;
+}
+
+bool bsd_ipv4_icmp_handler::is_echo_reply_raw(const void* data, const size_t len, const uint16_t expected_id) const {
+  if (len < sizeof(struct ip) + sizeof(icmp)) return false;
+
+  const auto* ip_hdr = static_cast<const struct ip*>(data);
+  const size_t ip_header_len = ip_hdr->ip_hl * 4;
+
+  if (len < ip_header_len + sizeof(icmp)) return false;
+
+  const auto* icmp_hdr = reinterpret_cast<const icmp*>(static_cast<const uint8_t*>(data) + ip_header_len);
+  return icmp_hdr->icmp_type == ICMP_ECHOREPLY && ntohs(icmp_hdr->icmp_hun.ih_idseq.icd_id) == expected_id;
+}
+#endif
+
+// IPv6 ICMP Handler (same across platforms)
+std::vector<uint8_t> ipv6_icmp_handler::build_echo_request(const uint16_t identifier, const uint16_t sequence) const {
+  icmp6_hdr icmp6{};
+  icmp6.icmp6_type = ICMP6_ECHO_REQUEST;
+  icmp6.icmp6_code = 0;
+  icmp6.icmp6_id = htons(identifier);
+  icmp6.icmp6_seq = htons(sequence);
+
+  std::vector<uint8_t> packet(sizeof(icmp6));
+  memcpy(packet.data(), &icmp6, sizeof(icmp6));
+  return packet;
+}
+
+bool ipv6_icmp_handler::is_echo_reply_unprivileged(const void* data, const size_t len) const {
+  if (len < sizeof(icmp6_hdr)) return false;
+  const auto* icmp6 = static_cast<const icmp6_hdr*>(data);
+  return icmp6->icmp6_type == ICMP6_ECHO_REPLY;
+}
+
+bool ipv6_icmp_handler::is_echo_reply_raw(const void* data, const size_t len, const uint16_t expected_id) const {
+  if (len < sizeof(icmp6_hdr)) return false;
+  const auto* icmp6 = static_cast<const icmp6_hdr*>(data);
+  return icmp6->icmp6_type == ICMP6_ECHO_REPLY && ntohs(icmp6->icmp6_id) == expected_id;
+}
+
+// Factory Implementation
+std::unique_ptr<icmp_packet_handler> icmp_handler_factory::create(const socket_family family) {
+  if (family == socket_family::ipv6) {
+    return std::make_unique<ipv6_icmp_handler>();
+  } else {
+#ifdef __linux__
+    return std::make_unique<linux_ipv4_icmp_handler>();
+#else
+    return std::make_unique<bsd_ipv4_icmp_handler>();
+#endif
+  }
+}
+
 test_result ping_tester_base::create_error_result(const std::string& error_msg, const long duration) {
   return test_result{false, duration, std::chrono::system_clock::now(), error_msg};
 }
@@ -200,16 +329,9 @@ bool icmp_ping_tester::wait_for_reply(const int socket, const int timeout_ms) {
 
     if (received > 0) {
       // For unprivileged ICMP sockets (SOCK_DGRAM), the kernel strips IP header
-      // so we can directly read the ICMP header
-#ifdef __linux__
-      const auto* icmp_hdr = reinterpret_cast<const struct icmphdr*>(buffer);
-      // Check if it's an Echo Reply (type 0)
-      return icmp_hdr->type == ICMP_ECHOREPLY;
-#else
-      const auto* icmp_hdr = reinterpret_cast<const struct icmp*>(buffer);
-      // Check if it's an Echo Reply (type 0)
-      return icmp_hdr->icmp_type == ICMP_ECHOREPLY;
-#endif
+      // Use handler to check for echo reply (IPv4 for now)
+      auto handler = icmp_handler_factory::create(icmp_handler_factory::socket_family::ipv4);
+      return handler->is_echo_reply_unprivileged(buffer, received);
     }
   }
 
@@ -292,7 +414,7 @@ test_result raw_socket_ping_tester::ping_host(const std::string& host, const int
   }
 }
 
-bool raw_socket_ping_tester::initialize_socket(socket_family family, ping_context& ctx) {
+bool raw_socket_ping_tester::initialize_socket(const socket_family family, ping_context& ctx) {
   const int domain = (family == socket_family::ipv4) ? AF_INET : AF_INET6;
   const int protocol = (family == socket_family::ipv4) ? static_cast<int>(IPPROTO_ICMP) : static_cast<int>(IPPROTO_ICMPV6);
 
@@ -306,52 +428,20 @@ bool raw_socket_ping_tester::initialize_socket(socket_family family, ping_contex
   return true;
 }
 
-bool raw_socket_ping_tester::send_icmp_packet(const ping_context& ctx, const sockaddr* dest_addr, socklen_t addr_len) {
-  if (ctx.family == socket_family::ipv4) {
-    // IPv4 ICMP packet
-#ifdef __linux__
-    // Linux ICMP packet
-    icmphdr icmp{};
-    icmp.type = ICMP_ECHO;
-    icmp.code = 0;
-    icmp.un.echo.id = htons(ctx.identifier);
-    icmp.un.echo.sequence = htons(ctx.sequence);
-    icmp.checksum = 0;
+bool raw_socket_ping_tester::send_icmp_packet(const ping_context& ctx, const sockaddr* dest_addr, const socklen_t addr_len) {
+  // Use handler to build ICMP packet
+  const auto family = (ctx.family == socket_family::ipv4) ?
+    icmp_handler_factory::socket_family::ipv4 :
+    icmp_handler_factory::socket_family::ipv6;
 
-    // Calculate checksum
-    icmp.checksum = calculate_checksum(&icmp, sizeof(icmp));
+  auto handler = icmp_handler_factory::create(family);
+  auto packet = handler->build_echo_request(ctx.identifier, ctx.sequence);
 
-    const ssize_t sent = sendto(ctx.socket_fd, &icmp, sizeof(icmp), 0, dest_addr, addr_len);
-    return sent > 0;
-#else
-    // FreeBSD, Solaris, and other BSD-like systems use 'icmp' struct
-    icmp icmp_pkt{};
-    icmp_pkt.icmp_type = ICMP_ECHO;
-    icmp_pkt.icmp_code = 0;
-    icmp_pkt.icmp_hun.ih_idseq.icd_id = htons(ctx.identifier);
-    icmp_pkt.icmp_hun.ih_idseq.icd_seq = htons(ctx.sequence);
-    icmp_pkt.icmp_cksum = 0;
-
-    // Calculate checksum
-    icmp_pkt.icmp_cksum = calculate_checksum(&icmp_pkt, sizeof(icmp_pkt));
-
-    const ssize_t sent = sendto(ctx.socket_fd, &icmp_pkt, sizeof(icmp_pkt), 0, dest_addr, addr_len);
-    return sent > 0;
-#endif
-  } else {
-    // IPv6 ICMP packet
-    icmp6_hdr icmp6{};
-    icmp6.icmp6_type = ICMP6_ECHO_REQUEST;
-    icmp6.icmp6_code = 0;
-    icmp6.icmp6_id = htons(ctx.identifier);
-    icmp6.icmp6_seq = htons(ctx.sequence);
-
-    const ssize_t sent = sendto(ctx.socket_fd, &icmp6, sizeof(icmp6), 0, dest_addr, addr_len);
-    return sent > 0;
-  }
+  const ssize_t sent = sendto(ctx.socket_fd, packet.data(), packet.size(), 0, dest_addr, addr_len);
+  return sent > 0;
 }
 
-bool raw_socket_ping_tester::wait_for_reply(const ping_context& ctx, int timeout_ms) {
+bool raw_socket_ping_tester::wait_for_reply(const ping_context& ctx, const int timeout_ms) {
   fd_set read_fds;
   FD_ZERO(&read_fds);
   FD_SET(ctx.socket_fd, &read_fds);
@@ -365,47 +455,13 @@ bool raw_socket_ping_tester::wait_for_reply(const ping_context& ctx, int timeout
     const ssize_t received = recv(ctx.socket_fd, buffer, sizeof(buffer), 0);
 
     if (received > 0) {
-      // Raw sockets include IP header, need to skip it
-      if (ctx.family == socket_family::ipv4) {
-        // IPv4: Skip IP header to get to ICMP
-#ifdef __linux__
-        if (received < static_cast<ssize_t>(sizeof(struct ip) + sizeof(struct icmphdr))) {
-          return false;  // Packet too small
-        }
-        const auto* ip_hdr = reinterpret_cast<const struct ip*>(buffer);
-        const size_t ip_header_len = ip_hdr->ip_hl * 4;  // IP header length in bytes
+      // Use handler to check for echo reply
+      const auto family = (ctx.family == socket_family::ipv4) ?
+        icmp_handler_factory::socket_family::ipv4 :
+        icmp_handler_factory::socket_family::ipv6;
 
-        if (received < static_cast<ssize_t>(ip_header_len + sizeof(struct icmphdr))) {
-          return false;  // Packet too small
-        }
-
-        const auto* icmp_hdr = reinterpret_cast<const struct icmphdr*>(buffer + ip_header_len);
-        // Check if it's an Echo Reply (type 0) with matching ID
-        return icmp_hdr->type == ICMP_ECHOREPLY && ntohs(icmp_hdr->un.echo.id) == ctx.identifier;
-#else
-        if (received < static_cast<ssize_t>(sizeof(struct ip) + sizeof(struct icmp))) {
-          return false;  // Packet too small
-        }
-        const auto* ip_hdr = reinterpret_cast<const struct ip*>(buffer);
-        const size_t ip_header_len = ip_hdr->ip_hl * 4;  // IP header length in bytes
-
-        if (received < static_cast<ssize_t>(ip_header_len + sizeof(struct icmp))) {
-          return false;  // Packet too small
-        }
-
-        const auto* icmp_hdr = reinterpret_cast<const struct icmp*>(buffer + ip_header_len);
-        // Check if it's an Echo Reply (type 0) with matching ID
-        return icmp_hdr->icmp_type == ICMP_ECHOREPLY && ntohs(icmp_hdr->icmp_hun.ih_idseq.icd_id) == ctx.identifier;
-#endif
-      } else {
-        // IPv6: ICMPv6 (kernel may or may not include IPv6 header depending on socket options)
-        if (received < static_cast<ssize_t>(sizeof(struct icmp6_hdr))) {
-          return false;  // Packet too small
-        }
-        const auto* icmp6 = reinterpret_cast<const struct icmp6_hdr*>(buffer);
-        // Check if it's an Echo Reply (type 129) with matching ID
-        return icmp6->icmp6_type == ICMP6_ECHO_REPLY && ntohs(icmp6->icmp6_id) == ctx.identifier;
-      }
+      auto handler = icmp_handler_factory::create(family);
+      return handler->is_echo_reply_raw(buffer, received, ctx.identifier);
     }
   }
 
@@ -438,24 +494,6 @@ raw_socket_ping_tester::socket_family raw_socket_ping_tester::determine_address_
 
   freeaddrinfo(result);
   return family;
-}
-
-uint16_t raw_socket_ping_tester::calculate_checksum(const void* data, size_t len) {
-  const auto* buf = static_cast<const uint16_t*>(data);
-  uint32_t sum = 0;
-
-  while (len > 1) {
-    sum += *buf++;
-    len -= 2;
-  }
-
-  if (len == 1) {
-    sum += *reinterpret_cast<const uint8_t*>(buf) << 8;
-  }
-
-  sum = (sum >> 16) + (sum & 0xFFFF);
-  sum += (sum >> 16);
-  return static_cast<uint16_t>(~sum);
 }
 
 bool raw_socket_ping_tester::resolve_hostname(const std::string& host, const socket_family family, sockaddr_storage& addr, socklen_t& addr_len) {

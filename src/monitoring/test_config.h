@@ -1,9 +1,13 @@
 #pragma once
 
+#include <memory>
 #include <optional>
 #include <string>
 
 #include "../core/types.h"
+
+// Forward declaration
+class test_config_validator;
 
 class test_config {
  private:
@@ -18,11 +22,11 @@ class test_config {
   // Constructors
   test_config() : test_method_type_(test_method::ping), port_(-1) {}
 
-  explicit test_config(test_method method) : test_method_type_(method), port_(-1) {}
+  explicit test_config(const test_method method) : test_method_type_(method), port_(-1) {}
 
-  test_config(test_method method, protocol proto, int port_val) : test_method_type_(method), protocol_type_(proto), port_(port_val) {}
+  test_config(const test_method method, protocol proto, const int port_val) : test_method_type_(method), protocol_type_(proto), port_(port_val) {}
 
-  test_config(test_method method, const std::string& url_val) : test_method_type_(method), port_(-1), url_(url_val) {}
+  test_config(const test_method method, const std::string& url_val) : test_method_type_(method), port_(-1), url_(url_val) {}
 
   // Getters
   [[nodiscard]] test_method get_test_method() const { return test_method_type_; }
@@ -47,4 +51,38 @@ class test_config {
   // Validation methods
   [[nodiscard]] bool is_valid() const;
   [[nodiscard]] std::string get_validation_error() const;
+
+ private:
+  [[nodiscard]] std::unique_ptr<test_config_validator> get_validator() const;
+};
+
+// Validator Strategy Pattern
+class test_config_validator {
+ public:
+  virtual ~test_config_validator() = default;
+  [[nodiscard]] virtual bool is_valid(const test_config& config) const = 0;
+  [[nodiscard]] virtual std::string get_validation_error(const test_config& config) const = 0;
+};
+
+class ping_test_validator final : public test_config_validator {
+ public:
+  [[nodiscard]] bool is_valid(const test_config& config) const override;
+  [[nodiscard]] std::string get_validation_error(const test_config& config) const override;
+};
+
+class connect_test_validator final : public test_config_validator {
+ public:
+  [[nodiscard]] bool is_valid(const test_config& config) const override;
+  [[nodiscard]] std::string get_validation_error(const test_config& config) const override;
+};
+
+class url_test_validator final : public test_config_validator {
+ public:
+  [[nodiscard]] bool is_valid(const test_config& config) const override;
+  [[nodiscard]] std::string get_validation_error(const test_config& config) const override;
+};
+
+class test_config_validator_factory {
+ public:
+  static std::unique_ptr<test_config_validator> create(test_method method);
 };

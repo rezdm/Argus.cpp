@@ -31,7 +31,7 @@ void monitor_config::set_log_file(const std::string& log_file_val) { log_file_ =
 
 void monitor_config::clear_log_file() { log_file_.reset(); }
 
-void monitor_config::set_cache_duration_seconds(int duration) {
+void monitor_config::set_cache_duration_seconds(const int duration) {
   if (duration < 0) {
     throw std::invalid_argument("Cache duration cannot be negative");
   }
@@ -44,7 +44,7 @@ void monitor_config::clear_html_template() { html_template_.reset(); }
 
 void monitor_config::set_base_url(const std::string& base_url_val) { base_url_ = base_url_val; }
 
-void monitor_config::set_thread_pool_size(size_t size) { thread_pool_size_ = size; }
+void monitor_config::set_thread_pool_size(const size_t size) { thread_pool_size_ = size; }
 
 void monitor_config::set_monitors(const std::vector<group>& monitors_val) {
   for (const auto& monitor_group : monitors_val) {
