@@ -104,6 +104,7 @@ set(ARGUS_SOURCES
     web/web_server.cpp
     utils/thread_pool.cpp
     utils/async_scheduler.cpp
+    utils/task_recovery_policy.cpp
     utils/test_result.cpp
 )
 

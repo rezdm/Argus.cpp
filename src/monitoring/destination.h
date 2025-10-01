@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "../utils/time_types.h"
 #include "test_config.h"
 
 class destination {
@@ -32,6 +33,10 @@ class destination {
   [[nodiscard]] int get_interval() const { return interval_; }
   [[nodiscard]] int get_history() const { return history_; }
   [[nodiscard]] const test_config& get_test() const { return test_; }
+
+  // Strong-typed time getters (preferred for new code)
+  [[nodiscard]] timeout_ms get_timeout_ms() const { return timeout_ms{timeout_}; }
+  [[nodiscard]] interval_sec get_interval_sec() const { return interval_sec{interval_}; }
 
   // Setters with validation
   void set_sort(int sort_val);

@@ -8,7 +8,9 @@
 #include <mutex>
 #include <queue>
 #include <thread>
+#include <unordered_map>
 
+#include "task_recovery_policy.h"
 #include "thread_pool.h"
 
 // Task scheduled for future execution
@@ -18,6 +20,7 @@ struct scheduled_task {
   std::function<void()> task;
   bool repeating;
   size_t id;
+  int failure_count = 0;
 
   // Comparison for priority queue (earlier times have higher priority)
   bool operator>(const scheduled_task& other) const { return next_run > other.next_run; }
@@ -25,7 +28,7 @@ struct scheduled_task {
 
 class async_scheduler {
  public:
-  explicit async_scheduler(std::shared_ptr<thread_pool> pool);
+  explicit async_scheduler(std::shared_ptr<thread_pool> pool, std::unique_ptr<task_recovery_policy> recovery_policy = std::make_unique<fixed_delay_recovery>());
   ~async_scheduler();
 
   // Schedule a one-time task
@@ -48,6 +51,7 @@ class async_scheduler {
 
  private:
   std::shared_ptr<thread_pool> thread_pool_;
+  std::unique_ptr<task_recovery_policy> recovery_policy_;
   std::priority_queue<scheduled_task, std::vector<scheduled_task>, std::greater<>> task_queue_;
   mutable std::mutex queue_mutex_;
   std::condition_variable condition_;

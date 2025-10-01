@@ -4,7 +4,10 @@
 
 #include <algorithm>
 
-async_scheduler::async_scheduler(std::shared_ptr<thread_pool> pool) : thread_pool_(std::move(pool)), running_(false), next_task_id_(1) { spdlog::debug("Async scheduler created"); }
+async_scheduler::async_scheduler(std::shared_ptr<thread_pool> pool, std::unique_ptr<task_recovery_policy> recovery_policy)
+    : thread_pool_(std::move(pool)), recovery_policy_(std::move(recovery_policy)), running_(false), next_task_id_(1) {
+  spdlog::debug("Async scheduler created");
+}
 
 async_scheduler::~async_scheduler() { stop(); }
 
@@ -108,29 +111,41 @@ void async_scheduler::scheduler_loop() {
       lock.unlock();
 
       // Submit task to thread pool with error recovery
+      bool task_succeeded = false;
       try {
         if (thread_pool_->is_stopping()) {
-          spdlog::warn("Thread pool is stopping, skipping task {}", next_task.id);
+          recovery_policy_->on_recovery_abandoned(next_task.id, "Thread pool is stopping");
           break;  // Exit scheduler loop if thread pool is stopping
         }
 
         thread_pool_->enqueue(next_task.task);
         spdlog::trace("Executed scheduled task {}", next_task.id);
-      } catch (const std::exception& e) {
-        spdlog::error("Failed to execute scheduled task {}: {}. Task will be retried on next cycle.", next_task.id, e.what());
+        task_succeeded = true;
 
-        // For repeating tasks, attempt recovery by rescheduling
+        // Reset failure count on success
+        if (next_task.failure_count > 0) {
+          recovery_policy_->on_recovery_success(next_task.id);
+          next_task.failure_count = 0;
+        }
+      } catch (const std::exception& e) {
+        next_task.failure_count++;
+
+        // For repeating tasks, consult recovery policy
         if (next_task.repeating && running_) {
-          next_task.next_run = now + std::chrono::seconds(10);  // Retry in 10 seconds
-          lock.lock();
-          task_queue_.push(std::move(next_task));
-          lock.unlock();
-          spdlog::info("Rescheduled failed task {} for retry in 10 seconds", next_task.id);
+          if (const auto retry_delay = recovery_policy_->should_retry(next_task.id, e.what(), next_task.failure_count)) {
+            next_task.next_run = now + *retry_delay;
+            lock.lock();
+            task_queue_.push(std::move(next_task));
+            lock.unlock();
+            continue;  // Skip normal rescheduling
+          } else {
+            recovery_policy_->on_recovery_abandoned(next_task.id, "Max retries exceeded");
+          }
         }
       }
 
-      // Re-schedule if it's a repeating task
-      if (next_task.repeating && running_) {
+      // Re-schedule if it's a repeating task and execution succeeded
+      if (next_task.repeating && running_ && task_succeeded) {
         next_task.next_run = now + next_task.interval;
         lock.lock();
         task_queue_.push(std::move(next_task));
