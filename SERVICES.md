@@ -102,7 +102,7 @@ sudo service argus stop
 sudo sysrc argus_enable="YES"
 
 # Optional: Set custom config file
-sudo sysrc argus_config="/usr/local/etc/argus/custom.json"
+sudo sysrc argus_config="/usr/local/etc/argus/argus.json"
 
 # Optional: Set custom log file
 sudo sysrc argus_logfile="/var/log/argus/custom.log"
@@ -126,7 +126,7 @@ Add to `/etc/rc.conf`:
 argus_enable="YES"
 argus_user="argus"
 argus_group="argus"
-argus_config="/usr/local/etc/argus/config.json"
+argus_config="/usr/local/etc/argus/argus.json"
 argus_logfile="/var/log/argus.log"
 argus_flags=""  # Additional command line flags
 ```
@@ -210,7 +210,7 @@ sudo svcadm restart argus
 ```bash
 Installation Prefix: /usr/local          (Linux/BSD) or /opt/argus (Solaris)
 Executable: ${PREFIX}/bin/argus
-Config: ${PREFIX}/etc/config.json
+Config: ${PREFIX}/etc/argus.json
 Templates: ${PREFIX}/share/templates/
 Logs: /var/log/argus.log
 Runtime: /var/run/argus.pid
@@ -224,7 +224,7 @@ make install
 
 # All service files automatically use custom paths:
 # - /opt/monitoring/argus/bin/argus
-# - /opt/monitoring/argus/etc/config.json
+# - /opt/monitoring/argus/etc/argus.json
 # - /opt/monitoring/argus/share/templates/
 ```
 
@@ -327,7 +327,7 @@ For systems not covered by the standard service files, you can create custom int
 
 ```bash
 # Manual start with custom paths
-/custom/path/bin/argus -d -l /custom/log/path.log /custom/config/path.json
+/custom/path/bin/argus -d -l /custom/log/path.log /custom/config/argus.json
 ```
 
 All service files are templates and can be customized for specific deployment requirements.

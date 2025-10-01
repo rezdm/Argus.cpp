@@ -23,7 +23,7 @@ All service files use CMake template variables that are automatically substitute
 
 - `@CMAKE_INSTALL_PREFIX@` - Installation directory (e.g., `/usr/local`, `/opt/argus`)
 - `@CMAKE_INSTALL_PREFIX@/bin/argus` - Executable path
-- `@CMAKE_INSTALL_PREFIX@/etc/config.json` - Default configuration file path
+- `@CMAKE_INSTALL_PREFIX@/etc/argus.json` - Default configuration file path
 - `@CMAKE_INSTALL_PREFIX@/share/templates/` - Web templates directory
 
 ## Automatic Selection
@@ -57,7 +57,7 @@ make install
 
 # Service files automatically use custom paths:
 # /opt/monitoring/argus/bin/argus
-# /opt/monitoring/argus/etc/config.json
+# /opt/monitoring/argus/etc/argus.json
 ```
 
 ## Service File Destinations

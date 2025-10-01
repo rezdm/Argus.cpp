@@ -381,12 +381,12 @@ void setup_logging(const bool daemon_mode, const bool systemd_mode, const std::s
 }
 
 void print_usage(const char* program_name) {
-  std::cout << "Usage: " << program_name << " [-d|--daemon] [-s|--systemd] [-l|--log-file <path>] <config.json>\n";
+  std::cout << "Usage: " << program_name << " [-d|--daemon] [-s|--systemd] [-l|--log-file <path>] <argus.json>\n";
   std::cout << "Options:\n";
   std::cout << "  -d, --daemon              Run as daemon (detach from terminal)\n";
   std::cout << "  -s, --systemd             Run in systemd mode (no fork, journal logging)\n";
   std::cout << "  -l, --log-file <path>     Log to specified file (overrides config/systemd settings)\n";
-  std::cout << "  config.json               Configuration file path\n";
+  std::cout << "  argus.json                Configuration file path\n";
   std::cout << "\nNote: systemd mode is automatically detected when NOTIFY_SOCKET is set\n";
 }
 

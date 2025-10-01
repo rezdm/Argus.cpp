@@ -15,7 +15,7 @@ load_rc_config $name
 : ${argus_enable:="NO"}
 : ${argus_user:="argus"}
 : ${argus_group:="argus"}
-: ${argus_config:="@CMAKE_INSTALL_PREFIX@/etc/config.json"}
+: ${argus_config:="@CMAKE_INSTALL_PREFIX@/etc/argus.json"}
 : ${argus_pidfile:="/var/run/argus.pid"}
 : ${argus_logfile:="/var/log/argus.log"}
 : ${argus_flags:=""}

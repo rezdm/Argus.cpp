@@ -6,7 +6,7 @@ Wants=network-online.target
 
 [Service]
 Type=notify
-ExecStart=@CMAKE_INSTALL_PREFIX@/bin/argus -s -l /var/log/argus/argus.log @CMAKE_INSTALL_PREFIX@/etc/config.json
+ExecStart=@CMAKE_INSTALL_PREFIX@/bin/argus -s -l /var/log/argus/argus.log @CMAKE_INSTALL_PREFIX@/etc/argus.json
 ExecReload=/bin/kill -HUP $MAINPID
 Restart=always
 RestartSec=5

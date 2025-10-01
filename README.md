@@ -45,12 +45,12 @@ Just run `./build/bin/argus` — the tool will print out the available command-l
 
 ## Command Line Arguments
 ```bash
-argus config.json                              # stdout logging
-argus -l /tmp/debug.log config.json            # file logging
-argus -d config.json                           # daemon + default log file
-argus -d -l /custom/path.log config.json       # daemon + custom log file
-argus -s config.json                           # systemd mode
-argus -s -l /custom/path.log config.json       # systemd mode + custom log file
+argus argus.json                               # stdout logging
+argus -l /tmp/debug.log argus.json             # file logging
+argus -d argus.json                            # daemon + default log file
+argus -d -l /custom/path.log argus.json        # daemon + custom log file
+argus -s argus.json                            # systemd mode
+argus -s -l /custom/path.log argus.json        # systemd mode + custom log file
 ```
 
 ## Configuration

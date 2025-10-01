@@ -22,7 +22,7 @@
 
         <!-- Methods -->
         <exec_method type='method' name='start'
-                     exec='@CMAKE_INSTALL_PREFIX@/bin/argus -d @CMAKE_INSTALL_PREFIX@/etc/config.json'
+                     exec='@CMAKE_INSTALL_PREFIX@/bin/argus -d @CMAKE_INSTALL_PREFIX@/etc/argus.json'
                      timeout_seconds='30'>
             <method_credential user='argus' group='argus' />
             <method_environment>
@@ -53,7 +53,7 @@
         <!-- Application properties -->
         <property_group name='application' type='application'>
             <propval name='auto_enable' type='boolean' value='false' />
-            <propval name='config_file' type='astring' value='@CMAKE_INSTALL_PREFIX@/etc/config.json' />
+            <propval name='config_file' type='astring' value='@CMAKE_INSTALL_PREFIX@/etc/argus.json' />
             <propval name='log_file' type='astring' value='/var/log/argus.log' />
         </property_group>
 

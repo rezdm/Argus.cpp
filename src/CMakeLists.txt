@@ -216,10 +216,10 @@ install(TARGETS argus
 
 # Configure and install default configuration
 configure_file(../config/example_config.json.in
-    ${CMAKE_CURRENT_BINARY_DIR}/config.json
+    ${CMAKE_CURRENT_BINARY_DIR}/argus.json
     @ONLY
 )
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/config.json
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/argus.json
     DESTINATION etc
     PERMISSIONS OWNER_READ OWNER_WRITE GROUP_READ WORLD_READ
 )
@@ -455,7 +455,7 @@ install(CODE "
     message(STATUS \"=== Argus Installation Complete ===\")
     message(STATUS \"Installation directory: \${CMAKE_INSTALL_PREFIX}\")
     message(STATUS \"Executable: \${CMAKE_INSTALL_PREFIX}/bin/argus\")
-    message(STATUS \"Config file: \${CMAKE_INSTALL_PREFIX}/etc/config.json\")
+    message(STATUS \"Config file: \${CMAKE_INSTALL_PREFIX}/etc/argus.json\")
     message(STATUS \"Templates: \${CMAKE_INSTALL_PREFIX}/share/templates/\")
     message(STATUS \"Service management: ${SERVICE_TYPE}\")
     message(STATUS \"\")
@@ -497,7 +497,7 @@ install(CODE "
         message(STATUS \"  Reload:  sudo svcadm refresh argus\")
 
     else()
-        message(STATUS \"Manual start: \${CMAKE_INSTALL_PREFIX}/bin/argus \${CMAKE_INSTALL_PREFIX}/etc/config.json\")
+        message(STATUS \"Manual start: \${CMAKE_INSTALL_PREFIX}/bin/argus \${CMAKE_INSTALL_PREFIX}/etc/argus.json\")
     endif()
 
     message(STATUS \"\")
