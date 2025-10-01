@@ -12,7 +12,7 @@ The program exposes an endpoint and serves a static (configurable) HTML page:
 ## Features
 - **Multi-Protocol**: Ping (ICMP, raw sockets, and calling the ping utility; the homemade ping implementation is still suffering from some issues); TCP/UDP port connectivity (TCP connect, UDP by sending an empty packet), HTTP/HTTPS (sending GET requests; ignores certificates)
 - **IPv4/IPv6**: I tried to make it work with both v4 and v6, but I have somewhat limited networks to truly test this
-- **Web Dashboard**: Apart from the API endpoint, the program also serves HTML; the contents are configurable. Obviously, it's possible to place an HTML file with any contents on any other web server
+- **Web Dashboard**: Apart from the API endpoint, the program also serves HTML; the contents are configurable. Obviously, it's possible to place an HTML file with any contents on any other web server. One template (glass-tty.html) uses the Glass TTY VT220 font (public domain) embedded as base64
 - **Deployment**: Foreground, background/daemonized, SysV, systemd, FreeBSD rc.d, Solaris SMF — I've done my best to support these
 - **Logging**: Uses spdlog library. Default is stdout/stderr and /var/log/argus.log
 
