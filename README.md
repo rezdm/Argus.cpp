@@ -12,8 +12,6 @@ I liked the result of the translation and decided to continue with the C++-based
 The program exposes an endpoint and serves a static (configurable) HTML page:
 ![argus-dashboard-screenshot.png](argus-dashboard-screenshot.png)
 
-(UI changed since this screenshot was made -- there is now subscribe/unsubscribe buttons to support push notifications and a refresh button)
-
 ## Build
 * Generate build and prepare for installation
 ```
@@ -139,3 +137,4 @@ Perform HTTP GET, check for non-error response. If URL is https, does not check 
 ## Improvements
 * As of now I rely on fronting/revers proxying for security. I'd like to introduce some security directly into the project
 * UI, etc
+* libcrypto usage -- /me not like, it can be improved
