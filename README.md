@@ -69,14 +69,14 @@ argus -d argus.json                            # daemon + default log file
 argus -d -l /custom/path.log argus.json        # daemon + custom log file
 argus -s argus.json                            # systemd mode
 argus -s -l /custom/path.log argus.json        # systemd mode + custom log file
+argus -v debug argus.json                      # change log level
 ```
 
 ## PWA + notifications
-* Generate VAPID keys
-public
-private
-add them to back-end config
-change pwa/app.js
+# Keys
+* Generate VAPID keys (private, public, pem and base64)
+* Place them to to back-end config
+* Place to pwa/app.js (may be I implement later taking it from a separate file)
 * I am using fronting Apache with reverse proxy:
 ```xml
 <VirtualHost *:443>
@@ -89,8 +89,41 @@ change pwa/app.js
 
     ProxyPass /argus http://192.168.100.97:8080/argus
     ProxyPassReverse /argus http://192.168.100.97:8080/argus
-
-    ProxyPass /argus.pwa http://192.168.100.32:8080
-    ProxyPassReverse /argus.pwa http://192.168.100.32:8080   
 </VirtualHost>
 ```
+## Example configuration
+```json
+{
+  "name": "Argus",
+  "listen": "192.168.10.10:8080",
+  "cache_duration_seconds": 0,
+  "base_url": "/argus",
+  "static_dir": "/opt/argus/var/pwa",
+  "log_status_every_n": 50,
+  "push_notifications": {
+    "enabled": true,
+    "subscriptions_file": "/opt/argus/var/subs.json",
+    "vapid_subject": "mailto:john.doe@example.com",
+    "vapid_public_key": "...base64 public key",
+    "vapid_private_key": "...base64 private key"
+  },
+  "monitors": [
+    {
+      "sort": 10,
+      "group": "Home",
+      "destinations": [
+        { "sort":  0, "name": "nas", "timeout": 1000, "warning": 1, "failure": 2, "reset": 1, "interval": 5, "history": 100, "test": { "method": "Ping", "host": "nas-station" }}
+      ]
+    }
+  ]
+}
+```
+
+## Testers
+### Ping
+As is, ping. The tool tries to use raw sockets, ICMP sockets, than fallbacks to calling OS ping command 
+### Connect
+* TCP connect to a host:port
+* UDP send 0-length packet to host:port
+### URL
+Perform HTTP GET, check for non-error response. If URL is https, does not check certificate validity

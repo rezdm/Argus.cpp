@@ -21,10 +21,11 @@ class monitor_config {
   std::string pwa_path_;  // Path where PWA is mounted (e.g., "/argus.pwa")
   push_notification_config push_config_;
   std::vector<group> monitors_;
+  int log_status_every_n_;  // Log repeated status messages only every N times (0 = always log)
 
  public:
   // Constructors
-  monitor_config() : cache_duration_seconds_(argus::constants::DEFAULT_CACHE_DURATION_SECONDS), base_url_(argus::constants::DEFAULT_BASE_URL), thread_pool_size_(argus::constants::DEFAULT_THREAD_POOL_SIZE), pwa_path_("") {}
+  monitor_config() : cache_duration_seconds_(argus::constants::DEFAULT_CACHE_DURATION_SECONDS), base_url_(argus::constants::DEFAULT_BASE_URL), thread_pool_size_(argus::constants::DEFAULT_THREAD_POOL_SIZE), pwa_path_(""), log_status_every_n_(50) {}
 
   monitor_config(const std::string& name_val, const std::string& listen_val);
 
@@ -41,6 +42,7 @@ class monitor_config {
   [[nodiscard]] const push_notification_config& get_push_config() const { return push_config_; }
   [[nodiscard]] const std::vector<group>& get_monitors() const { return monitors_; }
   [[nodiscard]] size_t get_monitor_count() const { return monitors_.size(); }
+  [[nodiscard]] int get_log_status_every_n() const { return log_status_every_n_; }
 
   // Setters with validation
   void set_name(const std::string& name_val);
@@ -59,6 +61,7 @@ class monitor_config {
   void set_monitors(const std::vector<group>& monitors_val);
   void add_monitor_group(const group& monitor_group);
   void clear_monitors();
+  void set_log_status_every_n(int n);
 
   // Validation methods
   [[nodiscard]] bool is_valid() const;

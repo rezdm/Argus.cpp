@@ -1,152 +1,453 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <meta name="description" content="Argus Network Monitor - Real-time service monitoring dashboard">
-    <meta name="theme-color" content="#16213e">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Argus">
+ <title>Argus Monitor</title>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <meta name="description" content="Argus Network Monitor - Real-time service monitoring dashboard">
+ <meta name="theme-color" content="#000000">
+ <meta name="mobile-web-app-capable" content="yes">
+ <meta name="apple-mobile-web-app-capable" content="yes">
+ <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+ <meta name="apple-mobile-web-app-title" content="Argus">
 
-    <title>Argus Monitor</title>
+ <!-- PWA Manifest -->
+ <link rel="manifest" href="/argus/manifest.json">
 
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="manifest.json">
+ <!-- Icons for Apple -->
+ <link rel="apple-touch-icon" href="/argus/icons/icon-152x152.png">
+ <link rel="apple-touch-icon" sizes="152x152" href="/argus/icons/icon-152x152.png">
+ <link rel="apple-touch-icon" sizes="180x180" href="/argus/icons/icon-192x192.png">
+ <link rel="apple-touch-icon" sizes="167x167" href="/argus/icons/icon-192x192.png">
 
-    <!-- Icons for Apple -->
-    <link rel="apple-touch-icon" href="icons/icon-152x152.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152x152.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-192x192.png">
-    <link rel="apple-touch-icon" sizes="167x167" href="icons/icon-192x192.png">
+ <!-- Standard favicon -->
+ <link rel="icon" type="image/png" sizes="192x192" href="/argus/icons/icon-192x192.png">
+ <link rel="icon" type="image/png" sizes="512x512" href="/argus/icons/icon-512x512.png">
 
-    <!-- Standard favicon -->
-    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192x192.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512x512.png">
+ <style>
+  * { box-sizing: border-box; }
+  body {
+   font-family: 'Courier New', 'Lucida Console', monospace;
+   margin: 10px;
+   background-color: #000;
+   color: #00ff00;
+   font-size: 12px;
+   line-height: 1.4;
+   text-shadow: 0 0 2px #00ff00;
+  }
+  .header {
+   border: 2px solid #00ff00;
+   padding: 3px 10px;
+   margin-bottom: 8px;
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   box-shadow: 0 0 10px #00ff00;
+  }
+  .header h3 {
+   margin: 0;
+   font-size: 13px;
+   color: #00ff00;
+   letter-spacing: 2px;
+   text-transform: uppercase;
+  }
+  .header-actions {
+   display: flex;
+   gap: 5px;
+   align-items: center;
+  }
+  .header .last-updated {
+   margin: 0;
+   font-size: 10px;
+   color: #006600;
+   letter-spacing: 1px;
+  }
+  .btn {
+   background-color: #000;
+   color: #00ff00;
+   border: 1px solid #00ff00;
+   padding: 4px 8px;
+   font-family: 'Courier New', monospace;
+   font-size: 10px;
+   cursor: pointer;
+   text-transform: uppercase;
+   letter-spacing: 1px;
+   box-shadow: none;
+   transition: none;
+   text-shadow: 0 0 2px #00ff00;
+  }
+  .btn:hover {
+   background-color: #001a00;
+   color: #00ff00;
+   box-shadow: none;
+  }
+  .btn:active {
+   background-color: #003300;
+  }
+  .btn:disabled {
+   opacity: 0.5;
+   cursor: not-allowed;
+   background-color: #000;
+   color: #006600;
+  }
+  .btn-refresh {
+   padding: 4px 6px;
+   min-width: 24px;
+  }
+  .btn-notify.subscribed {
+   background-color: #001a00;
+   color: #00ff00;
+   border: 1px solid #00ff00;
+  }
+  .group {
+   border: 1px solid #00ff00;
+   margin-bottom: 0;
+   background-color: #0a0a0a;
+  }
+  .group-header {
+   background-color: #003300;
+   color: #00ff00;
+   padding: 5px 10px;
+   font-size: 12px;
+   font-weight: bold;
+   border-bottom: 1px solid #00ff00;
+   letter-spacing: 1px;
+  }
+  .monitor-table {
+   width: 100%;
+   border-collapse: collapse;
+   font-size: 11px;
+   table-layout: fixed;
+  }
+  .monitor-table td {
+   padding: 3px 6px;
+   text-align: left;
+   border-bottom: 1px solid #003300;
+   overflow: hidden;
+   text-overflow: ellipsis;
+   white-space: nowrap;
+  }
+  .monitor-table th {
+   padding: 4px 6px;
+   text-align: left;
+   background-color: #003300;
+   color: #00ff00;
+   font-weight: bold;
+   border-top: 2px solid #00ff00;
+   border-bottom: 1px solid #00ff00;
+   text-transform: uppercase;
+   font-size: 10px;
+   letter-spacing: 1px;
+  }
+  /* Fixed column widths for alignment */
+  .monitor-table td:nth-child(1),
+  .monitor-table th:nth-child(1) { width: 18%; }
+  .monitor-table td:nth-child(2),
+  .monitor-table th:nth-child(2) { width: 16%; }
+  .monitor-table td:nth-child(3),
+  .monitor-table th:nth-child(3) { width: 10%; }
+  .monitor-table td:nth-child(4),
+  .monitor-table th:nth-child(4) { width: 10%; }
+  .monitor-table td:nth-child(5),
+  .monitor-table th:nth-child(5) { width: 12%; }
+  .monitor-table td:nth-child(6),
+  .monitor-table th:nth-child(6) { width: 10%; }
+  .monitor-table td:nth-child(7),
+  .monitor-table th:nth-child(7) { width: 24%; }
+  .status-pending { color: #666666; font-weight: bold; text-shadow: 0 0 1px #666666; }
+  .status-ok { color: #00ff00; font-weight: bold; text-shadow: 0 0 1px #00ff00; }
+  .status-warning { color: #ffff00; font-weight: bold; text-shadow: 0 0 1px #ffff00; }
+  .status-error { color: #ff0000; font-weight: bold; text-shadow: 0 0 1px #ff0000; }
+  .last-updated {
+   text-align: center;
+   margin-top: 15px;
+   color: #006600;
+   font-size: 10px;
+   letter-spacing: 1px;
+  }
+  .uptime-bar {
+   width: 50px;
+   height: 10px;
+   background-color: #003300;
+   overflow: hidden;
+   position: relative;
+   display: inline-block;
+   margin-right: 3px;
+   vertical-align: middle;
+   border: 1px solid #00ff00;
+  }
+  .uptime-fill {
+   height: 100%;
+   background-color: #00ff00;
+   transition: width 0.3s ease;
+   box-shadow: 0 0 5px #00ff00;
+  }
+  .loading, .error {
+   text-align: center;
+   padding: 20px;
+   font-size: 12px;
+  }
+  .loading { color: #006600; }
+  .error { color: #ff0000; text-shadow: 0 0 3px #ff0000; }
 
-    <!-- Stylesheet -->
-    <link rel="stylesheet" href="styles.css">
+  /* Unified footer table */
+  .footer-header {
+   margin-top: 15px;
+  }
+
+  /* Mobile responsive */
+  @media (max-width: 768px) {
+   .monitor-table th:nth-child(n+5),
+   .monitor-table td:nth-child(n+5) {
+    display: none;
+   }
+   body { margin: 5px; font-size: 11px; }
+   .btn { font-size: 9px; padding: 3px 6px; }
+  }
+ </style>
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <div class="header-content">
-            <h1 class="header-title">
-                <span class="header-icon">🛡️</span>
-                <span id="app-name">Argus Monitor</span>
-            </h1>
-            <div class="header-actions">
-                <button id="notification-btn" class="btn btn-notification" aria-label="Enable notifications" title="Enable push notifications">
-                    <span class="btn-icon">🔔</span>
-                    <span class="btn-text">Notify</span>
-                </button>
-                <button id="refresh-btn" class="btn btn-refresh" aria-label="Refresh" title="Refresh status">
-                    <span class="btn-icon">🔄</span>
-                </button>
-            </div>
-        </div>
-        <div id="last-update" class="last-update">Last updated: Never</div>
-    </header>
+ <div class="header">
+  <h3 id="page-title">Argus Monitor</h3>
+  <div class="header-actions">
+   <span id="last-updated-bar" class="last-updated">Loading...</span>
+   <button id="notification-btn" class="btn btn-notify" title="Subscribe to notifications">NOTIFY</button>
+   <button id="refresh-btn" class="btn btn-refresh" title="Refresh">⟳</button>
+  </div>
+ </div>
 
-    <!-- Main Content -->
-    <main class="main-content">
-        <!-- Connection Status Banner -->
-        <div id="offline-banner" class="banner banner-offline" style="display: none;">
-            ⚠️ Offline - Showing cached data
-        </div>
+ <div id="content">
+  <div class="loading">Loading...</div>
+ </div>
 
-        <!-- Loading State -->
-        <div id="loading" class="loading">
-            <div class="loading-spinner"></div>
-            <div class="loading-text">Loading monitor data...</div>
-        </div>
+ <script>
+  let baseUrl = '';
+  let swRegistration = null;
+  let isSubscribed = false;
 
-        <!-- Error State -->
-        <div id="error" class="error" style="display: none;">
-            <div class="error-icon">⚠️</div>
-            <div class="error-message">Failed to load monitor data</div>
-            <button id="retry-btn" class="btn btn-primary">Retry</button>
-        </div>
+  // Discover base_url from config
+  async function loadConfig() {
+    try {
+      // Try to detect from current URL path first
+      const path = window.location.pathname;
+      if (path && path !== '/' && !path.endsWith('.html')) {
+        // Extract base path (e.g., /argus from /argus/ or /argus/index.html)
+        const pathParts = path.split('/').filter(p => p);
+        if (pathParts.length > 0) {
+          baseUrl = '/' + pathParts[0];
+        }
+      }
 
-        <!-- Monitor Groups Container -->
-        <div id="monitors-container" class="monitors-container" style="display: none;">
-            <!-- Groups will be dynamically inserted here -->
-        </div>
+      // Then try to fetch config to confirm
+      const configUrl = baseUrl ? baseUrl + '/config.json' : '/config.json';
+      const response = await fetch(configUrl);
+      if (response.ok) {
+        const config = await response.json();
+        if (config.base_url) {
+          baseUrl = config.base_url;
+        }
+      }
+    } catch (e) {
+      console.log('Could not load config from server:', e);
+      // Keep the detected baseUrl from path
+    }
+    console.log('Using base_url:', baseUrl);
+  }
 
-        <!-- Empty State -->
-        <div id="empty-state" class="empty-state" style="display: none;">
-            <div class="empty-icon">📊</div>
-            <div class="empty-message">No monitors configured</div>
-        </div>
-    </main>
+  function getStatusClass(status) {
+   switch (status.toLowerCase()) {
+    case 'pending': return 'status-pending';
+    case 'ok': return 'status-ok';
+    case 'warning': return 'status-warning';
+    case 'failure': return 'status-error';
+    default: return 'status-pending';
+   }
+  }
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="footer-content">
-            <div class="footer-status">
-                <span id="connection-status" class="status-dot status-ok" title="Connected"></span>
-                <span id="connection-text">Connected</span>
-            </div>
-            <div class="footer-info">
-                <span id="install-prompt" class="install-prompt" style="display: none;">
-                    📲 <a href="#" id="install-link">Install App</a>
-                </span>
-            </div>
-        </div>
-    </footer>
+  function escapeHtml(text) {
+   const div = document.createElement('div');
+   div.textContent = text;
+   return div.innerHTML;
+  }
 
-    <!-- Install Modal -->
-    <div id="install-modal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Install Argus Monitor</h2>
-                <button class="modal-close" id="modal-close-btn">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p>Install Argus Monitor as an app for:</p>
-                <ul>
-                    <li>✅ Faster access</li>
-                    <li>✅ Offline support</li>
-                    <li>✅ Push notifications</li>
-                    <li>✅ Native app experience</li>
-                </ul>
-                <p class="modal-instructions">
-                    <strong>iOS:</strong> Tap the share button and select "Add to Home Screen"<br>
-                    <strong>Android/Desktop:</strong> Click the install button below
-                </p>
-            </div>
-            <div class="modal-footer">
-                <button id="install-btn" class="btn btn-primary">Install</button>
-                <button id="install-cancel-btn" class="btn btn-secondary">Maybe Later</button>
-            </div>
-        </div>
-    </div>
+  async function updateMonitorData() {
+   try {
+     const response = await fetch(baseUrl + '/status');
+     if (!response.ok) throw new Error('Network error');
 
-    <!-- Notification Permission Modal -->
-    <div id="notification-modal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Enable Notifications</h2>
-                <button class="modal-close" id="notification-modal-close-btn">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p>Get instant alerts when your services go down or recover:</p>
-                <ul>
-                    <li>🔔 Real-time status changes</li>
-                    <li>⚠️ Warning and failure alerts</li>
-                    <li>✅ Recovery notifications</li>
-                </ul>
-                <p class="modal-note">You can disable this anytime in your browser settings.</p>
-            </div>
-            <div class="modal-footer">
-                <button id="notification-enable-btn" class="btn btn-primary">Enable Notifications</button>
-                <button id="notification-cancel-btn" class="btn btn-secondary">Not Now</button>
-            </div>
-        </div>
-    </div>
+     const data = await response.json();
+     document.getElementById('page-title').textContent = data.name;
+     document.title = data.name + ' - Monitor';
 
-    <!-- Scripts -->
-    <script src="app.js"></script>
+     let html = '';
+     data.groups.forEach((group, index) => {
+       html += '<div class="group">';
+       html += '<div class="group-header">' + escapeHtml(group.name) + '</div>';
+       html += '<table class="monitor-table"><tbody>';
+
+       group.monitors.forEach(monitor => {
+         const statusClass = getStatusClass(monitor.status);
+         html += '<tr>';
+         html += '<td>' + escapeHtml(monitor.service) + '</td>';
+         html += '<td>' + escapeHtml(monitor.host) + '</td>';
+         html += '<td class="' + statusClass + '">' + escapeHtml(monitor.status) + '</td>';
+         html += '<td>' + escapeHtml(monitor.response_time) + '</td>';
+         html += '<td><div class="uptime-bar"><div class="uptime-fill" style="width: ' + monitor.uptime_percent + '%"></div></div>' + monitor.uptime_percent.toFixed(0) + '%</td>';
+         html += '<td>' + escapeHtml(monitor.last_check.split(' ')[1] || 'Never') + '</td>';
+         html += '<td>' + escapeHtml(monitor.details.substring(0, 20)) + '</td>';
+         html += '</tr>';
+       });
+
+       html += '</tbody></table></div>';
+     });
+
+     // Add unified header at the bottom
+     html += '<div class="group footer-header">';
+     html += '<table class="monitor-table">';
+     html += '<thead><tr><th>Service</th><th>Host</th><th>Status</th><th>Time</th><th>Up%</th><th>Check</th><th>Details</th></tr></thead>';
+     html += '</table></div>';
+
+     document.getElementById('content').innerHTML = html;
+     document.getElementById('last-updated-bar').textContent = 'Updated: ' + data.timestamp.split(' ')[1];
+   } catch (error) {
+     console.error('Error:', error);
+     document.getElementById('content').innerHTML = '<div class="error">Error loading data</div>';
+   }
+  }
+
+  // Service Worker registration
+  async function registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+      try {
+        swRegistration = await navigator.serviceWorker.register('sw.js');
+        console.log('Service Worker registered:', swRegistration);
+
+        // Check if already subscribed
+        const subscription = await swRegistration.pushManager.getSubscription();
+        isSubscribed = !(subscription === null);
+        updateNotifyButton();
+      } catch (error) {
+        console.error('Service Worker registration failed:', error);
+      }
+    }
+  }
+
+  // Subscribe/unsubscribe to push notifications
+  async function togglePushSubscription() {
+    const btn = document.getElementById('notification-btn');
+    btn.disabled = true;
+
+    try {
+      if (isSubscribed) {
+        // Unsubscribe
+        const subscription = await swRegistration.pushManager.getSubscription();
+        if (subscription) {
+          await subscription.unsubscribe();
+
+          // Notify server
+          await fetch(baseUrl + '/push/unsubscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ endpoint: subscription.endpoint })
+          });
+
+          console.log('Unsubscribed from push notifications');
+          isSubscribed = false;
+        }
+
+        // Unregister and re-register service worker for clean state
+        await swRegistration.unregister();
+        console.log('Service Worker unregistered');
+        await registerServiceWorker();
+
+      } else {
+        // Request notification permission
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+          alert('Notification permission denied');
+          btn.disabled = false;
+          return;
+        }
+
+        // Get VAPID public key from config
+        const configUrl = baseUrl ? baseUrl + '/config.json' : '/config.json';
+        const configResponse = await fetch(configUrl);
+        const config = await configResponse.json();
+
+        if (!config.push_enabled) {
+          alert('Push notifications not enabled on server');
+          btn.disabled = false;
+          return;
+        }
+
+        // Subscribe to push
+        const vapidPublicKeyResponse = await fetch(baseUrl + '/push/vapid_public_key');
+        const vapidPublicKey = await vapidPublicKeyResponse.text();
+
+        const subscription = await swRegistration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+        });
+
+        // Send subscription to server
+        const response = await fetch(baseUrl + '/push/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(subscription)
+        });
+
+        if (response.ok) {
+          console.log('Subscribed to push notifications');
+          isSubscribed = true;
+        } else {
+          throw new Error('Failed to subscribe on server');
+        }
+      }
+
+      updateNotifyButton();
+    } catch (error) {
+      console.error('Error toggling subscription:', error);
+      alert('Failed to toggle notifications: ' + error.message);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function updateNotifyButton() {
+    const btn = document.getElementById('notification-btn');
+    if (isSubscribed) {
+      btn.classList.add('subscribed');
+      btn.textContent = 'UNSUB';
+      btn.title = 'Unsubscribe from notifications';
+    } else {
+      btn.classList.remove('subscribed');
+      btn.textContent = 'NOTIFY';
+      btn.title = 'Subscribe to notifications';
+    }
+  }
+
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  }
+
+  // Event listeners
+  document.getElementById('refresh-btn').addEventListener('click', updateMonitorData);
+  document.getElementById('notification-btn').addEventListener('click', togglePushSubscription);
+
+  // Initialize
+  (async function init() {
+    await loadConfig();
+    await registerServiceWorker();
+    await updateMonitorData();
+    setInterval(updateMonitorData, 30000);
+  })();
+ </script>
 </body>
 </html>

@@ -55,6 +55,10 @@ monitor_config monitor_config_loader::load_config(const std::string& config_path
     config.set_pwa_path(root["pwa_path"].get<std::string>());
   }
 
+  if (root.contains("log_status_every_n")) {
+    config.set_log_status_every_n(root["log_status_every_n"].get<int>());
+  }
+
   if (root.contains("push_notifications")) {
     const auto& push_node = root["push_notifications"];
     push_notification_config push_config;
@@ -64,6 +68,7 @@ monitor_config monitor_config_loader::load_config(const std::string& config_path
       push_config.vapid_subject = push_node.value("vapid_subject", "");
       push_config.vapid_public_key = push_node.value("vapid_public_key", "");
       push_config.vapid_private_key = push_node.value("vapid_private_key", "");
+      push_config.subscriptions_file = push_node.value("subscriptions_file", "push_subscriptions.json");
 
       if (!push_config.is_valid()) {
         spdlog::warn("Push notifications enabled but configuration is invalid: {}. Push notifications will be disabled.", push_config.get_validation_error());

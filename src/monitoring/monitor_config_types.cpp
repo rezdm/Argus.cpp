@@ -9,7 +9,8 @@ monitor_config::monitor_config(const std::string& name_val, const std::string& l
       listen_(listen_val),
       cache_duration_seconds_(argus::constants::DEFAULT_CACHE_DURATION_SECONDS),
       base_url_(argus::constants::DEFAULT_BASE_URL),
-      thread_pool_size_(argus::constants::DEFAULT_THREAD_POOL_SIZE) {
+      thread_pool_size_(argus::constants::DEFAULT_THREAD_POOL_SIZE),
+      log_status_every_n_(50) {
   validate_parameters();
 }
 
@@ -76,6 +77,13 @@ void monitor_config::add_monitor_group(const group& monitor_group) {
 }
 
 void monitor_config::clear_monitors() { monitors_.clear(); }
+
+void monitor_config::set_log_status_every_n(const int n) {
+  if (n < 0) {
+    throw std::invalid_argument("log_status_every_n cannot be negative");
+  }
+  log_status_every_n_ = n;
+}
 
 bool monitor_config::is_valid() const {
   if (name_.empty() || listen_.empty()) return false;

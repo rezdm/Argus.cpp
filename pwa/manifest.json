@@ -2,58 +2,58 @@
   "name": "Argus Monitor",
   "short_name": "Argus",
   "description": "Network monitoring dashboard with real-time status updates and push notifications",
-  "id": "/argus.pwa/",
-  "start_url": "/argus.pwa/",
-  "scope": "/argus.pwa/",
+  "id": "/argus/",
+  "start_url": "/argus/",
+  "scope": "/argus/",
   "display": "standalone",
-  "background_color": "#1a1a2e",
-  "theme_color": "#16213e",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "icons/icon-72x72.png",
+      "src": "/argus/icons/icon-72x72.png",
       "sizes": "72x72",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icons/icon-96x96.png",
+      "src": "/argus/icons/icon-96x96.png",
       "sizes": "96x96",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icons/icon-128x128.png",
+      "src": "/argus/icons/icon-128x128.png",
       "sizes": "128x128",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icons/icon-144x144.png",
+      "src": "/argus/icons/icon-144x144.png",
       "sizes": "144x144",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icons/icon-152x152.png",
+      "src": "/argus/icons/icon-152x152.png",
       "sizes": "152x152",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icons/icon-192x192.png",
+      "src": "/argus/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "icons/icon-384x384.png",
+      "src": "/argus/icons/icon-384x384.png",
       "sizes": "384x384",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icons/icon-512x512.png",
+      "src": "/argus/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -66,10 +66,10 @@
       "name": "View Status",
       "short_name": "Status",
       "description": "View current monitoring status",
-      "url": "/argus.pwa/",
+      "url": "/argus/",
       "icons": [
         {
-          "src": "icons/icon-192x192.png",
+          "src": "/argus/icons/icon-192x192.png",
           "sizes": "192x192",
           "type": "image/png"
         }

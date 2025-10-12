@@ -11,7 +11,7 @@
 #include "monitor_config.h"
 
 monitors::monitors(const monitor_config& config, std::shared_ptr<push_notification_manager> push_manager)
-    : running_(false), push_manager_(std::move(std::move(push_manager))) {
+    : config_(config), running_(false), push_manager_(std::move(std::move(push_manager))) {
   // Using auto-fallback ping implementation
   spdlog::info("Using auto-fallback ping implementation");
 
@@ -195,10 +195,22 @@ void monitors::perform_test_async(const std::shared_ptr<monitor_state>& state) c
                       to_string(prev_status), to_string(new_status), title);
           push_manager_->send_notification(title, notification_body, "./icons/icon-192x192.png");
         } else if (!result.is_success() && monitor_status::ok != new_status) {
-          // Log failures even without status change
-          spdlog::warn("Monitor {} status: {} (consecutive failures: {})",
-                      state->get_destination().get_name(), to_string(new_status),
-                      state->get_consecutive_failures());
+          // Log failures even without status change (with throttling)
+          const int consecutive_failures = state->get_consecutive_failures();
+          const int log_every_n = config_.get_log_status_every_n();
+
+          // Always log first failure (consecutive_failures == 1)
+          // Or log every N times if configured (e.g., 1, 50, 100, 150, ...)
+          // Or always log if log_every_n == 0 (disabled throttling)
+          bool should_log = (consecutive_failures == 1) ||
+                           (log_every_n > 0 && consecutive_failures % log_every_n == 0) ||
+                           (log_every_n == 0);
+
+          if (should_log) {
+            spdlog::warn("Monitor {} status: {} (consecutive failures: {})",
+                        state->get_destination().get_name(), to_string(new_status),
+                        consecutive_failures);
+          }
         }
       } catch (const std::exception& e) {
         spdlog::error("Critical error processing test result for {}: {}", state->get_destination().get_name(), e.what());

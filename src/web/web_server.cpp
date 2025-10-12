@@ -27,7 +27,7 @@ web_server::web_server(monitor_config config, const std::map<std::string, std::s
   if (!push_manager_ && config_.get_push_config().enabled) {
     push_manager_ = std::make_shared<push_notification_manager>(config_.get_push_config());
     // Load saved subscriptions
-    push_manager_->load_subscriptions("push_subscriptions.json");
+    push_manager_->load_subscriptions(config_.get_push_config().subscriptions_file);
   }
   // Initialize cached config name with fallback
   try {
@@ -37,8 +37,10 @@ web_server::web_server(monitor_config config, const std::map<std::string, std::s
     spdlog::warn("Failed to access config name, using default");
   }
 
-  // Generate static HTML page once
-  generate_static_html_page();
+  // Generate static HTML page once (only if template configured)
+  if (config_.get_html_template().has_value() && !config_.get_html_template()->empty()) {
+    generate_static_html_page();
+  }
 
   server_ = std::make_unique<httplib::Server>();
 
@@ -51,16 +53,23 @@ web_server::web_server(monitor_config config, const std::map<std::string, std::s
   }
 
   // Set up route handlers
-  server_->Get(base_url_ + "/web", [this](const httplib::Request& req, httplib::Response& res) { handle_status_request(req, res); });
+  // Serve template at base_url only if html_template is configured
+  if (config_.get_html_template().has_value() && !config_.get_html_template()->empty()) {
+    auto template_handler = [this](const httplib::Request& req, httplib::Response& res) { handle_status_request(req, res); };
+
+    // Handle both /argus and /argus/
+    server_->Get(base_url_, template_handler);
+    if (!base_url_.empty() && base_url_.back() != '/') {
+      server_->Get(base_url_ + "/", template_handler);
+    }
+  }
 
   server_->Get(base_url_ + "/status", [this](const httplib::Request& req, httplib::Response& res) { handle_api_status_request(req, res); });
 
-  // Config endpoint for PWA to discover base_url and pwa_path
-  // This endpoint is mounted at both root and pwa_path for flexibility
+  // Config endpoint for PWA to discover base_url
   auto config_handler = [this](const httplib::Request& req, httplib::Response& res) {
     json config_json;
     config_json["base_url"] = base_url_;
-    config_json["pwa_path"] = config_.get_pwa_path().empty() ? "/" : config_.get_pwa_path();
     config_json["name"] = cached_config_name_;
     config_json["push_enabled"] = push_manager_ && push_manager_->is_enabled();
     res.set_content(config_json.dump(2), "application/json; charset=UTF-8");
@@ -70,28 +79,39 @@ web_server::web_server(monitor_config config, const std::map<std::string, std::s
 
   server_->Get("/config.json", config_handler);
 
-  // Also mount config at pwa_path if different from root
-  if (!config_.get_pwa_path().empty() && config_.get_pwa_path() != "/") {
-    server_->Get(config_.get_pwa_path() + "/config.json", config_handler);
+  // Also mount config at base_url if different from root
+  if (!base_url_.empty() && base_url_ != "/") {
+    server_->Get(base_url_ + "/config.json", config_handler);
   }
 
-  // Push notification subscription endpoints
+  // Push notification endpoints
+  // VAPID public key endpoint
+  server_->Get(base_url_ + "/push/vapid_public_key", [this](const httplib::Request& req, httplib::Response& res) {
+    if (push_manager_ && push_manager_->is_enabled()) {
+      res.set_content(config_.get_push_config().vapid_public_key, "text/plain; charset=UTF-8");
+      res.set_header("Access-Control-Allow-Origin", "*");
+      spdlog::debug("Served VAPID public key to {}", req.remote_addr);
+    } else {
+      res.status = 503;
+      res.set_content(R"({"error":"Push notifications not enabled"})", "application/json");
+    }
+  });
+
   server_->Post(base_url_ + "/push/subscribe", [this](const httplib::Request& req, httplib::Response& res) { handle_push_subscribe_request(req, res); });
 
   server_->Post(base_url_ + "/push/unsubscribe", [this](const httplib::Request& req, httplib::Response& res) { handle_push_unsubscribe_request(req, res); });
 
   // Serve static files from configured directory
+  // Mount PWA files at base_url (includes index.html, manifest.json, icons, sw.js, etc.)
   if (config_.get_static_dir().has_value() && !config_.get_static_dir()->empty()) {
     const std::string static_dir = *config_.get_static_dir();
-    const std::string pwa_path = config_.get_pwa_path().empty() ? "/" : config_.get_pwa_path();
+    const std::string mount_path = base_url_.empty() ? "/" : base_url_;
 
-    spdlog::info("Serving static files from: {} at path: {}", static_dir, pwa_path);
-
-    // Mount static directory at configured path
-    if (!server_->set_mount_point(pwa_path, static_dir)) {
-      spdlog::warn("Failed to mount static directory: {}. Directory may not exist.", static_dir);
+    // Mount static files at base_url
+    if (!server_->set_mount_point(mount_path, static_dir)) {
+      spdlog::warn("Failed to mount static directory at {}: {}. Directory may not exist.", mount_path, static_dir);
     } else {
-      spdlog::info("Static file server enabled at {}", pwa_path);
+      spdlog::info("Static file server enabled at {} (serving from: {})", mount_path, static_dir);
     }
   }
 
@@ -146,7 +166,7 @@ web_server::web_server(monitor_config config, const std::map<std::string, std::s
 web_server::~web_server() {
   // Save push subscriptions before shutdown
   if (push_manager_) {
-    push_manager_->save_subscriptions("push_subscriptions.json");
+    push_manager_->save_subscriptions(config_.get_push_config().subscriptions_file);
   }
   stop();
 }
@@ -191,9 +211,10 @@ void web_server::handle_api_status_request(const httplib::Request& req, httplib:
 }
 
 void web_server::generate_static_html_page() {
-  // HTML template is required - no fallback to inline generation
+  // HTML template is optional - PWA files in static_dir can serve as the UI
   if (!config_.get_html_template().has_value() || config_.get_html_template()->empty()) {
-    throw std::runtime_error("html_template configuration is required - no default template available");
+    spdlog::info("No html_template configured - using static files from static_dir");
+    return;
   }
 
   try {
@@ -373,7 +394,7 @@ void web_server::handle_push_subscribe_request(const httplib::Request& req, http
     // Add subscription
     if (push_manager_->add_subscription(subscription)) {
       // Save subscriptions to disk
-      push_manager_->save_subscriptions("push_subscriptions.json");
+      push_manager_->save_subscriptions(config_.get_push_config().subscriptions_file);
 
       res.status = 201;
       res.set_content(R"({"success":true,"message":"Subscription added"})", "application/json");
@@ -406,7 +427,7 @@ void web_server::handle_push_unsubscribe_request(const httplib::Request& req, ht
     const std::string endpoint = subscription_json.at("endpoint").get<std::string>();
 
     if (push_manager_->remove_subscription(endpoint)) {
-      push_manager_->save_subscriptions("push_subscriptions.json");
+      push_manager_->save_subscriptions(config_.get_push_config().subscriptions_file);
 
       res.status = 200;
       res.set_content(R"({"success":true,"message":"Subscription removed"})", "application/json");

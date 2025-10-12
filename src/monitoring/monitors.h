@@ -10,6 +10,7 @@
 #include "../utils/async_scheduler.h"
 #include "../utils/thread_pool.h"
 #include "../web/push_notification_manager.h"
+#include "monitor_config_types.h"
 #include "monitor_state.h"
 
 class monitors {
@@ -34,6 +35,7 @@ class monitors {
   [[nodiscard]] std::shared_ptr<thread_pool> get_thread_pool() const { return thread_pool_; }
 
  private:
+  monitor_config config_;
   std::map<std::string, std::shared_ptr<monitor_state>> monitors_map_;
   std::shared_ptr<thread_pool> thread_pool_;
   std::unique_ptr<async_scheduler> scheduler_;

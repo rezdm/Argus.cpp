@@ -55,7 +55,7 @@ class main_application {
       std::shared_ptr<push_notification_manager> push_manager;
       try {
         push_manager = std::make_shared<push_notification_manager>(current_config_.get_push_config());
-        push_manager->load_subscriptions("push_subscriptions.json");
+        push_manager->load_subscriptions(current_config_.get_push_config().subscriptions_file);
       } catch (const std::exception& e) {
         spdlog::warn("Push notifications disabled: {}", e.what());
         push_manager = nullptr;
