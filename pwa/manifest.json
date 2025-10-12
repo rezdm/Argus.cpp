@@ -2,7 +2,9 @@
   "name": "Argus Monitor",
   "short_name": "Argus",
   "description": "Network monitoring dashboard with real-time status updates and push notifications",
-  "start_url": "/",
+  "id": "/argus.pwa/",
+  "start_url": "/argus.pwa/",
+  "scope": "/argus.pwa/",
   "display": "standalone",
   "background_color": "#1a1a2e",
   "theme_color": "#16213e",
@@ -64,7 +66,7 @@
       "name": "View Status",
       "short_name": "Status",
       "description": "View current monitoring status",
-      "url": "/",
+      "url": "/argus.pwa/",
       "icons": [
         {
           "src": "icons/icon-192x192.png",

@@ -11,8 +11,8 @@ using json = nlohmann::json;
 using namespace argus::crypto;
 
 uint64_t vapid_jwt::get_current_timestamp() {
-    auto now = std::chrono::system_clock::now();
-    auto seconds = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch());
+    const auto now = std::chrono::system_clock::now();
+    const auto seconds = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch());
     return static_cast<uint64_t>(seconds.count());
 }
 
@@ -20,13 +20,13 @@ std::string vapid_jwt::extract_audience(const std::string& endpoint) {
     // Extract protocol and host from URL
     // Example: https://fcm.googleapis.com/fcm/send/... -> https://fcm.googleapis.com
 
-    size_t protocol_end = endpoint.find("://");
+    const size_t protocol_end = endpoint.find("://");
     if (protocol_end == std::string::npos) {
         throw std::runtime_error("Invalid endpoint URL: missing protocol");
     }
 
-    size_t host_start = protocol_end + 3;
-    size_t path_start = endpoint.find('/', host_start);
+    const size_t host_start = protocol_end + 3;
+    const size_t path_start = endpoint.find('/', host_start);
 
     if (path_start == std::string::npos) {
         // No path, entire string is origin
@@ -50,26 +50,26 @@ std::string vapid_jwt::build(
     }
 
     // Step 1: Build JWT header
-    json header = {
+    const json header = {
         {"typ", "JWT"},
         {"alg", "ES256"}
     };
     std::string header_json = header.dump();
-    std::string header_b64 = base64url::encode(header_json);
+    const std::string header_b64 = base64url::encode(header_json);
 
     spdlog::debug("JWT header: {}", header_json);
 
     // Step 2: Build JWT payload
-    uint64_t now = get_current_timestamp();
+    const uint64_t now = get_current_timestamp();
     uint64_t exp = now + expiration_seconds;
 
-    json payload = {
+    const json payload = {
         {"aud", audience},
         {"exp", exp},
         {"sub", subject}
     };
     std::string payload_json = payload.dump();
-    std::string payload_b64 = base64url::encode(payload_json);
+    const std::string payload_b64 = base64url::encode(payload_json);
 
     spdlog::debug("JWT payload: {}", payload_json);
 
@@ -77,7 +77,7 @@ std::string vapid_jwt::build(
     std::string signing_input = header_b64 + "." + payload_b64;
 
     // Step 4: Sign using ES256 (ECDSA with P-256 and SHA-256)
-    std::vector<uint8_t> signing_input_bytes(signing_input.begin(), signing_input.end());
+    const std::vector<uint8_t> signing_input_bytes(signing_input.begin(), signing_input.end());
     std::vector<uint8_t> signature;
 
     if (!ecdsa::sign_es256(signing_input_bytes, private_key_pem, signature)) {
@@ -89,7 +89,7 @@ std::string vapid_jwt::build(
     }
 
     // Step 5: Encode signature
-    std::string signature_b64 = base64url::encode(signature);
+    const std::string signature_b64 = base64url::encode(signature);
 
     // Step 6: Build final JWT (header.payload.signature)
     std::string jwt = signing_input + "." + signature_b64;

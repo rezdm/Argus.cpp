@@ -127,7 +127,7 @@ bool push_notification_manager::send_notification_to(const std::string& endpoint
     return false;
   }
 
-  nlohmann::json payload = {{"title", title}, {"body", body}, {"icon", icon.empty() ? "/icons/icon-192x192.png" : icon}, {"data", data}, {"tag", "argus-notification"}, {"requireInteraction", true}};
+  const nlohmann::json payload = {{"title", title}, {"body", body}, {"icon", icon.empty() ? "/icons/icon-192x192.png" : icon}, {"data", data}, {"tag", "argus-notification"}, {"requireInteraction", true}};
 
   return send_web_push(*it, payload);
 }
@@ -137,9 +137,9 @@ bool push_notification_manager::send_web_push(const push_subscription& subscript
     spdlog::debug("Sending Web Push to: {}", subscription.endpoint.substr(0, 80));
 
     // Step 1: Encrypt the payload using RFC 8291 (aes128gcm)
-    std::string payload_str = payload.dump();
-    auto encrypted = webpush_encryption::encrypt(payload_str, subscription);
-    auto body = webpush_encryption::build_request_body(encrypted);
+    const std::string payload_str = payload.dump();
+    const auto encrypted = webpush_encryption::encrypt(payload_str, subscription);
+    const auto body = webpush_encryption::build_request_body(encrypted);
 
     spdlog::debug("Encrypted payload: {} bytes", body.size());
 
@@ -148,22 +148,22 @@ bool push_notification_manager::send_web_push(const push_subscription& subscript
     spdlog::debug("Push service origin: {}", origin);
 
     // Step 3: Build VAPID JWT
-    std::string jwt = build_vapid_jwt(origin);
+    const std::string jwt = build_vapid_jwt(origin);
     if (jwt.empty()) {
       spdlog::error("Failed to build VAPID JWT");
       return false;
     }
 
     // Step 4: Parse endpoint URL
-    size_t protocol_end = subscription.endpoint.find("://");
+    const size_t protocol_end = subscription.endpoint.find("://");
     if (protocol_end == std::string::npos) {
       spdlog::error("Invalid endpoint URL: {}", subscription.endpoint);
       return false;
     }
 
     bool is_https = subscription.endpoint.substr(0, protocol_end) == "https";
-    size_t host_start = protocol_end + 3;
-    size_t path_start = subscription.endpoint.find('/', host_start);
+    const size_t host_start = protocol_end + 3;
+    const size_t path_start = subscription.endpoint.find('/', host_start);
 
     std::string host;
     std::string path;
@@ -178,7 +178,7 @@ bool push_notification_manager::send_web_push(const push_subscription& subscript
     }
 
     // Check for port in host
-    size_t port_sep = host.find(':');
+    const size_t port_sep = host.find(':');
     if (port_sep != std::string::npos) {
       port = std::stoi(host.substr(port_sep + 1));
       host = host.substr(0, port_sep);
@@ -196,18 +196,14 @@ bool push_notification_manager::send_web_push(const push_subscription& subscript
     client.set_read_timeout(10);
     client.set_write_timeout(10);
 
-    httplib::Headers headers = {
+    const httplib::Headers headers = {
       {"Content-Type", "application/octet-stream"},
       {"Content-Encoding", "aes128gcm"},
       {"TTL", "86400"},  // 24 hours
       {"Authorization", "vapid t=" + jwt + ", k=" + config_.vapid_public_key}
     };
 
-    auto res = client.Post(path.c_str(),
-                          headers,
-                          reinterpret_cast<const char*>(body.data()),
-                          body.size(),
-                          "application/octet-stream");
+    auto res = client.Post(path, headers, reinterpret_cast<const char*>(body.data()), body.size(), "application/octet-stream");
 
     if (!res) {
       spdlog::error("HTTP request failed: {}", httplib::to_string(res.error()));

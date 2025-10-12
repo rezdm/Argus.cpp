@@ -373,8 +373,21 @@ class ArgusMonitor {
 
   // Notification methods
   async requestNotificationPermission() {
-    if (!('Notification' in window)) {
-      alert('This browser does not support notifications');
+    const supportsNotifications = this.supportsNotifications();
+    const isiOS = this.isIOS();
+    const isStandalone = this.isStandaloneMode();
+
+    if (!supportsNotifications) {
+      if (isiOS) {
+        alert('To enable notifications on iOS, add Argus Monitor to your Home Screen and open it from there.');
+      } else {
+        alert('This browser does not support notifications');
+      }
+      return;
+    }
+
+    if (isiOS && !isStandalone) {
+      alert('Add Argus Monitor to your Home Screen to enable notifications on iOS.');
       return;
     }
 
@@ -467,10 +480,29 @@ class ArgusMonitor {
 
   updateNotificationButton() {
     const btn = document.getElementById('notification-btn');
+    const label = btn.querySelector('.btn-text');
+    const supportsNotifications = this.supportsNotifications();
+    const isiOS = this.isIOS();
+    const isStandalone = this.isStandaloneMode();
 
-    if (!('Notification' in window)) {
-      btn.disabled = true;
-      btn.title = 'Notifications not supported';
+    btn.disabled = false;
+    btn.classList.remove('enabled', 'disabled');
+    label.textContent = 'Notify';
+
+    if (!supportsNotifications) {
+      if (isiOS) {
+        btn.classList.add('disabled');
+        btn.title = 'Install this app to your Home Screen to enable notifications on iOS';
+      } else {
+        btn.disabled = true;
+        btn.title = 'Notifications not supported';
+      }
+      return;
+    }
+
+    if (isiOS && !isStandalone) {
+      btn.classList.add('disabled');
+      btn.title = 'Add this app to your Home Screen to enable notifications on iOS';
       return;
     }
 
@@ -478,20 +510,35 @@ class ArgusMonitor {
 
     if (permission === 'granted') {
       btn.classList.add('enabled');
-      btn.classList.remove('disabled');
       btn.title = 'Notifications enabled';
-      btn.querySelector('.btn-text').textContent = 'Notify ✓';
+      label.textContent = 'Notify ✓';
     } else if (permission === 'denied') {
       btn.classList.add('disabled');
-      btn.classList.remove('enabled');
       btn.title = 'Notifications blocked - check browser settings';
     } else {
-      btn.classList.remove('enabled', 'disabled');
       btn.title = 'Enable push notifications';
     }
   }
 
   showNotificationModal() {
+    const supportsNotifications = this.supportsNotifications();
+    const isiOS = this.isIOS();
+    const isStandalone = this.isStandaloneMode();
+
+    if (!supportsNotifications) {
+      if (isiOS) {
+        alert('To enable notifications on iOS, add Argus Monitor to your Home Screen first (Share → "Add to Home Screen") and reopen the app.');
+      } else {
+        alert('This browser does not support notifications.');
+      }
+      return;
+    }
+
+    if (isiOS && !isStandalone) {
+      alert('iOS only allows push notifications for apps installed on the Home Screen. Add Argus Monitor to your Home Screen and open it from there to enable notifications.');
+      return;
+    }
+
     if (Notification.permission === 'granted') {
       alert('Notifications are already enabled! ✅');
       return;
@@ -564,6 +611,18 @@ class ArgusMonitor {
       outputArray[i] = rawData.charCodeAt(i);
     }
     return outputArray;
+  }
+
+  isIOS() {
+    return /iphone|ipad|ipod/i.test(window.navigator.userAgent || '');
+  }
+
+  isStandaloneMode() {
+    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  }
+
+  supportsNotifications() {
+    return 'Notification' in window;
   }
 }
 

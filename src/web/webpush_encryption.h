@@ -3,7 +3,6 @@
 #include "push_subscription.h"
 #include <string>
 #include <vector>
-#include <cstdint>
 
 namespace argus {
 
@@ -61,15 +60,6 @@ private:
         const std::vector<uint8_t>& server_public_key,
         std::vector<uint8_t>& content_encryption_key,
         std::vector<uint8_t>& nonce
-    );
-
-    /**
-     * Create the info string for HKDF key derivation
-     */
-    static std::vector<uint8_t> create_info(
-        const std::string& type,
-        const std::vector<uint8_t>& client_public_key,
-        const std::vector<uint8_t>& server_public_key
     );
 
     /**

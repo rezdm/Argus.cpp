@@ -368,7 +368,7 @@ void web_server::handle_push_subscribe_request(const httplib::Request& req, http
   try {
     // Parse subscription JSON
     const auto subscription_json = json::parse(req.body);
-    auto subscription = push_subscription::from_json(subscription_json);
+    const auto subscription = push_subscription::from_json(subscription_json);
 
     // Add subscription
     if (push_manager_->add_subscription(subscription)) {

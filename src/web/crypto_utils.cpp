@@ -1,8 +1,5 @@
 #include "crypto_utils.h"
 #include <openssl/ec.h>
-#include <openssl/ecdh.h>
-#include <openssl/core_names.h>
-#include <openssl/provider.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/kdf.h>
@@ -43,13 +40,13 @@ std::string base64url::encode(const std::vector<uint8_t>& data) {
         if (c == '+') c = '-';
         else if (c == '/') c = '_';
     }
-    result.erase(std::remove(result.begin(), result.end(), '='), result.end());
+    std::erase(result, '=');
 
     return result;
 }
 
 std::string base64url::encode(const std::string& str) {
-    std::vector<uint8_t> data(str.begin(), str.end());
+    const std::vector<uint8_t> data(str.begin(), str.end());
     return encode(data);
 }
 
@@ -77,7 +74,7 @@ std::vector<uint8_t> base64url::decode(const std::string& str) {
     BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL);
 
     std::vector<uint8_t> result(b64.length());
-    int decoded_length = BIO_read(bio, result.data(), static_cast<int>(result.size()));
+    const int decoded_length = BIO_read(bio, result.data(), static_cast<int>(result.size()));
     BIO_free_all(bio);
 
     if (decoded_length > 0) {
@@ -137,7 +134,7 @@ bool ecdh::generate_keypair(std::vector<uint8_t>& public_key, std::vector<uint8_
     const EC_GROUP* group = EC_KEY_get0_group(ec_key);
 
     public_key.resize(65);
-    size_t pub_len = EC_POINT_point2oct(group, pub_point, POINT_CONVERSION_UNCOMPRESSED,
+    const size_t pub_len = EC_POINT_point2oct(group, pub_point, POINT_CONVERSION_UNCOMPRESSED,
                                          public_key.data(), public_key.size(), nullptr);
     if (pub_len != 65) {
         spdlog::error("Failed to export public key");
@@ -149,7 +146,7 @@ bool ecdh::generate_keypair(std::vector<uint8_t>& public_key, std::vector<uint8_
     // Extract private key (32 bytes)
     const BIGNUM* priv_bn = EC_KEY_get0_private_key(ec_key);
     private_key.resize(32);
-    int priv_len = BN_bn2binpad(priv_bn, private_key.data(), 32);
+    const int priv_len = BN_bn2binpad(priv_bn, private_key.data(), 32);
     if (priv_len != 32) {
         spdlog::error("Failed to export private key");
         EC_KEY_free(ec_key);
@@ -446,7 +443,7 @@ bool aes_gcm::encrypt(
 // ECDSA Implementation
 // ============================================================================
 static void log_last_openssl_error(const char* where) {
-    unsigned long e = ERR_get_error();
+    const unsigned long e = ERR_get_error();
     if (e) {
         char buf[256];
         ERR_error_string_n(e, buf, sizeof(buf));
@@ -458,16 +455,14 @@ static void log_last_openssl_error(const char* where) {
 
 static std::vector<unsigned char> b64url_decode_strict(const std::string& s) {
     std::string t; t.reserve(s.size()+2);
-    for (char c : s) t.push_back(c=='-'?'+':(c=='_'?'/':c));
-    int pad = (4 - (int)t.size()%4) % 4; t.append(pad, '=');
+    for (const char c : s) t.push_back(c=='-'?'+':(c=='_'?'/':c));
+    const int pad = (4 - static_cast<int>(t.size())%4) % 4; t.append(pad, '=');
     std::vector<unsigned char> out((t.size()/4)*3);
-    int n = EVP_DecodeBlock(out.data(),
-                            reinterpret_cast<const unsigned char*>(t.data()),
-                            (int)t.size());
+    int n = EVP_DecodeBlock(out.data(), reinterpret_cast<const unsigned char*>(t.data()), static_cast<int>(t.size()));
     if (n < 0) return {};
     if (pad == 1) n -= 1; else if (pad == 2) n -= 2;
     if (n < 0) return {};
-    out.resize((size_t)n);
+    out.resize(static_cast<size_t>(n));
     return out;
 }
 

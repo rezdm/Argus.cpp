@@ -1,6 +1,5 @@
 #pragma once
 
-#include <optional>
 #include <string>
 
 struct push_notification_config {

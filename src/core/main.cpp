@@ -348,7 +348,7 @@ void redirect_stderr_to_null() {
   }
 }
 
-void setup_logging(const bool daemon_mode, const bool systemd_mode, const std::string& log_file_path = "") {
+void setup_logging(const bool daemon_mode, const bool systemd_mode, spdlog::level::level_enum log_level, const std::string& log_file_path = "") {
   if (systemd_mode && log_file_path.empty()) {
     // For systemd mode without explicit log file, use systemd journal if available
 #ifdef HAVE_SYSTEMD
@@ -381,7 +381,7 @@ void setup_logging(const bool daemon_mode, const bool systemd_mode, const std::s
     const auto logger = spdlog::stdout_color_mt("argus");
     spdlog::set_default_logger(logger);
   }
-  spdlog::set_level(spdlog::level::debug);
+  spdlog::set_level(log_level);
 
   // For daemon mode, ensure immediate flushing for real-time log viewing
   if (daemon_mode) {
@@ -395,6 +395,7 @@ void print_usage(const char* program_name) {
   std::cout << "  -d, --daemon              Run as daemon (detach from terminal)\n";
   std::cout << "  -s, --systemd             Run in systemd mode (no fork, journal logging)\n";
   std::cout << "  -l, --log-file <path>     Log to specified file (overrides config/systemd settings)\n";
+  std::cout << "  -v, --verbosity <level    Set log level to error|warn|info|debug (default is info)\n";
   std::cout << "  argus.json                Configuration file path\n";
   std::cout << "\nNote: systemd mode is automatically detected when NOTIFY_SOCKET is set\n";
 }
@@ -403,6 +404,7 @@ int main(const int argc, char* argv[]) {
   bool daemon_mode = false;
   bool systemd_mode = false;
   std::string cmdline_log_file;
+  spdlog::level::level_enum log_level = spdlog::level::info;
 
   // Auto-detect systemd environment
   if (is_systemd_service()) {
@@ -431,6 +433,23 @@ int main(const int argc, char* argv[]) {
         return 1;
       }
       cmdline_log_file = argv[arg_idx + 1];
+      arg_idx += 2;
+    } else if ("-v" == flag || "--verbosity" == flag) {
+      if (arg_idx + 1 >= argc - 1) {
+        std::cerr << "Error: --verbosity requires log level: error,warn,info,debug\n";
+        print_usage(argv[0]);
+        return 1;
+      }
+      const std::string str_log_level = argv[arg_idx + 1];
+      if ("error" == str_log_level) { log_level = spdlog::level::err; }
+      else if ("warn" == str_log_level) { log_level = spdlog::level::warn; }
+      else if ("info" == str_log_level) { log_level = spdlog::level::info; }
+      else if ("debug" == str_log_level) { log_level = spdlog::level::debug; }
+      else {
+          std::cerr << "Error: invalid log level specified\n";
+          print_usage(argv[0]);
+          return 1;
+      }
       arg_idx += 2;
     } else {
       std::cerr << "Error: Unknown option " << flag << "\n";
@@ -488,10 +507,10 @@ int main(const int argc, char* argv[]) {
     config_path = absolute_config_path;
 
     // Setup logging only in the final daemon process with absolute path
-    setup_logging(true, false, absolute_log_path);
+    setup_logging(true, false, log_level, absolute_log_path);
   } else {
     // Set up logging normally for non-daemon mode
-    setup_logging(false, systemd_mode, log_file_path);
+    setup_logging(false, systemd_mode, log_level, log_file_path);
     if (systemd_mode) {
       spdlog::info("Running in systemd mode");
     }
