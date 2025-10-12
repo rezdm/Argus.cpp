@@ -9,12 +9,13 @@
 #include "../core/types.h"
 #include "../utils/async_scheduler.h"
 #include "../utils/thread_pool.h"
+#include "../web/push_notification_manager.h"
 #include "monitor_config_types.h"
 #include "monitor_state.h"
 
 class monitors {
  public:
-  explicit monitors(const monitor_config& config);
+  explicit monitors(const monitor_config& config, std::shared_ptr<push_notification_manager> push_manager = nullptr);
   ~monitors();
 
   void start_monitoring();
@@ -39,6 +40,7 @@ class monitors {
   std::unique_ptr<async_scheduler> scheduler_;
   std::vector<size_t> scheduled_task_ids_;
   std::atomic<bool> running_;
+  std::shared_ptr<push_notification_manager> push_manager_;
 
   // Async test execution
   void perform_test_async(const std::shared_ptr<monitor_state>& state) const;

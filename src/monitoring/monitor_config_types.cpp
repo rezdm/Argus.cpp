@@ -46,6 +46,19 @@ void monitor_config::set_base_url(const std::string& base_url_val) { base_url_ =
 
 void monitor_config::set_thread_pool_size(const size_t size) { thread_pool_size_ = size; }
 
+void monitor_config::set_static_dir(const std::string& static_dir_val) { static_dir_ = static_dir_val; }
+
+void monitor_config::clear_static_dir() { static_dir_.reset(); }
+
+void monitor_config::set_pwa_path(const std::string& pwa_path_val) { pwa_path_ = pwa_path_val; }
+
+void monitor_config::set_push_config(const push_notification_config& push_config_val) {
+  if (!push_config_val.is_valid()) {
+    throw std::invalid_argument("Invalid push notification config: " + push_config_val.get_validation_error());
+  }
+  push_config_ = push_config_val;
+}
+
 void monitor_config::set_monitors(const std::vector<group>& monitors_val) {
   for (const auto& monitor_group : monitors_val) {
     if (!monitor_group.is_valid()) {

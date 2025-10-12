@@ -1,0 +1,36 @@
+{
+  "name": "Argus Network Monitor",
+  "listen": "192.168.100.32:8080",
+  "base_url": "/argus",
+  "pwa_path": "/argus.pwa",
+  "static_dir": "pwa",
+  "cache_duration_seconds": 30,
+  "push_notifications": {
+    "enabled": true,
+    "vapid_subject": "mailto:your-email@example.com",
+    "vapid_public_key": "BEl62iUYgUivxIkv69yViEuiBIa-Ib37J8E4VWmJagtRxTWxvHI8SU2xFO8OxJON7vZf6Ip-j4xNK0T1wjxEQxY",
+    "vapid_private_key": "PUT_YOUR_PRIVATE_KEY_HERE"
+  },
+  "monitors": [
+    {
+      "sort": 1,
+      "group": "Web Services",
+      "destinations": [
+        {
+          "sort": 1,
+          "name": "Google",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 30,
+          "history": 100,
+          "test": {
+            "method": "URL",
+            "url": "https://www.google.com"
+          }
+        }
+      ]
+    }
+  ]
+}

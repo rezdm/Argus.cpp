@@ -102,6 +102,10 @@ set(ARGUS_SOURCES
     network/address_family_handler.cpp
     network/http_client.cpp
     web/web_server.cpp
+    web/push_notification_manager.cpp
+    web/crypto_utils.cpp
+    web/webpush_encryption.cpp
+    web/vapid_jwt.cpp
     utils/thread_pool.cpp
     utils/async_scheduler.cpp
     utils/task_recovery_policy.cpp

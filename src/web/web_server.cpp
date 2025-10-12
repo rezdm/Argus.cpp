@@ -12,13 +12,23 @@
 
 #include "../monitoring/monitor_config.h"
 
-web_server::web_server(monitor_config config, const std::map<std::string, std::shared_ptr<monitor_state>>& monitors, std::shared_ptr<thread_pool> pool)
+using json = nlohmann::json;
+
+web_server::web_server(monitor_config config, const std::map<std::string, std::shared_ptr<monitor_state>>& monitors, std::shared_ptr<thread_pool> pool, std::shared_ptr<push_notification_manager> push_manager)
     : config_(std::move(config)),
       monitors_(monitors),
       thread_pool_(std::move(pool)),
+      push_manager_(std::move(push_manager)),
       json_status_cached_(false),
       base_url_(config_.get_base_url()),
       cache_duration_(std::chrono::seconds(config_.get_cache_duration_seconds())) {
+
+  // If no push_manager provided, create one if enabled
+  if (!push_manager_ && config_.get_push_config().enabled) {
+    push_manager_ = std::make_shared<push_notification_manager>(config_.get_push_config());
+    // Load saved subscriptions
+    push_manager_->load_subscriptions("push_subscriptions.json");
+  }
   // Initialize cached config name with fallback
   try {
     cached_config_name_ = config_.get_name().empty() ? "Argus Monitor" : config_.get_name();
@@ -44,6 +54,46 @@ web_server::web_server(monitor_config config, const std::map<std::string, std::s
   server_->Get(base_url_ + "/web", [this](const httplib::Request& req, httplib::Response& res) { handle_status_request(req, res); });
 
   server_->Get(base_url_ + "/status", [this](const httplib::Request& req, httplib::Response& res) { handle_api_status_request(req, res); });
+
+  // Config endpoint for PWA to discover base_url and pwa_path
+  // This endpoint is mounted at both root and pwa_path for flexibility
+  auto config_handler = [this](const httplib::Request& req, httplib::Response& res) {
+    json config_json;
+    config_json["base_url"] = base_url_;
+    config_json["pwa_path"] = config_.get_pwa_path().empty() ? "/" : config_.get_pwa_path();
+    config_json["name"] = cached_config_name_;
+    config_json["push_enabled"] = push_manager_ && push_manager_->is_enabled();
+    res.set_content(config_json.dump(2), "application/json; charset=UTF-8");
+    res.set_header("Access-Control-Allow-Origin", "*");
+    spdlog::debug("Served config to {}", req.remote_addr);
+  };
+
+  server_->Get("/config.json", config_handler);
+
+  // Also mount config at pwa_path if different from root
+  if (!config_.get_pwa_path().empty() && config_.get_pwa_path() != "/") {
+    server_->Get(config_.get_pwa_path() + "/config.json", config_handler);
+  }
+
+  // Push notification subscription endpoints
+  server_->Post(base_url_ + "/push/subscribe", [this](const httplib::Request& req, httplib::Response& res) { handle_push_subscribe_request(req, res); });
+
+  server_->Post(base_url_ + "/push/unsubscribe", [this](const httplib::Request& req, httplib::Response& res) { handle_push_unsubscribe_request(req, res); });
+
+  // Serve static files from configured directory
+  if (config_.get_static_dir().has_value() && !config_.get_static_dir()->empty()) {
+    const std::string static_dir = *config_.get_static_dir();
+    const std::string pwa_path = config_.get_pwa_path().empty() ? "/" : config_.get_pwa_path();
+
+    spdlog::info("Serving static files from: {} at path: {}", static_dir, pwa_path);
+
+    // Mount static directory at configured path
+    if (!server_->set_mount_point(pwa_path, static_dir)) {
+      spdlog::warn("Failed to mount static directory: {}. Directory may not exist.", static_dir);
+    } else {
+      spdlog::info("Static file server enabled at {}", pwa_path);
+    }
+  }
 
   // Parse listen address (support IPv4, IPv6, and hostnames)
   std::string host;
@@ -93,7 +143,13 @@ web_server::web_server(monitor_config config, const std::map<std::string, std::s
   spdlog::info("Argus web server started on {}", config_.get_listen());
 }
 
-web_server::~web_server() { stop(); }
+web_server::~web_server() {
+  // Save push subscriptions before shutdown
+  if (push_manager_) {
+    push_manager_->save_subscriptions("push_subscriptions.json");
+  }
+  stop();
+}
 
 void web_server::stop() {
   if (server_) {
@@ -296,4 +352,75 @@ std::string web_server::format_timestamp(const std::chrono::system_clock::time_p
   std::ostringstream oss;
   oss << std::put_time(std::localtime(&time_t), "%Y-%m-%d %H:%M:%S");
   return oss.str();
+}
+
+void web_server::handle_push_subscribe_request(const httplib::Request& req, httplib::Response& res) {
+  spdlog::debug("Push subscribe request from {}", req.remote_addr);
+
+  // Check if push notifications are enabled
+  if (!push_manager_ || !push_manager_->is_enabled()) {
+    res.status = 503;
+    res.set_content(R"({"error":"Push notifications are not enabled"})", "application/json");
+    spdlog::warn("Push subscribe request rejected: push notifications disabled");
+    return;
+  }
+
+  try {
+    // Parse subscription JSON
+    const auto subscription_json = json::parse(req.body);
+    auto subscription = push_subscription::from_json(subscription_json);
+
+    // Add subscription
+    if (push_manager_->add_subscription(subscription)) {
+      // Save subscriptions to disk
+      push_manager_->save_subscriptions("push_subscriptions.json");
+
+      res.status = 201;
+      res.set_content(R"({"success":true,"message":"Subscription added"})", "application/json");
+      spdlog::info("Push subscription added from {}", req.remote_addr);
+    } else {
+      res.status = 500;
+      res.set_content(R"({"error":"Failed to add subscription"})", "application/json");
+    }
+
+  } catch (const std::exception& e) {
+    spdlog::error("Failed to process push subscribe request: {}", e.what());
+    res.status = 400;
+    res.set_content(R"({"error":"Invalid subscription data"})", "application/json");
+  }
+
+  res.set_header("Access-Control-Allow-Origin", "*");
+}
+
+void web_server::handle_push_unsubscribe_request(const httplib::Request& req, httplib::Response& res) {
+  spdlog::debug("Push unsubscribe request from {}", req.remote_addr);
+
+  if (!push_manager_ || !push_manager_->is_enabled()) {
+    res.status = 503;
+    res.set_content(R"({"error":"Push notifications are not enabled"})", "application/json");
+    return;
+  }
+
+  try {
+    const auto subscription_json = json::parse(req.body);
+    const std::string endpoint = subscription_json.at("endpoint").get<std::string>();
+
+    if (push_manager_->remove_subscription(endpoint)) {
+      push_manager_->save_subscriptions("push_subscriptions.json");
+
+      res.status = 200;
+      res.set_content(R"({"success":true,"message":"Subscription removed"})", "application/json");
+      spdlog::info("Push subscription removed from {}", req.remote_addr);
+    } else {
+      res.status = 404;
+      res.set_content(R"({"error":"Subscription not found"})", "application/json");
+    }
+
+  } catch (const std::exception& e) {
+    spdlog::error("Failed to process push unsubscribe request: {}", e.what());
+    res.status = 400;
+    res.set_content(R"({"error":"Invalid request data"})", "application/json");
+  }
+
+  res.set_header("Access-Control-Allow-Origin", "*");
 }

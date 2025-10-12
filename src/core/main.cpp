@@ -51,9 +51,19 @@ class main_application {
       argus::logging::logger::log_config_loaded(config_name);
       log_memory_usage("Config loaded");
 
+      // Initialize push notification manager first (shared by monitors and web_server)
+      std::shared_ptr<push_notification_manager> push_manager;
+      try {
+        push_manager = std::make_shared<push_notification_manager>(current_config_.get_push_config());
+        push_manager->load_subscriptions("push_subscriptions.json");
+      } catch (const std::exception& e) {
+        spdlog::warn("Push notifications disabled: {}", e.what());
+        push_manager = nullptr;
+      }
+
       // Initialize monitors with graceful degradation
       try {
-        monitors_instance = std::make_shared<monitors>(current_config_);
+        monitors_instance = std::make_shared<monitors>(current_config_, push_manager);
         log_memory_usage("Monitors initialized");
       } catch (const std::exception& e) {
         LOG_COMPONENT_FAILURE("monitors", e.what());
@@ -64,11 +74,11 @@ class main_application {
       // Initialize web server with graceful degradation
       try {
         if (monitors_instance) {
-          server_instance = std::make_shared<web_server>(current_config_, monitors_instance->get_monitors_map(), monitors_instance->get_thread_pool());
+          server_instance = std::make_shared<web_server>(current_config_, monitors_instance->get_monitors_map(), monitors_instance->get_thread_pool(), push_manager);
         } else {
           // Create web server with empty monitor map and null thread pool
           std::map<std::string, std::shared_ptr<monitor_state>> empty_map;
-          server_instance = std::make_shared<web_server>(current_config_, empty_map, nullptr);
+          server_instance = std::make_shared<web_server>(current_config_, empty_map, nullptr, push_manager);
         }
       } catch (const std::exception& e) {
         LOG_COMPONENT_FAILURE("web server", e.what());
@@ -371,7 +381,7 @@ void setup_logging(const bool daemon_mode, const bool systemd_mode, const std::s
     const auto logger = spdlog::stdout_color_mt("argus");
     spdlog::set_default_logger(logger);
   }
-  spdlog::set_level(spdlog::level::info);
+  spdlog::set_level(spdlog::level::debug);
 
   // For daemon mode, ensure immediate flushing for real-time log viewing
   if (daemon_mode) {

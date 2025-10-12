@@ -47,6 +47,35 @@ monitor_config monitor_config_loader::load_config(const std::string& config_path
     }
   }
 
+  if (root.contains("static_dir")) {
+    config.set_static_dir(root["static_dir"].get<std::string>());
+  }
+
+  if (root.contains("pwa_path")) {
+    config.set_pwa_path(root["pwa_path"].get<std::string>());
+  }
+
+  if (root.contains("push_notifications")) {
+    const auto& push_node = root["push_notifications"];
+    push_notification_config push_config;
+    push_config.enabled = push_node.value("enabled", false);
+
+    if (push_config.enabled) {
+      push_config.vapid_subject = push_node.value("vapid_subject", "");
+      push_config.vapid_public_key = push_node.value("vapid_public_key", "");
+      push_config.vapid_private_key = push_node.value("vapid_private_key", "");
+
+      if (!push_config.is_valid()) {
+        spdlog::warn("Push notifications enabled but configuration is invalid: {}. Push notifications will be disabled.", push_config.get_validation_error());
+        push_config.enabled = false;
+      } else {
+        spdlog::info("Push notifications enabled");
+      }
+    }
+
+    config.set_push_config(push_config);
+  }
+
   for (const auto& monitors_node = root["monitors"]; const auto& monitor_node : monitors_node) {
     config.add_monitor_group(parse_group(monitor_node));
   }

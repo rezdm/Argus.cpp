@@ -5,11 +5,14 @@
 #include <algorithm>
 #include <chrono>
 #include <numeric>
+#include <utility>
+#include <utility>
 
 #include "../testers/network_test_ping.h"
 #include "monitor_config.h"
 
-monitors::monitors(const monitor_config& config) : running_(false) {
+monitors::monitors(const monitor_config& config, std::shared_ptr<push_notification_manager> push_manager)
+    : running_(false), push_manager_(std::move(std::move(push_manager))) {
   // Using auto-fallback ping implementation
   spdlog::info("Using auto-fallback ping implementation");
 
@@ -150,14 +153,53 @@ void monitors::perform_test_async(const std::shared_ptr<monitor_state>& state) c
           result = test_result{false, 0, std::chrono::system_clock::now(), "Test deferred or canceled"};
         }
 
+        // Track previous status before adding result
+        const monitor_status prev_status = state->get_current_status();
+
         state->add_result(result);
 
-        // Log significant status changes
-        if (!result.is_success() && monitor_status::ok != state->get_current_status()) {
-          spdlog::warn("Monitor {} status: {} (consecutive failures: {})", state->get_destination().get_name(), to_string(state->get_current_status()),
-                       state->get_consecutive_failures());
-        } else if (result.is_success() && monitor_status::ok == state->get_current_status() && state->get_destination().get_reset() == state->get_consecutive_successes()) {
-          spdlog::info("Monitor {} recovered to OK status", state->get_destination().get_name());
+        // Detect status changes and send notifications
+        const monitor_status new_status = state->get_current_status();
+
+        // Send notification on ANY status change
+        if (push_manager_ && prev_status != new_status) {
+          std::string icon_emoji;
+          std::string notification_body;
+
+          // Determine icon and message based on new status
+          switch (new_status) {
+            case monitor_status::ok:
+              icon_emoji = "✅";
+              notification_body = "Monitor recovered to OK";
+              spdlog::info("Monitor {} recovered to OK status", state->get_destination().get_name());
+              break;
+            case monitor_status::warning:
+              icon_emoji = "⚠️";
+              notification_body = "Monitor entered WARNING state";
+              spdlog::warn("Monitor {} status: WARNING (consecutive failures: {})",
+                          state->get_destination().get_name(), state->get_consecutive_failures());
+              break;
+            case monitor_status::failure:
+              icon_emoji = "❌";
+              notification_body = "Monitor entered FAILURE state";
+              spdlog::warn("Monitor {} status: FAILURE (consecutive failures: {})",
+                          state->get_destination().get_name(), state->get_consecutive_failures());
+              break;
+            case monitor_status::pending:
+              icon_emoji = "⏳";
+              notification_body = "Monitor is PENDING";
+              break;
+          }
+
+          const std::string title = icon_emoji + " " + state->get_destination().get_name() + " - " + to_string(new_status);
+          spdlog::info("Triggering push notification for status change {} -> {}: {}",
+                      to_string(prev_status), to_string(new_status), title);
+          push_manager_->send_notification(title, notification_body, "./icons/icon-192x192.png");
+        } else if (!result.is_success() && monitor_status::ok != new_status) {
+          // Log failures even without status change
+          spdlog::warn("Monitor {} status: {} (consecutive failures: {})",
+                      state->get_destination().get_name(), to_string(new_status),
+                      state->get_consecutive_failures());
         }
       } catch (const std::exception& e) {
         spdlog::error("Critical error processing test result for {}: {}", state->get_destination().get_name(), e.what());

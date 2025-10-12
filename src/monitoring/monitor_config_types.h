@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "../core/constants.h"
+#include "../web/push_config.h"
 #include "group.h"
 
 class monitor_config {
@@ -16,11 +17,14 @@ class monitor_config {
   std::optional<std::string> html_template_;
   std::string base_url_;
   size_t thread_pool_size_;
+  std::optional<std::string> static_dir_;
+  std::string pwa_path_;  // Path where PWA is mounted (e.g., "/argus.pwa")
+  push_notification_config push_config_;
   std::vector<group> monitors_;
 
  public:
   // Constructors
-  monitor_config() : cache_duration_seconds_(argus::constants::DEFAULT_CACHE_DURATION_SECONDS), base_url_(argus::constants::DEFAULT_BASE_URL), thread_pool_size_(argus::constants::DEFAULT_THREAD_POOL_SIZE) {}
+  monitor_config() : cache_duration_seconds_(argus::constants::DEFAULT_CACHE_DURATION_SECONDS), base_url_(argus::constants::DEFAULT_BASE_URL), thread_pool_size_(argus::constants::DEFAULT_THREAD_POOL_SIZE), pwa_path_("") {}
 
   monitor_config(const std::string& name_val, const std::string& listen_val);
 
@@ -32,6 +36,9 @@ class monitor_config {
   [[nodiscard]] const std::optional<std::string>& get_html_template() const { return html_template_; }
   [[nodiscard]] const std::string& get_base_url() const { return base_url_; }
   [[nodiscard]] size_t get_thread_pool_size() const { return thread_pool_size_; }
+  [[nodiscard]] const std::optional<std::string>& get_static_dir() const { return static_dir_; }
+  [[nodiscard]] const std::string& get_pwa_path() const { return pwa_path_; }
+  [[nodiscard]] const push_notification_config& get_push_config() const { return push_config_; }
   [[nodiscard]] const std::vector<group>& get_monitors() const { return monitors_; }
   [[nodiscard]] size_t get_monitor_count() const { return monitors_.size(); }
 
@@ -45,6 +52,10 @@ class monitor_config {
   void clear_html_template();
   void set_base_url(const std::string& base_url_val);
   void set_thread_pool_size(size_t size);
+  void set_static_dir(const std::string& static_dir_val);
+  void clear_static_dir();
+  void set_pwa_path(const std::string& pwa_path_val);
+  void set_push_config(const push_notification_config& push_config_val);
   void set_monitors(const std::vector<group>& monitors_val);
   void add_monitor_group(const group& monitor_group);
   void clear_monitors();

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="description" content="Argus Network Monitor - Real-time service monitoring dashboard">
+    <meta name="theme-color" content="#16213e">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Argus">
+
+    <title>Argus Monitor</title>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Icons for Apple -->
+    <link rel="apple-touch-icon" href="icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="icons/icon-192x192.png">
+
+    <!-- Standard favicon -->
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512x512.png">
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <h1 class="header-title">
+                <span class="header-icon">🛡️</span>
+                <span id="app-name">Argus Monitor</span>
+            </h1>
+            <div class="header-actions">
+                <button id="notification-btn" class="btn btn-notification" aria-label="Enable notifications" title="Enable push notifications">
+                    <span class="btn-icon">🔔</span>
+                    <span class="btn-text">Notify</span>
+                </button>
+                <button id="refresh-btn" class="btn btn-refresh" aria-label="Refresh" title="Refresh status">
+                    <span class="btn-icon">🔄</span>
+                </button>
+            </div>
+        </div>
+        <div id="last-update" class="last-update">Last updated: Never</div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Connection Status Banner -->
+        <div id="offline-banner" class="banner banner-offline" style="display: none;">
+            ⚠️ Offline - Showing cached data
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="loading">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Loading monitor data...</div>
+        </div>
+
+        <!-- Error State -->
+        <div id="error" class="error" style="display: none;">
+            <div class="error-icon">⚠️</div>
+            <div class="error-message">Failed to load monitor data</div>
+            <button id="retry-btn" class="btn btn-primary">Retry</button>
+        </div>
+
+        <!-- Monitor Groups Container -->
+        <div id="monitors-container" class="monitors-container" style="display: none;">
+            <!-- Groups will be dynamically inserted here -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="empty-state" style="display: none;">
+            <div class="empty-icon">📊</div>
+            <div class="empty-message">No monitors configured</div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-status">
+                <span id="connection-status" class="status-dot status-ok" title="Connected"></span>
+                <span id="connection-text">Connected</span>
+            </div>
+            <div class="footer-info">
+                <span id="install-prompt" class="install-prompt" style="display: none;">
+                    📲 <a href="#" id="install-link">Install App</a>
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Install Modal -->
+    <div id="install-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Install Argus Monitor</h2>
+                <button class="modal-close" id="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Install Argus Monitor as an app for:</p>
+                <ul>
+                    <li>✅ Faster access</li>
+                    <li>✅ Offline support</li>
+                    <li>✅ Push notifications</li>
+                    <li>✅ Native app experience</li>
+                </ul>
+                <p class="modal-instructions">
+                    <strong>iOS:</strong> Tap the share button and select "Add to Home Screen"<br>
+                    <strong>Android/Desktop:</strong> Click the install button below
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button id="install-btn" class="btn btn-primary">Install</button>
+                <button id="install-cancel-btn" class="btn btn-secondary">Maybe Later</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Permission Modal -->
+    <div id="notification-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Enable Notifications</h2>
+                <button class="modal-close" id="notification-modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Get instant alerts when your services go down or recover:</p>
+                <ul>
+                    <li>🔔 Real-time status changes</li>
+                    <li>⚠️ Warning and failure alerts</li>
+                    <li>✅ Recovery notifications</li>
+                </ul>
+                <p class="modal-note">You can disable this anytime in your browser settings.</p>
+            </div>
+            <div class="modal-footer">
+                <button id="notification-enable-btn" class="btn btn-primary">Enable Notifications</button>
+                <button id="notification-cancel-btn" class="btn btn-secondary">Not Now</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="app.js"></script>
+</body>
+</html>

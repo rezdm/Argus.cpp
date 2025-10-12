@@ -47,3 +47,10 @@ prod/
 
 # debug information files
 *.dwo
+
+.remove/
+push_subscriptions.json
+.claude/
+venv/
+*.py
+

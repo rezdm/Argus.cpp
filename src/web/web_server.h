@@ -10,13 +10,17 @@
 #include "../monitoring/monitor_config_types.h"
 #include "../monitoring/monitor_state.h"
 #include "../utils/thread_pool.h"
+#include "push_notification_manager.h"
 
 class web_server {
  public:
-  web_server(monitor_config config, const std::map<std::string, std::shared_ptr<monitor_state>>& monitors, std::shared_ptr<thread_pool> pool = nullptr);
+  web_server(monitor_config config, const std::map<std::string, std::shared_ptr<monitor_state>>& monitors, std::shared_ptr<thread_pool> pool = nullptr, std::shared_ptr<push_notification_manager> push_manager = nullptr);
   ~web_server();
   void stop();
   void reload_html_template();
+
+  // Get push notification manager
+  [[nodiscard]] std::shared_ptr<push_notification_manager> get_push_manager() const { return push_manager_; }
 
  private:
   std::unique_ptr<httplib::Server> server_;
@@ -24,6 +28,7 @@ class web_server {
   monitor_config config_;  // Store by value instead of reference
   const std::map<std::string, std::shared_ptr<monitor_state>>& monitors_;
   std::shared_ptr<thread_pool> thread_pool_;
+  std::shared_ptr<push_notification_manager> push_manager_;
 
   // Cached values for performance
   mutable std::string cached_json_status_;
@@ -40,6 +45,8 @@ class web_server {
 
   void handle_status_request(const httplib::Request& req, httplib::Response& res) const;
   void handle_api_status_request(const httplib::Request& req, httplib::Response& res) const;
+  void handle_push_subscribe_request(const httplib::Request& req, httplib::Response& res);
+  void handle_push_unsubscribe_request(const httplib::Request& req, httplib::Response& res);
   void generate_static_html_page();
   std::string generate_json_status() const;
 

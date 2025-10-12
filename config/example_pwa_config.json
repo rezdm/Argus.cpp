@@ -1,0 +1,82 @@
+{
+  "name": "Argus Network Monitor",
+  "listen": "127.0.0.1:8080",
+  "cache_duration_seconds": 30,
+  "static_dir": "pwa",
+  "push_notifications": {
+    "enabled": true,
+    "vapid_subject": "mailto:your-email@example.com",
+    "vapid_public_key": "BEl62iUYgUivxIkv69yViEuiBIa-Ib37J8E4VWmJagtRxTWxvHI8SU2xFO8OxJON7vZf6Ip-j4xNK0T1wjxEQxY",
+    "vapid_private_key": "PUT_YOUR_PRIVATE_KEY_HERE"
+  },
+  "monitors": [
+    {
+      "sort": 1,
+      "group": "Web Services",
+      "destinations": [
+        {
+          "sort": 1,
+          "name": "Google",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 30,
+          "history": 100,
+          "test": {
+            "method": "URL",
+            "url": "https://www.google.com"
+          }
+        },
+        {
+          "sort": 2,
+          "name": "GitHub",
+          "timeout": 5000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 30,
+          "history": 100,
+          "test": {
+            "method": "URL",
+            "url": "https://github.com"
+          }
+        }
+      ]
+    },
+    {
+      "sort": 2,
+      "group": "Network Connectivity",
+      "destinations": [
+        {
+          "sort": 1,
+          "name": "DNS Server",
+          "timeout": 3000,
+          "warning": 2,
+          "failure": 3,
+          "reset": 2,
+          "interval": 60,
+          "history": 50,
+          "test": {
+            "method": "Ping",
+            "host": "8.8.8.8"
+          }
+        },
+        {
+          "sort": 2,
+          "name": "Local Router",
+          "timeout": 1000,
+          "warning": 3,
+          "failure": 5,
+          "reset": 3,
+          "interval": 30,
+          "history": 100,
+          "test": {
+            "method": "Ping",
+            "host": "192.168.1.1"
+          }
+        }
+      ]
+    }
+  ]
+}
