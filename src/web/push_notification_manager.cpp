@@ -196,11 +196,12 @@ bool push_notification_manager::send_web_push(const push_subscription& subscript
     client.set_read_timeout(10);
     client.set_write_timeout(10);
 
-    const httplib::Headers headers = {
+    httplib::Headers headers = {
       {"Content-Type", "application/octet-stream"},
       {"Content-Encoding", "aes128gcm"},
       {"TTL", "86400"},  // 24 hours
-      {"Authorization", "vapid t=" + jwt + ", k=" + config_.vapid_public_key}
+      {"Authorization", "WebPush " + jwt},
+      {"Crypto-Key", "p256ecdsa=" + config_.vapid_public_key}
     };
 
     auto res = client.Post(path, headers, reinterpret_cast<const char*>(body.data()), body.size(), "application/octet-stream");
