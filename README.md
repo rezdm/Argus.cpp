@@ -5,9 +5,14 @@ The original project was Java-based — [Argus](https://github.com/rezdm/Argus).
 
 I liked the result of the translation and decided to continue with the C++-based project.
 
+## Name
+[Argus](https://en.wikipedia.org/wiki/Argus_Panoptes) is a creature from Ancient Greek mythology. A may-eyed giant, serverd as a watchman to Hera (sister ofe of Zeus).
+
 ## Output
 The program exposes an endpoint and serves a static (configurable) HTML page:
 ![argus-dashboard-screenshot.png](argus-dashboard-screenshot.png)
+
+(UI changed since this screenshot was made -- there is now subscribe/unsubscribe buttons to support push notifications and a refresh button)
 
 ## Build
 * Generate build and prepare for installation
@@ -41,7 +46,7 @@ sudo setcap cap_net_raw+ep ./build/bin/argus
 
 (installation scripts should take care of this, but not tested)
 
-Install should also run on SysV, init.rc and Solaris SMF
+Install should also run on SysV, init.rc for FreeBSD and Solaris SMF -- see folder [services](https://github.com/rezdm/Argus.cpp/tree/main/services).
 
 ## Uninstall
 ```
@@ -73,6 +78,9 @@ argus -v debug argus.json                      # change log level
 ```
 
 ## PWA + notifications
+I found it most useful to "Add to Home Screen" on iPhone. In this case client side is running in a sandboxed instance of Safari, as a normal app. Most importantly, it receives notifications:
+![argus-notifications.jpg](argus-notifications.jpg)
+
 # Keys
 * Generate VAPID keys (private, public, pem and base64)
 * Place them to to back-end config
@@ -127,3 +135,7 @@ As is, ping. The tool tries to use raw sockets, ICMP sockets, than fallbacks to 
 * UDP send 0-length packet to host:port
 ### URL
 Perform HTTP GET, check for non-error response. If URL is https, does not check certificate validity
+
+## Improvements
+* As of now I rely on fronting/revers proxying for security. I'd like to introduce some security directly into the project
+* UI, etc
