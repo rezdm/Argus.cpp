@@ -147,10 +147,10 @@ class address_resolver {
   explicit address_resolver(std::unique_ptr<address_preference_strategy> strategy);
 
   // Resolve addresses according to the configured preference strategy
-  std::vector<resolved_address> resolve_with_preference(const std::string& host, int port, int socktype) const;
+  [[nodiscard]] std::vector<resolved_address> resolve_with_preference(const std::string& host, int port, int socktype) const;
 
   // Resolve with optimization for numeric IP addresses
-  std::vector<resolved_address> resolve_optimized(const std::string& host, int port, int socktype) const;
+  [[nodiscard]] std::vector<resolved_address> resolve_optimized(const std::string& host, int port, int socktype) const;
 
   // Get handlers in preference order
   [[nodiscard]] std::vector<std::unique_ptr<address_family_handler_base>> get_handlers_by_preference() const;

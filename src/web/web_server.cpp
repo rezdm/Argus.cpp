@@ -131,7 +131,7 @@ web_server::web_server(monitor_config config, const std::map<std::string, std::s
   }
 
   // Start server in a separate thread
-  server_thread_ = std::thread([this, host, port]() {
+  server_thread_ = std::thread([this, host, port] {
     spdlog::info("Argus web server starting on {}:{}", host, port);
     if (!server_->listen(host, port)) {
       spdlog::error("Failed to start web server on {}:{}", host, port);

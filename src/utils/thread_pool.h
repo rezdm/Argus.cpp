@@ -18,7 +18,7 @@ class thread_pool {
 
   // Submit a task and get a future for the result
   template <class F, class... Args>
-  auto enqueue(F&& f, Args&&... args) -> std::future<typename std::invoke_result_t<F, Args...>>;
+  auto enqueue(F&& f, Args&&... args) -> std::future<std::invoke_result_t<F, Args...>>;
 
   // Get current number of threads
   [[nodiscard]] size_t thread_count() const noexcept { return workers_.size(); }
@@ -44,7 +44,7 @@ class thread_pool {
 
 // Template implementation must be in header
 template <class F, class... Args>
-auto thread_pool::enqueue(F&& f, Args&&... args) -> std::future<typename std::invoke_result_t<F, Args...>> {
+auto thread_pool::enqueue(F&& f, Args&&... args) -> std::future<std::invoke_result_t<F, Args...>> {
   using return_type = std::invoke_result_t<F, Args...>;
 
   auto task = std::make_shared<std::packaged_task<return_type()>>(std::bind(std::forward<F>(f), std::forward<Args>(args)...));

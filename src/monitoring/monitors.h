@@ -10,7 +10,6 @@
 #include "../utils/async_scheduler.h"
 #include "../utils/thread_pool.h"
 #include "../web/push_notification_manager.h"
-#include "monitor_config_types.h"
 #include "monitor_state.h"
 
 class monitors {

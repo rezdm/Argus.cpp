@@ -6,7 +6,6 @@
 #include <chrono>
 #include <numeric>
 #include <utility>
-#include <utility>
 
 #include "../testers/network_test_ping.h"
 #include "monitor_config.h"

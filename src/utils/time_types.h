@@ -1,7 +1,6 @@
 #pragma once
 
 #include <chrono>
-#include <compare>
 
 // Strong type wrappers for time values to prevent mixing up different time units
 
