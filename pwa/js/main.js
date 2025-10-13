@@ -28,6 +28,9 @@ class ArgusApp {
       this.notifications = new ArgusNotifications(this.config);
       await this.notifications.registerServiceWorker();
 
+      // Setup service worker update checking
+      this.setupServiceWorkerUpdates();
+
       // Setup event listeners
       this.setupEventListeners();
 
@@ -42,6 +45,106 @@ class ArgusApp {
       console.error('Failed to initialize Argus Monitor:', error);
       this.ui?.showError('Failed to initialize application');
     }
+  }
+
+  /**
+   * Setup service worker update detection and auto-reload
+   */
+  async setupServiceWorkerUpdates() {
+    if (!('serviceWorker' in navigator)) {
+      return;
+    }
+
+    try {
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (!registration) {
+        return;
+      }
+
+      // Listen for service worker updates
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing;
+        console.log('[App] Service worker update found, installing...');
+
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            // New version available - prompt user to reload
+            console.log('[App] New version available, prompting user to reload');
+            this.promptForUpdate(newWorker);
+          }
+        });
+      });
+
+      // Check for updates periodically (every minute)
+      setInterval(() => {
+        console.log('[App] Checking for service worker updates...');
+        registration.update();
+      }, 60000);
+
+      // Check for updates immediately
+      registration.update();
+
+      console.log('[App] Service worker update checking enabled');
+    } catch (error) {
+      console.error('[App] Failed to setup service worker updates:', error);
+    }
+  }
+
+  /**
+   * Prompt user to reload the application for updates
+   */
+  promptForUpdate(newWorker) {
+    // Show update notification in UI
+    const updateBanner = document.createElement('div');
+    updateBanner.id = 'update-banner';
+    updateBanner.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: #2196F3;
+      color: white;
+      padding: 12px 20px;
+      text-align: center;
+      z-index: 10000;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    `;
+    updateBanner.innerHTML = `
+      <span style="margin-right: 15px;">A new version is available!</span>
+      <button id="update-reload-btn" style="
+        background: white;
+        color: #2196F3;
+        border: none;
+        padding: 6px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+        margin-right: 10px;
+      ">Reload Now</button>
+      <button id="update-dismiss-btn" style="
+        background: transparent;
+        color: white;
+        border: 1px solid white;
+        padding: 6px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+      ">Later</button>
+    `;
+
+    document.body.insertBefore(updateBanner, document.body.firstChild);
+
+    // Handle reload button
+    document.getElementById('update-reload-btn').addEventListener('click', () => {
+      // Tell service worker to skip waiting and activate immediately
+      newWorker.postMessage({ type: 'SKIP_WAITING' });
+      // Reload the page
+      window.location.reload();
+    });
+
+    // Handle dismiss button
+    document.getElementById('update-dismiss-btn').addEventListener('click', () => {
+      updateBanner.remove();
+    });
   }
 
   /**

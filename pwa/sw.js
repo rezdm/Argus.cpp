@@ -1,6 +1,8 @@
 // Service Worker for Argus Monitor PWA
-const CACHE_NAME = 'argus-monitor-v1';
-const RUNTIME_CACHE = 'argus-runtime-v1';
+// IMPORTANT: Increment this version number whenever you update any frontend files
+const VERSION = '1.0.1';
+const CACHE_NAME = `argus-monitor-v${VERSION}`;
+const RUNTIME_CACHE = `argus-runtime-v${VERSION}`;
 
 // Files to cache on installation
 const PRECACHE_URLS = [
