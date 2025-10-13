@@ -22,10 +22,12 @@ namespace {
 
 std::vector<uint8_t> build_webpush_context(const std::vector<uint8_t>& client_public_key,
                                           const std::vector<uint8_t>& server_public_key) {
-    std::vector<uint8_t> context;
-    context.reserve(13 + client_public_key.size() + server_public_key.size());
-
     const std::string label = "WebPush: info";
+    const size_t total_size = label.size() + 1 + client_public_key.size() + server_public_key.size();
+
+    std::vector<uint8_t> context;
+    context.reserve(total_size);
+
     context.insert(context.end(), label.begin(), label.end());
     context.push_back(0x00);
     context.insert(context.end(), client_public_key.begin(), client_public_key.end());

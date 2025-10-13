@@ -7,6 +7,8 @@
 #include <openssl/bio.h>
 #include <openssl/buffer.h>
 #include <openssl/err.h>
+#include <openssl/param_build.h>
+#include <openssl/core_names.h>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
 #include <cstring>
@@ -122,39 +124,35 @@ bool ecdh::generate_keypair(std::vector<uint8_t>& public_key, std::vector<uint8_
     }
     EVP_PKEY_CTX_free(pctx);
 
-    // Extract public key (uncompressed format: 0x04 || X || Y)
-    EC_KEY* ec_key = EVP_PKEY_get1_EC_KEY(pkey);
-    if (!ec_key) {
-        spdlog::error("Failed to get EC_KEY");
-        EVP_PKEY_free(pkey);
-        return false;
-    }
-
-    const EC_POINT* pub_point = EC_KEY_get0_public_key(ec_key);
-    const EC_GROUP* group = EC_KEY_get0_group(ec_key);
-
+    // Extract public key (uncompressed format: 0x04 || X || Y) using modern API
     public_key.resize(65);
-    const size_t pub_len = EC_POINT_point2oct(group, pub_point, POINT_CONVERSION_UNCOMPRESSED,
-                                         public_key.data(), public_key.size(), nullptr);
-    if (pub_len != 65) {
-        spdlog::error("Failed to export public key");
-        EC_KEY_free(ec_key);
+    size_t pub_len = 65;
+    if (EVP_PKEY_get_octet_string_param(pkey, OSSL_PKEY_PARAM_PUB_KEY,
+                                         public_key.data(), 65, &pub_len) != 1) {
+        spdlog::error("Failed to export public key, got {} bytes", pub_len);
         EVP_PKEY_free(pkey);
         return false;
     }
+    public_key.resize(pub_len);
 
-    // Extract private key (32 bytes)
-    const BIGNUM* priv_bn = EC_KEY_get0_private_key(ec_key);
-    private_key.resize(32);
-    const int priv_len = BN_bn2binpad(priv_bn, private_key.data(), 32);
-    if (priv_len != 32) {
+    // Extract private key (32 bytes) using modern API
+    BIGNUM* priv_bn = nullptr;
+    if (EVP_PKEY_get_bn_param(pkey, OSSL_PKEY_PARAM_PRIV_KEY, &priv_bn) != 1 || !priv_bn) {
         spdlog::error("Failed to export private key");
-        EC_KEY_free(ec_key);
         EVP_PKEY_free(pkey);
         return false;
     }
 
-    EC_KEY_free(ec_key);
+    private_key.resize(32);
+    const int bn_len = BN_bn2binpad(priv_bn, private_key.data(), 32);
+    BN_free(priv_bn);
+
+    if (bn_len != 32) {
+        spdlog::error("Failed to convert private key to binary: {} bytes", bn_len);
+        EVP_PKEY_free(pkey);
+        return false;
+    }
+
     EVP_PKEY_free(pkey);
     return true;
 }
@@ -169,51 +167,164 @@ bool ecdh::compute_shared_secret(
         return false;
     }
 
-    // Create EC_KEY from private key
-    EC_KEY* ec_key = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
-    if (!ec_key) {
-        spdlog::error("Failed to create EC_KEY");
+    // Build EVP_PKEY from private key using OSSL_PARAM_BLD (safer API)
+    BIGNUM* priv_bn = BN_bin2bn(private_key.data(), 32, nullptr);
+    if (!priv_bn) {
+        spdlog::error("Failed to create BIGNUM from private key");
         return false;
     }
 
-    BIGNUM* priv_bn = BN_bin2bn(private_key.data(), 32, nullptr);
-    if (!priv_bn || EC_KEY_set_private_key(ec_key, priv_bn) != 1) {
-        spdlog::error("Failed to set private key");
+    OSSL_PARAM_BLD* param_bld = OSSL_PARAM_BLD_new();
+    if (!param_bld) {
+        spdlog::error("Failed to create OSSL_PARAM_BLD");
         BN_free(priv_bn);
-        EC_KEY_free(ec_key);
         return false;
     }
+
+    if (!OSSL_PARAM_BLD_push_utf8_string(param_bld, OSSL_PKEY_PARAM_GROUP_NAME, "prime256v1", 0) ||
+        !OSSL_PARAM_BLD_push_BN(param_bld, OSSL_PKEY_PARAM_PRIV_KEY, priv_bn)) {
+        spdlog::error("Failed to build params");
+        OSSL_PARAM_BLD_free(param_bld);
+        BN_free(priv_bn);
+        return false;
+    }
+
+    OSSL_PARAM* params = OSSL_PARAM_BLD_to_param(param_bld);
+    OSSL_PARAM_BLD_free(param_bld);
     BN_free(priv_bn);
 
-    // Create EC_POINT from peer public key
-    const EC_GROUP* group = EC_KEY_get0_group(ec_key);
-    EC_POINT* peer_point = EC_POINT_new(group);
-    if (!peer_point) {
-        spdlog::error("Failed to create EC_POINT");
-        EC_KEY_free(ec_key);
+    if (!params) {
+        spdlog::error("Failed to convert param builder to params");
         return false;
     }
 
-    if (EC_POINT_oct2point(group, peer_point, peer_public_key.data(),
-                           peer_public_key.size(), nullptr) != 1) {
-        spdlog::error("Failed to parse peer public key");
-        EC_POINT_free(peer_point);
-        EC_KEY_free(ec_key);
+    EVP_PKEY_CTX* ctx = EVP_PKEY_CTX_new_from_name(nullptr, "EC", nullptr);
+    if (!ctx) {
+        spdlog::error("Failed to create EVP_PKEY_CTX");
+        OSSL_PARAM_free(params);
         return false;
     }
 
-    // Compute shared secret
-    shared_secret.resize(32);
-    int secret_len = ECDH_compute_key(shared_secret.data(), shared_secret.size(),
-                                       peer_point, ec_key, nullptr);
-
-    EC_POINT_free(peer_point);
-    EC_KEY_free(ec_key);
-
-    if (secret_len != 32) {
-        spdlog::error("ECDH computation failed: {}", secret_len);
+    if (EVP_PKEY_fromdata_init(ctx) <= 0) {
+        spdlog::error("Failed to init fromdata");
+        EVP_PKEY_CTX_free(ctx);
+        OSSL_PARAM_free(params);
         return false;
     }
+
+    EVP_PKEY* pkey = nullptr;
+    if (EVP_PKEY_fromdata(ctx, &pkey, EVP_PKEY_KEYPAIR, params) <= 0) {
+        spdlog::error("Failed to create EVP_PKEY from private key");
+        EVP_PKEY_CTX_free(ctx);
+        OSSL_PARAM_free(params);
+        return false;
+    }
+
+    EVP_PKEY_CTX_free(ctx);
+    OSSL_PARAM_free(params);
+
+    // Build peer EVP_PKEY from public key using OSSL_PARAM_BLD
+    OSSL_PARAM_BLD* peer_param_bld = OSSL_PARAM_BLD_new();
+    if (!peer_param_bld) {
+        spdlog::error("Failed to create peer OSSL_PARAM_BLD");
+        EVP_PKEY_free(pkey);
+        return false;
+    }
+
+    if (!OSSL_PARAM_BLD_push_utf8_string(peer_param_bld, OSSL_PKEY_PARAM_GROUP_NAME, "prime256v1", 0) ||
+        !OSSL_PARAM_BLD_push_octet_string(peer_param_bld, OSSL_PKEY_PARAM_PUB_KEY,
+                                           peer_public_key.data(), peer_public_key.size())) {
+        spdlog::error("Failed to build peer params");
+        OSSL_PARAM_BLD_free(peer_param_bld);
+        EVP_PKEY_free(pkey);
+        return false;
+    }
+
+    OSSL_PARAM* peer_params = OSSL_PARAM_BLD_to_param(peer_param_bld);
+    OSSL_PARAM_BLD_free(peer_param_bld);
+
+    if (!peer_params) {
+        spdlog::error("Failed to convert peer param builder to params");
+        EVP_PKEY_free(pkey);
+        return false;
+    }
+
+    EVP_PKEY_CTX* peer_ctx = EVP_PKEY_CTX_new_from_name(nullptr, "EC", nullptr);
+    if (!peer_ctx) {
+        spdlog::error("Failed to create peer EVP_PKEY_CTX");
+        OSSL_PARAM_free(peer_params);
+        EVP_PKEY_free(pkey);
+        return false;
+    }
+
+    if (EVP_PKEY_fromdata_init(peer_ctx) <= 0) {
+        spdlog::error("Failed to init peer fromdata");
+        EVP_PKEY_CTX_free(peer_ctx);
+        OSSL_PARAM_free(peer_params);
+        EVP_PKEY_free(pkey);
+        return false;
+    }
+
+    EVP_PKEY* peer_pkey = nullptr;
+    if (EVP_PKEY_fromdata(peer_ctx, &peer_pkey, EVP_PKEY_PUBLIC_KEY, peer_params) <= 0) {
+        spdlog::error("Failed to create peer EVP_PKEY from public key");
+        EVP_PKEY_CTX_free(peer_ctx);
+        OSSL_PARAM_free(peer_params);
+        EVP_PKEY_free(pkey);
+        return false;
+    }
+
+    EVP_PKEY_CTX_free(peer_ctx);
+    OSSL_PARAM_free(peer_params);
+
+    // Compute shared secret using EVP_PKEY_derive
+    EVP_PKEY_CTX* derive_ctx = EVP_PKEY_CTX_new(pkey, nullptr);
+    if (!derive_ctx) {
+        spdlog::error("Failed to create derive context");
+        EVP_PKEY_free(peer_pkey);
+        EVP_PKEY_free(pkey);
+        return false;
+    }
+
+    if (EVP_PKEY_derive_init(derive_ctx) <= 0) {
+        spdlog::error("Failed to init derive");
+        EVP_PKEY_CTX_free(derive_ctx);
+        EVP_PKEY_free(peer_pkey);
+        EVP_PKEY_free(pkey);
+        return false;
+    }
+
+    if (EVP_PKEY_derive_set_peer(derive_ctx, peer_pkey) <= 0) {
+        spdlog::error("Failed to set peer key");
+        EVP_PKEY_CTX_free(derive_ctx);
+        EVP_PKEY_free(peer_pkey);
+        EVP_PKEY_free(pkey);
+        return false;
+    }
+
+    size_t secret_len;
+    if (EVP_PKEY_derive(derive_ctx, nullptr, &secret_len) <= 0) {
+        spdlog::error("Failed to determine shared secret length");
+        EVP_PKEY_CTX_free(derive_ctx);
+        EVP_PKEY_free(peer_pkey);
+        EVP_PKEY_free(pkey);
+        return false;
+    }
+
+    shared_secret.resize(secret_len);
+    if (EVP_PKEY_derive(derive_ctx, shared_secret.data(), &secret_len) <= 0) {
+        spdlog::error("ECDH computation failed");
+        EVP_PKEY_CTX_free(derive_ctx);
+        EVP_PKEY_free(peer_pkey);
+        EVP_PKEY_free(pkey);
+        return false;
+    }
+
+    shared_secret.resize(secret_len);
+
+    EVP_PKEY_CTX_free(derive_ctx);
+    EVP_PKEY_free(peer_pkey);
+    EVP_PKEY_free(pkey);
 
     return true;
 }
@@ -442,16 +553,6 @@ bool aes_gcm::encrypt(
 // ============================================================================
 // ECDSA Implementation
 // ============================================================================
-static void log_last_openssl_error(const char* where) {
-    const unsigned long e = ERR_get_error();
-    if (e) {
-        char buf[256];
-        ERR_error_string_n(e, buf, sizeof(buf));
-        spdlog::error("{}: OpenSSL error: {}", where, buf);
-    } else {
-        spdlog::error("{}: OpenSSL error (none on stack)", where);
-    }
-}
 
 static std::vector<unsigned char> b64url_decode_strict(const std::string& s) {
     std::string t; t.reserve(s.size()+2);
@@ -466,42 +567,56 @@ static std::vector<unsigned char> b64url_decode_strict(const std::string& s) {
     return out;
 }
 
-static EVP_PKEY* make_p256_from_b64url_scalar_legacy(const std::string& priv_b64url) {
+static EVP_PKEY* make_p256_from_b64url_scalar_modern(const std::string& priv_b64url) {
     // 1) Decode Base64URL scalar and normalize to 32 bytes (big-endian)
     auto d = b64url_decode_strict(priv_b64url);
     if (d.empty() || d.size() > 32) return nullptr;
     if (d.size() < 32) d.insert(d.begin(), 32 - d.size(), 0x00);
 
-    // 2) Build EC_KEY for prime256v1
-    EC_KEY* ec = EC_KEY_new_by_curve_name(NID_X9_62_prime256v1);
-    if (!ec) return nullptr;
+    // 2) Build EVP_PKEY using OSSL_PARAM_BLD (safer API)
+    BIGNUM* bn = BN_bin2bn(d.data(), static_cast<int>(d.size()), nullptr);
+    if (!bn) return nullptr;
 
-    BIGNUM* bn = BN_bin2bn(d.data(), (int)d.size(), nullptr);
-    if (!bn) { EC_KEY_free(ec); return nullptr; }
-
-    if (EC_KEY_set_private_key(ec, bn) != 1) {
-        BN_clear_free(bn); EC_KEY_free(ec); return nullptr;
-    }
-
-    // Derive public key: pub = d * G
-    const EC_GROUP* group = EC_KEY_get0_group(ec);
-    EC_POINT* pub = EC_POINT_new(group);
-    if (!pub) { BN_clear_free(bn); EC_KEY_free(ec); return nullptr; }
-
-    if (EC_POINT_mul(group, pub, bn, nullptr, nullptr, nullptr) != 1 ||
-        EC_KEY_set_public_key(ec, pub) != 1) {
-        EC_POINT_free(pub); BN_clear_free(bn); EC_KEY_free(ec); return nullptr;
-        }
-    EC_POINT_free(pub);
-    BN_clear_free(bn);
-
-    EVP_PKEY* pkey = EVP_PKEY_new();
-    if (!pkey || EVP_PKEY_assign_EC_KEY(pkey, ec) != 1) {
-        if (pkey) EVP_PKEY_free(pkey);
-        EC_KEY_free(ec);
+    OSSL_PARAM_BLD* param_bld = OSSL_PARAM_BLD_new();
+    if (!param_bld) {
+        BN_clear_free(bn);
         return nullptr;
     }
-    // pkey now owns ec
+
+    if (!OSSL_PARAM_BLD_push_utf8_string(param_bld, OSSL_PKEY_PARAM_GROUP_NAME, "prime256v1", 0) ||
+        !OSSL_PARAM_BLD_push_BN(param_bld, OSSL_PKEY_PARAM_PRIV_KEY, bn)) {
+        OSSL_PARAM_BLD_free(param_bld);
+        BN_clear_free(bn);
+        return nullptr;
+    }
+
+    OSSL_PARAM* params = OSSL_PARAM_BLD_to_param(param_bld);
+    OSSL_PARAM_BLD_free(param_bld);
+    BN_clear_free(bn);
+
+    if (!params) return nullptr;
+
+    EVP_PKEY_CTX* ctx = EVP_PKEY_CTX_new_from_name(nullptr, "EC", nullptr);
+    if (!ctx) {
+        OSSL_PARAM_free(params);
+        return nullptr;
+    }
+
+    if (EVP_PKEY_fromdata_init(ctx) <= 0) {
+        EVP_PKEY_CTX_free(ctx);
+        OSSL_PARAM_free(params);
+        return nullptr;
+    }
+
+    EVP_PKEY* pkey = nullptr;
+    if (EVP_PKEY_fromdata(ctx, &pkey, EVP_PKEY_KEYPAIR, params) <= 0) {
+        EVP_PKEY_CTX_free(ctx);
+        OSSL_PARAM_free(params);
+        return nullptr;
+    }
+
+    EVP_PKEY_CTX_free(ctx);
+    OSSL_PARAM_free(params);
     return pkey;
 }
 
@@ -511,8 +626,8 @@ bool ecdsa::sign_es256(
     const std::string& private_key_pem,
     std::vector<uint8_t>& signature
 ) {
-    // Load private key from PEM
-    EVP_PKEY* pkey = make_p256_from_b64url_scalar_legacy(private_key_pem /* your b64url string */);
+    // Load private key from base64url-encoded scalar
+    EVP_PKEY* pkey = make_p256_from_b64url_scalar_modern(private_key_pem);
     if (!pkey) {
         spdlog::error("Failed to construct EC key from VAPID scalar");
         return false;
