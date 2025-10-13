@@ -82,7 +82,7 @@ I found it most useful to "Add to Home Screen" on iPhone. In this case client si
 # Keys
 * Generate VAPID keys (private, public, pem and base64)
 * Place them to to back-end config
-* Place to pwa/app.js (may be I implement later taking it from a separate file)
+* (no need to change front-end, it picks it up from a call to back-end)
 * I am using fronting Apache with reverse proxy:
 ```xml
 <VirtualHost *:443>
