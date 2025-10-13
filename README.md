@@ -1,5 +1,5 @@
 # Argus
-A network monitoring daemon that provides a quick overview of service availability via ICMP ping, TCP/UDP ports, or HTTP/HTTPS. 
+A network monitoring daemon that provides a quick overview of service availability via ICMP ping, TCP/UDP ports, HTTP/HTTPS, or just a command line with an expected exit value.
 
 The original project was Java-based — [Argus](https://github.com/rezdm/Argus). I worked on it as a playground to explore Java 25 features, and at some point needed AI help, and then decided... why not translate it to C++, back to the roots, so to speak.
 
@@ -160,4 +160,6 @@ Run a command. I use it to check for domain certificate expiration:
 * Make it possible to mark, through UI items to ignore; may be "ignore next x hours"; may be the whole group at once
 * Revise ping implementation
 * Make sure installation scripts are working across different init systems
+* Front-end should self-update when there is a change in .js/.css/.html/...
 * Open to any other suggestions
+
