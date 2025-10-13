@@ -17,16 +17,18 @@ class test_config {
   std::optional<std::string> url_;
   std::optional<std::string> proxy_;
   std::optional<std::string> host_;
+  std::optional<std::string> cmd_run_;
+  int cmd_expect_;
 
  public:
   // Constructors
-  test_config() : test_method_type_(test_method::ping), port_(-1) {}
+  test_config() : test_method_type_(test_method::ping), port_(-1), cmd_expect_(0) {}
 
-  explicit test_config(const test_method method) : test_method_type_(method), port_(-1) {}
+  explicit test_config(const test_method method) : test_method_type_(method), port_(-1), cmd_expect_(0) {}
 
-  test_config(const test_method method, protocol proto, const int port_val) : test_method_type_(method), protocol_type_(proto), port_(port_val) {}
+  test_config(const test_method method, protocol proto, const int port_val) : test_method_type_(method), protocol_type_(proto), port_(port_val), cmd_expect_(0) {}
 
-  test_config(const test_method method, const std::string& url_val) : test_method_type_(method), port_(-1), url_(url_val) {}
+  test_config(const test_method method, const std::string& url_val) : test_method_type_(method), port_(-1), url_(url_val), cmd_expect_(0) {}
 
   // Getters
   [[nodiscard]] test_method get_test_method() const { return test_method_type_; }
@@ -35,6 +37,8 @@ class test_config {
   [[nodiscard]] const std::optional<std::string>& get_url() const { return url_; }
   [[nodiscard]] const std::optional<std::string>& get_proxy() const { return proxy_; }
   [[nodiscard]] const std::optional<std::string>& get_host() const { return host_; }
+  [[nodiscard]] const std::optional<std::string>& get_cmd_run() const { return cmd_run_; }
+  [[nodiscard]] int get_cmd_expect() const { return cmd_expect_; }
 
   // Setters with validation
   void set_test_method(test_method method);
@@ -47,6 +51,9 @@ class test_config {
   void clear_proxy();
   void set_host(const std::string& host_val);
   void clear_host();
+  void set_cmd_run(const std::string& cmd_run_val);
+  void clear_cmd_run();
+  void set_cmd_expect(int expect_val);
 
   // Validation methods
   [[nodiscard]] bool is_valid() const;
@@ -77,6 +84,12 @@ class connect_test_validator final : public test_config_validator {
 };
 
 class url_test_validator final : public test_config_validator {
+ public:
+  [[nodiscard]] bool is_valid(const test_config& config) const override;
+  [[nodiscard]] std::string get_validation_error(const test_config& config) const override;
+};
+
+class cmd_test_validator final : public test_config_validator {
  public:
   [[nodiscard]] bool is_valid(const test_config& config) const override;
   [[nodiscard]] std::string get_validation_error(const test_config& config) const override;

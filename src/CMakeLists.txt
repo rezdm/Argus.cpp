@@ -96,6 +96,7 @@ set(ARGUS_SOURCES
     testers/network_test_ping.cpp
     testers/network_test_connect.cpp
     testers/network_test_url.cpp
+    testers/network_test_cmd.cpp
     testers/network_test_async.cpp
     testers/connection_tester.cpp
     testers/ping_tester.cpp
@@ -103,9 +104,9 @@ set(ARGUS_SOURCES
     network/http_client.cpp
     web/web_server.cpp
     web/push_notification_manager.cpp
-    web/crypto_utils.cpp
-    web/webpush_encryption.cpp
-    web/vapid_jwt.cpp
+    crypto/crypto_utils.cpp
+    crypto/webpush_encryption.cpp
+    crypto/vapid_jwt.cpp
     utils/thread_pool.cpp
     utils/async_scheduler.cpp
     utils/task_recovery_policy.cpp

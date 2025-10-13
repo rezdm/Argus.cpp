@@ -118,6 +118,14 @@ test_config monitor_config_loader::parse_test_config(const json& test_node) {
     config.set_host(test_node["host"].get<std::string>());
   }
 
+  if (test_node.contains("run")) {
+    config.set_cmd_run(test_node["run"].get<std::string>());
+  }
+
+  if (test_node.contains("expect")) {
+    config.set_cmd_expect(test_node["expect"].get<int>());
+  }
+
   return config;
 }
 
@@ -153,6 +161,8 @@ std::string to_string(const test_method method) {
       return "connect";
     case test_method::url:
       return "url";
+    case test_method::cmd:
+      return "cmd";
     default:
       throw std::invalid_argument("Unknown test method");
   }
@@ -191,6 +201,7 @@ test_method parse_test_method(const std::string& str) {
   if ("ping" == lower_str) return test_method::ping;
   if ("connect" == lower_str) return test_method::connect;
   if ("url" == lower_str) return test_method::url;
+  if ("cmd" == lower_str) return test_method::cmd;
 
   throw std::invalid_argument("Unknown test method: " + str);
 }

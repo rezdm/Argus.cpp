@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include "../monitoring/monitor_config.h"
+#include "network_test_cmd.h"
 #include "network_test_connect.h"
 #include "network_test_ping.h"
 #include "network_test_url.h"
@@ -17,6 +18,7 @@ void test_factory::initialize_default_tests() {
   test_implementations_[test_method::ping] = std::make_shared<network_test_ping>();
   test_implementations_[test_method::connect] = std::make_shared<network_test_connect>();
   test_implementations_[test_method::url] = std::make_shared<network_test_url>();
+  test_implementations_[test_method::cmd] = std::make_shared<network_test_cmd>();
 
   initialized_ = true;
 }

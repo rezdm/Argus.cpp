@@ -1,0 +1,249 @@
+/* Argus Monitor - Terminal Style CSS */
+
+/* Reset and base styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Courier New', 'Lucida Console', monospace;
+  margin: 10px;
+  background-color: #000;
+  color: #00ff00;
+  font-size: 12px;
+  line-height: 1.4;
+  text-shadow: 0 0 2px #00ff00;
+}
+
+/* Header */
+.header {
+  border: 2px solid #00ff00;
+  padding: 3px 10px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 0 10px #00ff00;
+}
+
+.header h3 {
+  margin: 0;
+  font-size: 13px;
+  color: #00ff00;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.header-actions {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.header .last-updated {
+  margin: 0;
+  font-size: 10px;
+  color: #006600;
+  letter-spacing: 1px;
+}
+
+/* Buttons */
+.btn {
+  background-color: #000;
+  color: #00ff00;
+  border: 1px solid #00ff00;
+  padding: 4px 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  box-shadow: none;
+  transition: none;
+  text-shadow: 0 0 2px #00ff00;
+}
+
+.btn:hover {
+  background-color: #001a00;
+  color: #00ff00;
+  box-shadow: none;
+}
+
+.btn:active {
+  background-color: #003300;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #000;
+  color: #006600;
+}
+
+.btn-refresh {
+  padding: 4px 6px;
+  min-width: 24px;
+}
+
+.btn-notify.subscribed {
+  background-color: #001a00;
+  color: #00ff00;
+  border: 1px solid #00ff00;
+}
+
+/* Groups */
+.group {
+  border: 1px solid #00ff00;
+  margin-bottom: 0;
+  background-color: #0a0a0a;
+}
+
+.group-header {
+  background-color: #003300;
+  color: #00ff00;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: bold;
+  border-bottom: 1px solid #00ff00;
+  letter-spacing: 1px;
+}
+
+/* Monitor table */
+.monitor-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  table-layout: fixed;
+}
+
+.monitor-table td {
+  padding: 3px 6px;
+  text-align: left;
+  border-bottom: 1px solid #003300;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.monitor-table th {
+  padding: 4px 6px;
+  text-align: left;
+  background-color: #003300;
+  color: #00ff00;
+  font-weight: bold;
+  border-top: 2px solid #00ff00;
+  border-bottom: 1px solid #00ff00;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+/* Fixed column widths for alignment */
+.monitor-table td:nth-child(1),
+.monitor-table th:nth-child(1) { width: 18%; }
+.monitor-table td:nth-child(2),
+.monitor-table th:nth-child(2) { width: 16%; }
+.monitor-table td:nth-child(3),
+.monitor-table th:nth-child(3) { width: 10%; }
+.monitor-table td:nth-child(4),
+.monitor-table th:nth-child(4) { width: 10%; }
+.monitor-table td:nth-child(5),
+.monitor-table th:nth-child(5) { width: 12%; }
+.monitor-table td:nth-child(6),
+.monitor-table th:nth-child(6) { width: 10%; }
+.monitor-table td:nth-child(7),
+.monitor-table th:nth-child(7) { width: 24%; }
+
+/* Status colors */
+.status-pending {
+  color: #666666;
+  font-weight: bold;
+  text-shadow: 0 0 1px #666666;
+}
+
+.status-ok {
+  color: #00ff00;
+  font-weight: bold;
+  text-shadow: 0 0 1px #00ff00;
+}
+
+.status-warning {
+  color: #ffff00;
+  font-weight: bold;
+  text-shadow: 0 0 1px #ffff00;
+}
+
+.status-error {
+  color: #ff0000;
+  font-weight: bold;
+  text-shadow: 0 0 1px #ff0000;
+}
+
+/* Last updated timestamp */
+.last-updated {
+  text-align: center;
+  margin-top: 15px;
+  color: #006600;
+  font-size: 10px;
+  letter-spacing: 1px;
+}
+
+/* Uptime bar */
+.uptime-bar {
+  width: 50px;
+  height: 10px;
+  background-color: #003300;
+  overflow: hidden;
+  position: relative;
+  display: inline-block;
+  margin-right: 3px;
+  vertical-align: middle;
+  border: 1px solid #00ff00;
+}
+
+.uptime-fill {
+  height: 100%;
+  background-color: #00ff00;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 5px #00ff00;
+}
+
+/* Loading and error states */
+.loading,
+.error {
+  text-align: center;
+  padding: 20px;
+  font-size: 12px;
+}
+
+.loading {
+  color: #006600;
+}
+
+.error {
+  color: #ff0000;
+  text-shadow: 0 0 3px #ff0000;
+}
+
+/* Footer table */
+.footer-header {
+  margin-top: 15px;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .monitor-table th:nth-child(n+5),
+  .monitor-table td:nth-child(n+5) {
+    display: none;
+  }
+
+  body {
+    margin: 5px;
+    font-size: 11px;
+  }
+
+  .btn {
+    font-size: 9px;
+    padding: 3px 6px;
+  }
+}

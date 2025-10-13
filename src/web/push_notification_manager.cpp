@@ -1,6 +1,6 @@
 #include "push_notification_manager.h"
-#include "webpush_encryption.h"
-#include "vapid_jwt.h"
+#include "../crypto/webpush_encryption.h"
+#include "../crypto/vapid_jwt.h"
 
 #include <spdlog/spdlog.h>
 

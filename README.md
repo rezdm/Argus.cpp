@@ -133,6 +133,11 @@ As is, ping. The tool tries to use raw sockets, ICMP sockets, than fallbacks to 
 * UDP send 0-length packet to host:port
 ### URL
 Perform HTTP GET, check for non-error response. If URL is https, does not check certificate validity
+### CMD
+Run a command. I use it to check for domain certificate expiration:
+```json
+{ "sort": 99, "name": "domain", "timeout": 3000, "warning": 2, "failure": 3, "reset": 2, "interval": 30, "history": 100, "test": { "method": "Cmd", "run": "DAYS=14 && echo | openssl s_client -servername www.example.com -connect www.example.com:443 2>/dev/null | openssl x509 -noout -checkend $(expr $DAYS \\* 86400)", "expect": 0 }}
+```
 
 ## Improvements
 * As of now I rely on fronting/revers proxying for security. I'd like to introduce some security directly into the project

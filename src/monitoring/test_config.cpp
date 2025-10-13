@@ -37,6 +37,19 @@ void test_config::set_host(const std::string& host_val) {
 
 void test_config::clear_host() { host_.reset(); }
 
+void test_config::set_cmd_run(const std::string& cmd_run_val) {
+  if (cmd_run_val.empty()) {
+    throw std::invalid_argument("Command cannot be empty");
+  }
+  cmd_run_ = cmd_run_val;
+}
+
+void test_config::clear_cmd_run() { cmd_run_.reset(); }
+
+void test_config::set_cmd_expect(const int expect_val) {
+  cmd_expect_ = expect_val;
+}
+
 std::unique_ptr<test_config_validator> test_config::get_validator() const {
   return test_config_validator_factory::create(test_method_type_);
 }
@@ -88,6 +101,17 @@ std::string url_test_validator::get_validation_error(const test_config& config) 
   return "Unknown validation error";
 }
 
+// Cmd Test Validator Implementation
+bool cmd_test_validator::is_valid(const test_config& config) const {
+  return config.get_cmd_run().has_value();
+}
+
+std::string cmd_test_validator::get_validation_error(const test_config& config) const {
+  if (is_valid(config)) return "";
+  if (!config.get_cmd_run().has_value()) return "Cmd test requires a command (run parameter)";
+  return "Unknown validation error";
+}
+
 // Factory Implementation
 std::unique_ptr<test_config_validator> test_config_validator_factory::create(const test_method method) {
   switch (method) {
@@ -97,6 +121,8 @@ std::unique_ptr<test_config_validator> test_config_validator_factory::create(con
       return std::make_unique<connect_test_validator>();
     case test_method::url:
       return std::make_unique<url_test_validator>();
+    case test_method::cmd:
+      return std::make_unique<cmd_test_validator>();
     default:
       throw std::invalid_argument("Unknown test method");
   }

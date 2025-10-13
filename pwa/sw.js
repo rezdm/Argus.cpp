@@ -6,8 +6,11 @@ const RUNTIME_CACHE = 'argus-runtime-v1';
 const PRECACHE_URLS = [
   './',
   './index.html',
-  './styles.css',
-  './app.js',
+  './style.css',
+  './js/config.js',
+  './js/ui.js',
+  './js/notifications.js',
+  './js/main.js',
   './manifest.json',
   './icons/icon-192x192.png',
   './icons/icon-512x512.png'

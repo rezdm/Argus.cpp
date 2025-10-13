@@ -1,7 +1,7 @@
 #pragma once
 
 // Core enums used across the system
-enum class test_method { ping, connect, url };
+enum class test_method { ping, connect, url, cmd };
 
 enum class protocol { tcp, udp };
 
