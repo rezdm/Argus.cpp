@@ -10,7 +10,7 @@ I liked the result of the translation and decided to continue with the C++-based
 
 ## Output
 The program exposes an endpoint and serves a static (configurable) HTML page:
-![argus-dashboard-screenshot.png](argus-dashboard-screenshot.png)
+![argus-screenshot.jpg](argus-screenshot.jpg)
 
 ## Build
 * Generate build and prepare for installation
