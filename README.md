@@ -79,6 +79,8 @@ argus -v debug argus.json                      # change log level
 I found it most useful to "Add to Home Screen" on iPhone. In this case client side is running in a sandboxed instance of Safari, as a normal app. Most importantly, it receives notifications:
 ![argus-notifications.jpg](argus-notifications.jpg)
 
+It is also possible to add testers to "ignore" state. In this case, testers will run, but push notifications will not be sent out. "Ignore" is set by user through UI with some expiration datetime. Default is current + 25h
+
 # Keys
 * Generate VAPID keys (private, public, pem and base64)
 * Place them to to back-end config
@@ -157,7 +159,7 @@ Run a command. I use it to check for domain certificate expiration:
 * As of now I rely on fronting/reverse proxying for security. I'd like to introduce some security directly into the project
 * UI, etc
 * libcrypto usage -- /me not like, it can be improved
-* Make it possible to mark, through UI items to ignore; may be "ignore next x hours"; may be the whole group at once
+* ~~Make it possible to mark, through UI items to ignore; may be "ignore next x hours"; may be the whole group at once~~ - done
 * Revise ping implementation
 * Make sure installation scripts are working across different init systems
 * Front-end should self-update when there is a change in .js/.css/.html/...
