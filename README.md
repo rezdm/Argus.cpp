@@ -156,12 +156,79 @@ Run a command. I use it to check for domain certificate expiration:
 ```
 
 ## Improvements
-* As of now I rely on fronting/reverse proxying for security. I'd like to introduce some security directly into the project
-* UI, etc
-* libcrypto usage -- /me not like, it can be improved
-* ~~Make it possible to mark, through UI items to ignore; may be "ignore next x hours"; may be the whole group at once~~ - done
-* Revise ping implementation
-* Make sure installation scripts are working across different init systems
-* Front-end should self-update when there is a change in .js/.css/.html/...
-* Open to any other suggestions
+This more or less a "mind map" of what I am consider doing, keeping in mind that initially this project was _just_ an application to ping 5-10 hosts and report to web. But as a Russian proverb sais "appetite arrives when one start eating", here's the list of potantial improvements.
 
+### Quick wins and/or easy to implement
+1. How to handle when back-end itself goes down
+1. May be revise UI
+   - I am not a front-end dev, just wanted something that looks as an old terminal, just in browser. Initially the project had a "template" setting in configuration and would basically pick up that .html to display a web page. I played with Claude to generate different UIs, but decided to stick with just one in the end.
+1. Make sure UI and service worker are self-updating
+1. Export button - download current status as JSON/CSV
+1. Bulk operations - select multiple tests to suppress/enable
+1. Last incident timestamp - show when each service last failed
+1. Service notes - add custom notes/descriptions per service
+1. Keyboard shortcuts - R to refresh, ? for help, etc.
+1. Browser notifications - even without push subscription
+1. Sound alerts - optional beep when status changes
+1. Compact view toggle - show more services on screen
+1. Auto-pause when inactive - save bandwidth
+1. Configuration backup - export/import full config
+### High impact
+1. Revise Ping implementation
+1. Alert channels and integrations: email, webhooks to Slack/Teams/Telegram/Discord/..., SMS, etc
+1. Maintenance Windows: alike suppressions, but something scheduled
+1. Historical data and visualization
+   - Store check results to disk/database (currently in-memory only)
+   - Add charts showing response time trends over hours/days
+   - Uptime reports (daily/weekly/monthly)
+   - Useful for long-term monitoring
+1. Authentication, multi-user support
+   - Currently relies on reverse proxy for authentication
+   - Add user accounts, login system and per-user notification preferences
+   - Role-based access (viewer, operator, admin)
+   - May be add public-facing status page with limited details and read-only mode
+1. Subscribe to updates per service
+
+### Medium Impact / Quality of Life
+1. Web-based configuration
+   - Allow change of configuration from UI
+   - Live reload of this configuration from UI (now it is ``kill -1 {pid}`` or with systemd
+1. Incident management
+   - Acknowledge alerts (stop notifying once someone is aware)
+   - Add notes/comments to incidents
+   - Track time to resolution
+   - Post-mortem templates
+1. Enhance test types
+   - If certain 'cmd' is found useful (e.g. domain certificate check, dns resolution) -- create dedicated test typ
+1. Alerting improvements
+   - Alert escalation (notify person B if person A doesn't ack in X minutes)
+   - Alert grouping (if 5+ services fail, send one "multiple failures" alert)
+   - On-call schedules and rotations
+   - Rate limiting (don't spam if flapping)
+1. Dashboard Enhancements
+   - Global status overview (X/Y services healthy)
+   - Group/service filtering and search
+   - Customizable dashboards per user
+   - Export data (CSV, JSON)
+   - Print-friendly views
+
+### Lower priority / nice to have
+1. Distributed Monitoring
+    - Might be bound with "How to handle when back-end itself goes down"
+    - Multiple monitoring agents in different locations
+    - Check from multiple regions
+    - Detect regional outages vs global
+1. Dependencies and relationships
+    - Define service dependencies (A depends on B)
+    - Show impact map (if B fails, A will also fail)
+    - Smart alerting based on root cause -- start with not report "warning", not sure how to deal with "pending"; also requires persisting status and history
+1. API and integrations
+    - RESTful API for external tools
+    - Integration with Prometheus/Grafana
+    - Export metrics in standard formats
+    - Plugin system for custom monitors -- I though initially of implementing testers as something "external" (when I started it as Java project), for C++ it is a bit more challenging
+1. Advanced features
+    - SLA tracking and compliance reporting
+    - Performance baselines and anomaly detection
+    - Predictive alerting (performance degrading)
+    - Multi-tenancy for managed service providers
