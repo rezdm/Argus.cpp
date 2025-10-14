@@ -136,7 +136,7 @@ class ArgusUI {
     const statusClass = this.getStatusClass(monitor.status);
     const uptimePercent = monitor.uptime_percent.toFixed(0);
     const lastCheck = monitor.last_check.split(' ')[1] || 'Never';
-    const details = monitor.details.substring(0, 20);
+    const details = monitor.details || 'N/A';
     const testId = monitor.id || '';
     const isChecked = this.selectedTests.has(testId) ? ' checked' : '';
     const isSuppressed = this.suppressedTests.has(testId);
