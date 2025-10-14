@@ -7,6 +7,8 @@
 #include <algorithm>
 #include <fstream>
 #include <httplib.h>
+#include <iomanip>
+#include <sstream>
 
 using argus::webpush_encryption;
 using argus::vapid_jwt;
@@ -314,5 +316,150 @@ bool push_notification_manager::save_subscriptions(const std::string& filepath) 
   } catch (const std::exception& e) {
     spdlog::error("Failed to save subscriptions: {}", e.what());
     return false;
+  }
+}
+
+bool push_notification_manager::send_notification_for_test(const std::string& test_id, const std::string& title, const std::string& body, const std::string& icon, const nlohmann::json& data) {
+  // Check if this test is suppressed
+  if (is_suppressed(test_id)) {
+    spdlog::debug("Notification suppressed for test: {}", test_id);
+    return false;
+  }
+
+  return send_notification(title, body, icon, data);
+}
+
+bool push_notification_manager::add_suppression(const std::string& test_id, const std::string& until_timestamp) {
+  std::lock_guard<std::mutex> lock(suppressions_mutex_);
+  suppressions_[test_id] = until_timestamp;
+  spdlog::info("Added notification suppression for test {} until {}", test_id, until_timestamp);
+  return true;
+}
+
+bool push_notification_manager::remove_suppression(const std::string& test_id) {
+  std::lock_guard<std::mutex> lock(suppressions_mutex_);
+  const auto it = suppressions_.find(test_id);
+  if (it != suppressions_.end()) {
+    suppressions_.erase(it);
+    spdlog::info("Removed notification suppression for test {}", test_id);
+    return true;
+  }
+  return false;
+}
+
+bool push_notification_manager::is_suppressed(const std::string& test_id) const {
+  std::lock_guard<std::mutex> lock(suppressions_mutex_);
+
+  const auto it = suppressions_.find(test_id);
+  if (it == suppressions_.end()) {
+    return false;
+  }
+
+  // Check if the suppression has expired
+  if (is_timestamp_past(it->second)) {
+    // Clean up expired suppression (note: this is const, so we can't modify)
+    // Will be cleaned up on next write operation
+    spdlog::debug("Suppression for test {} has expired", test_id);
+    return false;
+  }
+
+  return true;
+}
+
+nlohmann::json push_notification_manager::get_all_suppressions() const {
+  std::lock_guard<std::mutex> lock(suppressions_mutex_);
+  nlohmann::json result;
+
+  for (const auto& [test_id, until] : suppressions_) {
+    // Only include non-expired suppressions
+    if (!is_timestamp_past(until)) {
+      result[test_id] = until;
+    }
+  }
+
+  return result;
+}
+
+bool push_notification_manager::load_suppressions(const std::string& filepath) {
+  try {
+    std::ifstream file(filepath);
+    if (!file.is_open()) {
+      spdlog::debug("No suppression file found: {}", filepath);
+      return false;
+    }
+
+    nlohmann::json j;
+    file >> j;
+
+    std::lock_guard<std::mutex> lock(suppressions_mutex_);
+    suppressions_.clear();
+
+    if (j.contains("suppressions") && j["suppressions"].is_object()) {
+      for (auto& [test_id, until] : j["suppressions"].items()) {
+        if (until.is_string() && !is_timestamp_past(until.get<std::string>())) {
+          suppressions_[test_id] = until.get<std::string>();
+        }
+      }
+    }
+
+    spdlog::info("Loaded {} notification suppressions from {}", suppressions_.size(), filepath);
+    return true;
+
+  } catch (const std::exception& e) {
+    spdlog::error("Failed to load suppressions: {}", e.what());
+    return false;
+  }
+}
+
+bool push_notification_manager::save_suppressions(const std::string& filepath) const {
+  try {
+    nlohmann::json j;
+    j["suppressions"] = nlohmann::json::object();
+
+    {
+      std::lock_guard<std::mutex> lock(suppressions_mutex_);
+      for (const auto& [test_id, until] : suppressions_) {
+        // Only save non-expired suppressions
+        if (!is_timestamp_past(until)) {
+          j["suppressions"][test_id] = until;
+        }
+      }
+    }
+
+    std::ofstream file(filepath);
+    if (!file.is_open()) {
+      spdlog::error("Failed to open file for writing: {}", filepath);
+      return false;
+    }
+
+    file << j.dump(2);
+    spdlog::debug("Saved {} notification suppressions to {}", j["suppressions"].size(), filepath);
+    return true;
+
+  } catch (const std::exception& e) {
+    spdlog::error("Failed to save suppressions: {}", e.what());
+    return false;
+  }
+}
+
+bool push_notification_manager::is_timestamp_past(const std::string& timestamp) {
+  try {
+    // Parse ISO 8601 timestamp: "2025-10-15 09:00:00"
+    std::tm tm = {};
+    std::istringstream ss(timestamp);
+    ss >> std::get_time(&tm, "%Y-%m-%d %H:%M:%S");
+
+    if (ss.fail()) {
+      spdlog::warn("Failed to parse timestamp: {}", timestamp);
+      return true; // Treat invalid timestamps as expired
+    }
+
+    const auto suppression_time = std::chrono::system_clock::from_time_t(std::mktime(&tm));
+    const auto now = std::chrono::system_clock::now();
+
+    return now >= suppression_time;
+  } catch (const std::exception& e) {
+    spdlog::error("Error checking timestamp: {}", e.what());
+    return true; // Treat errors as expired
   }
 }

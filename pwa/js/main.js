@@ -8,6 +8,7 @@ class ArgusApp {
     this.config = null;
     this.ui = null;
     this.notifications = null;
+    this.suppressions = null;
     this.refreshInterval = null;
     this.updateIntervalMs = 30000; // 30 seconds
   }
@@ -27,6 +28,9 @@ class ArgusApp {
       // Initialize notifications
       this.notifications = new ArgusNotifications(this.config);
       await this.notifications.registerServiceWorker();
+
+      // Initialize suppressions manager
+      this.suppressions = new SuppressionsManager(this.config, this.ui);
 
       // Setup service worker update checking
       this.setupServiceWorkerUpdates();
@@ -163,6 +167,18 @@ class ArgusApp {
       notifyBtn.addEventListener('click', () => this.handleNotificationToggle());
     }
 
+    // Ignore button
+    const ignoreBtn = document.getElementById('ignore-btn');
+    if (ignoreBtn) {
+      ignoreBtn.addEventListener('click', () => this.handleIgnoreClick());
+    }
+
+    // Suppressions button
+    const suppressionsBtn = document.getElementById('suppressions-btn');
+    if (suppressionsBtn) {
+      suppressionsBtn.addEventListener('click', () => this.handleSuppressionsClick());
+    }
+
     // Handle visibility change to pause/resume updates
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
@@ -172,6 +188,20 @@ class ArgusApp {
         this.ui.updateMonitorData(); // Refresh immediately when page becomes visible
       }
     });
+  }
+
+  /**
+   * Handle ignore button click
+   */
+  handleIgnoreClick() {
+    this.suppressions.showSuppressionDialog();
+  }
+
+  /**
+   * Handle suppressions button click
+   */
+  handleSuppressionsClick() {
+    this.suppressions.showSuppressionsDialog();
   }
 
   /**

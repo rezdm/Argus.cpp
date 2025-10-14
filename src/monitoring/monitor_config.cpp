@@ -70,6 +70,15 @@ monitor_config monitor_config_loader::load_config(const std::string& config_path
       push_config.vapid_private_key = push_node.value("vapid_private_key", "");
       push_config.subscriptions_file = push_node.value("subscriptions_file", "push_subscriptions.json");
 
+      // Default suppressions file to be in same directory as subscriptions file
+      std::string default_suppressions_file = "push_suppressions.json";
+      if (push_config.subscriptions_file.find('/') != std::string::npos) {
+        // If subscriptions file has a path, use same directory for suppressions
+        size_t last_slash = push_config.subscriptions_file.find_last_of('/');
+        default_suppressions_file = push_config.subscriptions_file.substr(0, last_slash + 1) + "push_suppressions.json";
+      }
+      push_config.suppressions_file = push_node.value("suppressions_file", default_suppressions_file);
+
       if (!push_config.is_valid()) {
         spdlog::warn("Push notifications enabled but configuration is invalid: {}. Push notifications will be disabled.", push_config.get_validation_error());
         push_config.enabled = false;

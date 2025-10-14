@@ -191,9 +191,10 @@ void monitors::perform_test_async(const std::shared_ptr<monitor_state>& state) c
           }
 
           const std::string title = icon_emoji + " " + state->get_destination().get_name() + " - " + to_string(new_status);
-          spdlog::info("Triggering push notification for status change {} -> {}: {}",
-                      to_string(prev_status), to_string(new_status), title);
-          push_manager_->send_notification(title, notification_body, "./icons/icon-192x192.png");
+          const std::string test_id = state->get_unique_id();
+          spdlog::info("Triggering push notification for status change {} -> {}: {} (test_id: {})",
+                      to_string(prev_status), to_string(new_status), title, test_id);
+          push_manager_->send_notification_for_test(test_id, title, notification_body, "./icons/icon-192x192.png");
         } else if (!result.is_success() && monitor_status::ok != new_status) {
           // Log failures even without status change (with throttling)
           const int consecutive_failures = state->get_consecutive_failures();

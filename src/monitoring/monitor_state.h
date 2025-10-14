@@ -28,6 +28,9 @@ class monitor_state {
   const destination& get_destination() const { return destination_; }
   const group& get_group() const { return group_; }
 
+  // Unique ID for this test
+  [[nodiscard]] std::string get_unique_id() const;
+
   // Error recovery
   void reset_consecutive_counts();
 

@@ -26,8 +26,9 @@ web_server::web_server(monitor_config config, const std::map<std::string, std::s
   // If no push_manager provided, create one if enabled
   if (!push_manager_ && config_.get_push_config().enabled) {
     push_manager_ = std::make_shared<push_notification_manager>(config_.get_push_config());
-    // Load saved subscriptions
+    // Load saved subscriptions and suppressions
     push_manager_->load_subscriptions(config_.get_push_config().subscriptions_file);
+    push_manager_->load_suppressions(config_.get_push_config().suppressions_file);
   }
   // Initialize cached config name with fallback
   try {
@@ -101,6 +102,13 @@ web_server::web_server(monitor_config config, const std::map<std::string, std::s
 
   server_->Post(base_url_ + "/push/unsubscribe", [this](const httplib::Request& req, httplib::Response& res) { handle_push_unsubscribe_request(req, res); });
 
+  // Suppression management endpoints
+  server_->Post(base_url_ + "/push/suppress", [this](const httplib::Request& req, httplib::Response& res) { handle_push_suppress_request(req, res); });
+
+  server_->Post(base_url_ + "/push/unsuppress", [this](const httplib::Request& req, httplib::Response& res) { handle_push_unsuppress_request(req, res); });
+
+  server_->Get(base_url_ + "/push/suppressions", [this](const httplib::Request& req, httplib::Response& res) { handle_push_list_suppressions_request(req, res); });
+
   // Serve static files from configured directory
   // Mount PWA files at base_url (includes index.html, manifest.json, icons, sw.js, etc.)
   if (config_.get_static_dir().has_value() && !config_.get_static_dir()->empty()) {
@@ -164,9 +172,10 @@ web_server::web_server(monitor_config config, const std::map<std::string, std::s
 }
 
 web_server::~web_server() {
-  // Save push subscriptions before shutdown
+  // Save push subscriptions and suppressions before shutdown
   if (push_manager_) {
     push_manager_->save_subscriptions(config_.get_push_config().subscriptions_file);
+    push_manager_->save_suppressions(config_.get_push_config().suppressions_file);
   }
   stop();
 }
@@ -282,6 +291,7 @@ std::string web_server::generate_json_status() const {
           const std::string service_name = state->get_destination().get_name().empty() ? "Unknown Service" : state->get_destination().get_name();
 
           json monitor_obj;
+          monitor_obj["id"] = state->get_unique_id();
           monitor_obj["service"] = service_name;
           monitor_obj["host"] = host;
           monitor_obj["status"] = status_text;
@@ -441,6 +451,155 @@ void web_server::handle_push_unsubscribe_request(const httplib::Request& req, ht
     spdlog::error("Failed to process push unsubscribe request: {}", e.what());
     res.status = 400;
     res.set_content(R"({"error":"Invalid request data"})", "application/json");
+  }
+
+  res.set_header("Access-Control-Allow-Origin", "*");
+}
+
+void web_server::handle_push_suppress_request(const httplib::Request& req, httplib::Response& res) {
+  spdlog::debug("Push suppress request from {}", req.remote_addr);
+
+  if (!push_manager_ || !push_manager_->is_enabled()) {
+    res.status = 503;
+    res.set_content(R"({"error":"Push notifications are not enabled"})", "application/json");
+    return;
+  }
+
+  try {
+    const auto request_json = json::parse(req.body);
+
+    // Expecting: {"test_ids": ["1_group_0_test"], "until": "2025-10-15 09:00:00"}
+    if (!request_json.contains("test_ids") || !request_json.contains("until")) {
+      res.status = 400;
+      res.set_content(R"({"error":"Missing required fields: test_ids, until"})", "application/json");
+      res.set_header("Access-Control-Allow-Origin", "*");
+      return;
+    }
+
+    const auto test_ids = request_json["test_ids"];
+    const std::string until = request_json["until"].get<std::string>();
+
+    if (!test_ids.is_array()) {
+      res.status = 400;
+      res.set_content(R"({"error":"test_ids must be an array"})", "application/json");
+      res.set_header("Access-Control-Allow-Origin", "*");
+      return;
+    }
+
+    int success_count = 0;
+    for (const auto& test_id_json : test_ids) {
+      if (test_id_json.is_string()) {
+        const std::string test_id = test_id_json.get<std::string>();
+        if (push_manager_->add_suppression(test_id, until)) {
+          success_count++;
+        }
+      }
+    }
+
+    // Save suppressions to disk
+    push_manager_->save_suppressions(config_.get_push_config().suppressions_file);
+
+    json response;
+    response["success"] = true;
+    response["suppressed_count"] = success_count;
+    response["until"] = until;
+
+    res.status = 200;
+    res.set_content(response.dump(2), "application/json");
+    spdlog::info("Suppressed {} tests until {} from {}", success_count, until, req.remote_addr);
+
+  } catch (const std::exception& e) {
+    spdlog::error("Failed to process push suppress request: {}", e.what());
+    res.status = 400;
+    res.set_content(R"({"error":"Invalid request data"})", "application/json");
+  }
+
+  res.set_header("Access-Control-Allow-Origin", "*");
+}
+
+void web_server::handle_push_unsuppress_request(const httplib::Request& req, httplib::Response& res) {
+  spdlog::debug("Push unsuppress request from {}", req.remote_addr);
+
+  if (!push_manager_ || !push_manager_->is_enabled()) {
+    res.status = 503;
+    res.set_content(R"({"error":"Push notifications are not enabled"})", "application/json");
+    return;
+  }
+
+  try {
+    const auto request_json = json::parse(req.body);
+
+    // Expecting: {"test_ids": ["1_group_0_test"]}
+    if (!request_json.contains("test_ids")) {
+      res.status = 400;
+      res.set_content(R"({"error":"Missing required field: test_ids"})", "application/json");
+      res.set_header("Access-Control-Allow-Origin", "*");
+      return;
+    }
+
+    const auto test_ids = request_json["test_ids"];
+
+    if (!test_ids.is_array()) {
+      res.status = 400;
+      res.set_content(R"({"error":"test_ids must be an array"})", "application/json");
+      res.set_header("Access-Control-Allow-Origin", "*");
+      return;
+    }
+
+    int success_count = 0;
+    for (const auto& test_id_json : test_ids) {
+      if (test_id_json.is_string()) {
+        const std::string test_id = test_id_json.get<std::string>();
+        if (push_manager_->remove_suppression(test_id)) {
+          success_count++;
+        }
+      }
+    }
+
+    // Save suppressions to disk
+    push_manager_->save_suppressions(config_.get_push_config().suppressions_file);
+
+    json response;
+    response["success"] = true;
+    response["unsuppressed_count"] = success_count;
+
+    res.status = 200;
+    res.set_content(response.dump(2), "application/json");
+    spdlog::info("Unsuppressed {} tests from {}", success_count, req.remote_addr);
+
+  } catch (const std::exception& e) {
+    spdlog::error("Failed to process push unsuppress request: {}", e.what());
+    res.status = 400;
+    res.set_content(R"({"error":"Invalid request data"})", "application/json");
+  }
+
+  res.set_header("Access-Control-Allow-Origin", "*");
+}
+
+void web_server::handle_push_list_suppressions_request(const httplib::Request& req, httplib::Response& res) {
+  spdlog::debug("Push list suppressions request from {}", req.remote_addr);
+
+  if (!push_manager_ || !push_manager_->is_enabled()) {
+    res.status = 503;
+    res.set_content(R"({"error":"Push notifications are not enabled"})", "application/json");
+    res.set_header("Access-Control-Allow-Origin", "*");
+    return;
+  }
+
+  try {
+    const auto suppressions = push_manager_->get_all_suppressions();
+
+    json response;
+    response["suppressions"] = suppressions;
+
+    res.status = 200;
+    res.set_content(response.dump(2), "application/json");
+    spdlog::debug("Served suppressions list to {}", req.remote_addr);
+
+  } catch (const std::exception& e) {
+    spdlog::error("Failed to list suppressions: {}", e.what());
+    res.status = 500;
+    res.set_content(R"({"error":"Internal server error"})", "application/json");
   }
 
   res.set_header("Access-Control-Allow-Origin", "*");

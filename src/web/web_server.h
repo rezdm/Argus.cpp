@@ -47,6 +47,9 @@ class web_server {
   void handle_api_status_request(const httplib::Request& req, httplib::Response& res) const;
   void handle_push_subscribe_request(const httplib::Request& req, httplib::Response& res);
   void handle_push_unsubscribe_request(const httplib::Request& req, httplib::Response& res);
+  void handle_push_suppress_request(const httplib::Request& req, httplib::Response& res);
+  void handle_push_unsuppress_request(const httplib::Request& req, httplib::Response& res);
+  void handle_push_list_suppressions_request(const httplib::Request& req, httplib::Response& res);
   void generate_static_html_page();
   std::string generate_json_status() const;
 

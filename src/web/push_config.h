@@ -8,6 +8,7 @@ struct push_notification_config {
   std::string vapid_public_key;   // Base64-encoded VAPID public key
   std::string vapid_private_key;  // Base64-encoded VAPID private key
   std::string subscriptions_file = "push_subscriptions.json";  // Path to subscriptions file
+  std::string suppressions_file = "push_suppressions.json";    // Path to suppressions file
 
   [[nodiscard]] bool is_valid() const {
     if (!enabled) return true;  // Valid if disabled

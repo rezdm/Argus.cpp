@@ -93,6 +93,14 @@ std::string monitor_state::get_test_description() const { return test_descriptio
 
 std::shared_ptr<network_test> monitor_state::get_test_implementation() const { return test_implementation_; }
 
+std::string monitor_state::get_unique_id() const {
+  // Format: {group_sort}_{group_name}_{dest_sort}_{dest_name}
+  return std::to_string(group_.get_sort()) + "_" +
+         group_.get_group_name() + "_" +
+         std::to_string(destination_.get_sort()) + "_" +
+         destination_.get_name();
+}
+
 void monitor_state::reset_consecutive_counts() {
   std::lock_guard lock(mutex_);
   consecutive_failures_ = 0;
