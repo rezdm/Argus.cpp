@@ -162,6 +162,7 @@ This more or less a "mind map" of what I am consider doing, keeping in mind that
 1. How to handle when back-end itself goes down
 1. May be revise UI
    - I am not a front-end dev, just wanted something that looks as an old terminal, just in browser. Initially the project had a "template" setting in configuration and would basically pick up that .html to display a web page. I played with Claude to generate different UIs, but decided to stick with just one in the end.
+   - May be create a dedicated .ts project, also build it, mnost importantly minimize the output .js
 1. Make sure UI and service worker are self-updating
 1. Export button - download current status as JSON/CSV
 1. Bulk operations - select multiple tests to suppress/enable
