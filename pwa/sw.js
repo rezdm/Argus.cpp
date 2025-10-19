@@ -1,6 +1,6 @@
 // Service Worker for Argus Monitor PWA
 // IMPORTANT: Increment this version number whenever you update any frontend files
-const VERSION = '1.0.1';
+const VERSION = '1.0.2';
 const CACHE_NAME = `argus-monitor-v${VERSION}`;
 const RUNTIME_CACHE = `argus-runtime-v${VERSION}`;
 
@@ -196,7 +196,7 @@ self.addEventListener('notificationclick', (event) => {
         }
         // Open new window if none exists
         if (clients.openWindow) {
-          return clients.openWindow('/');
+          return clients.openWindow(self.registration.scope);
         }
       })
   );
@@ -207,7 +207,7 @@ self.addEventListener('sync', (event) => {
   console.log('[SW] Background sync:', event.tag);
   if (event.tag === 'sync-status') {
     event.waitUntil(
-      fetch('/status')
+      fetch(self.registration.scope + 'status')
         .then((response) => response.json())
         .then((data) => {
           console.log('[SW] Synced status data:', data);
